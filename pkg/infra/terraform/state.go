@@ -14,19 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package infra
+package terraform
 
-// path : contents
-type Assets map[string][]byte
+import (
+	"context"
 
-func (a Assets) ToDir(dirname string) error {
+	"github.com/pkg/errors"
+)
+
+func Outputs(tfFilePath string, terraformBinary string) error {
+	// TODO 解析tfstate文件，读取特定内容
+
+	tf, err := newTFExec(tfFilePath, terraformBinary)
+	if err != nil {
+		return err
+	}
+
+	tfoutput, err := tf.Output(context.Background())
+	if err != nil {
+		return errors.Wrap(err, "failed to read terraform state file")
+	}
+
+	outputs := make(map[string]interface{}, len(tfoutput))
+	for key, value := range tfoutput {
+		outputs[key] = value.Value
+	}
+
+	// TODO 解析outputs
+
 	return nil
-}
-
-func (a *Assets) Merge(b Assets) *Assets {
-	return a
-}
-
-type AssetsGenerator interface {
-	GenerateAssets() Assets
 }

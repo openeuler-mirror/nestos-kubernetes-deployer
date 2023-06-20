@@ -14,19 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package infra
+package terraform
 
-// path : contents
-type Assets map[string][]byte
-
-func (a Assets) ToDir(dirname string) error {
-	return nil
+type printfer struct {
 }
 
-func (a *Assets) Merge(b Assets) *Assets {
-	return a
+func newPrintfer() *printfer {
+	return &printfer{}
 }
 
-type AssetsGenerator interface {
-	GenerateAssets() Assets
+func (p *printfer) Printf(format string, ifs ...interface{}) {
 }
