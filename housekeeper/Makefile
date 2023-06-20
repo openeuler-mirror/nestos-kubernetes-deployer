@@ -13,6 +13,7 @@
 # limitations under the License.
 
 IMG_OPERATOR ?= housekeeper-operator:latest
+IMG_CONTROLLER ?= housekeeper-controller:latest
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
@@ -34,20 +35,23 @@ SHELL = /usr/bin/env bash -o pipefail
 
 ##@ Build
 .PHONY: all
-all: housekeeper-operator-manager 
-
+all: housekeeper-operator-manager housekeeper-controller-manager
 # Build binary
 housekeeper-operator-manager:
-	go build -o bin/housekeeper-operator-manager cmd/housekeeper-operator/main.go
+	go build -o bin/housekeeper-operator-manager operator/housekeeper-operator/main.go
+housekeeper-controller-manager:
+	go build -o bin/housekeeper-controller-manager operator/housekeeper-controller/main.go
 
 # Build the docker image
 .PHONY: docker-build
 docker-build:  ## Build docker image with the housekeeper-operator-manager.
 	docker build -t ${IMG_OPERATOR} .
+	docker build -t ${IMG_CONTROLLER} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the housekeeper-operator-manager.
 	docker push ${IMG_OPERATOR}
+	docker push ${IMG_CONTROLLER}
 
 # ##@ Development
 .PHONY: manifests

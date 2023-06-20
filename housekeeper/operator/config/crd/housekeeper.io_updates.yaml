@@ -36,12 +36,13 @@ spec:
             description: UpdateSpec defines the desired state of Update
             properties:
               kubeVersion:
+                description: 'The version used to upgrade k8s'
                 type: string
               osImageURL:
+                description: 'The image url used to upgrade OS'
                 type: string
               osVersion:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                  Important: Run "make" to regenerate code after modifying this file'
+                description: 'The version used to upgrade OS'
                 type: string
             required:
             - kubeVersion
