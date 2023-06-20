@@ -1,0 +1,14 @@
+layout:
+- go.kubebuilder.io/v3
+projectName: housekeeper
+repo: housekeeper.io
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  group: housekeeper.io
+  kind: Update
+  path: housekeeper.io/api/v1alpha1
+  version: v1alpha1
+version: "3"

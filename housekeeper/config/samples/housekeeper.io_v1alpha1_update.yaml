@@ -1,0 +1,8 @@
+apiVersion: housekeeper.io/v1alpha1
+kind: Update
+metadata:
+  name: update-sample
+spec:
+  osVersion: os.version
+  osImageURL: image.url
+  kubeVersion: kubernetes.version
