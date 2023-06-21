@@ -22,10 +22,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Outputs(tfFilePath string, terraformBinary string) error {
+func Outputs(workingDir string, terraformBinary string) error {
 	// TODO 解析tfstate文件，读取特定内容
 
-	tf, err := newTFExec(tfFilePath, terraformBinary)
+	tf, err := newTFExec(workingDir, terraformBinary)
 	if err != nil {
 		return err
 	}

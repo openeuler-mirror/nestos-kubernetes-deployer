@@ -18,60 +18,42 @@ package terraform
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/pkg/errors"
 )
 
-func newTFExec(tfFilePath string, terraformBinary string) (*tfexec.Terraform, error) {
-	tf, err := tfexec.NewTerraform(tfFilePath, terraformBinary)
+func newTFExec(workingDir string, terraformBinary string) (*tfexec.Terraform, error) {
+	execPath := filepath.Join(terraformBinary, "bin", "terraform")
+	tf, err := tfexec.NewTerraform(workingDir, execPath)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO 日志输出
-	// tf.SetStdout()
-	// tf.SetStderr()
-	// tf.SetLogger(newPrintfer())
+	// TODO 日志打印
+	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
+	tf.SetLogger(newPrintfer())
 
 	return tf, nil
 }
 
-// terraform init
-func tfInit(dir string, platform string, target string, terraformDir string, providers []prov.Provider) (err error) {
-	err = unpack(dir, platform, target)
-	if err != nil {
-		return errors.Wrap(err, "failed to unpack Terraform modules")
-	}
-
-	tf, err := newTFExec(dir, terraformDir)
-	if err != nil {
-		return errors.Wrap(err, "failed to create a new tfexec.")
-	}
-
-	// 如果想导入本地已有插件，需手动构建相应目录
-	// 如openstack插件所需目录为plugins/registry.terraform.io/terraform-provider-openstack/openstack/1.51.1/linux_arm64/terraform-provider-openstack_v1.51.1
-	return errors.Wrap(
-		tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, "plugins"))),
-		"failed doing terraform init.",
-	)
-}
-
 // terraform apply
-func tfApply(dir string, platform string, stage Stage, terraformDir string, applyOpts ...tfexec.ApplyOption) error {
-	if err := tfInit(dir, platform, stage.Name(), terraformDir, stage.Providers()); err != nil {
+func TFApply(workingDir string, platform string, stage Stage, terraformBinary string, applyOpts ...tfexec.ApplyOption) error {
+	if err := tfInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
 		return err
 	}
 
-	tf, err := newTFExec(dir, terraformDir)
+	tf, err := newTFExec(workingDir, terraformBinary)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
 	}
 
-	// TODO 日志输出
-	// tf.SetStdout()
-	// tf.SetStderr()
+	// TODO 日志打印
+	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
 	tf.SetLogger(newPrintfer())
 
 	err = tf.Apply(context.Background(), applyOpts...)
@@ -79,19 +61,19 @@ func tfApply(dir string, platform string, stage Stage, terraformDir string, appl
 }
 
 // terraform destroy
-func tfDestroy(dir string, platform string, stage Stage, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
-	if err := tfInit(dir, platform, stage.Name(), terraformDir, stage.Providers()); err != nil {
+func TFDestroy(workingDir string, platform string, stage Stage, terraformBinary string, destroyOpts ...tfexec.DestroyOption) error {
+	if err := tfInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
 		return err
 	}
 
-	tf, err := newTFExec(dir, terraformDir)
+	tf, err := newTFExec(workingDir, terraformBinary)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
 	}
 
-	// TODO 日志输出
-	// tf.SetStdout()
-	// tf.SetStderr()
+	// TODO 日志打印
+	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
 	tf.SetLogger(newPrintfer())
 
 	return errors.Wrap(
