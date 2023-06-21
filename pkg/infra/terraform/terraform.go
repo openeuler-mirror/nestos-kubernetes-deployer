@@ -78,8 +78,13 @@ func tfApply(dir string, platform string, stage Stage, terraformDir string, appl
 	return errors.Wrap(err, "failed to apply Terraform.")
 }
 
-func tfDestroy(tfFilePath string, terraformBinary string, extraOpts ...tfexec.DestroyOption) error {
-	tf, err := newTFExec(tfFilePath, terraformBinary)
+// terraform destroy
+func tfDestroy(dir string, platform string, stage Stage, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
+	if err := tfInit(dir, platform, stage.Name(), terraformDir, stage.Providers()); err != nil {
+		return err
+	}
+
+	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
 	}
@@ -89,6 +94,8 @@ func tfDestroy(tfFilePath string, terraformBinary string, extraOpts ...tfexec.De
 	// tf.SetStderr()
 	tf.SetLogger(newPrintfer())
 
-	err = tf.Destroy(context.Background(), extraOpts...)
-	return errors.Wrap(err, "failed to apply Terraform.")
+	return errors.Wrap(
+		tf.Destroy(context.Background(), destroyOpts...),
+		"failed doing terraform destroy.",
+	)
 }
