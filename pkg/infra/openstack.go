@@ -22,16 +22,14 @@ import (
 )
 
 type OpenstackDeployer struct {
-	tfFilePath      string
+	workingDir      string
+	platform        string
+	target          string
 	terraformBinary string
 }
 
-func (t OpenstackDeployer) Create(extraOpts ...tfexec.ApplyOption) error {
-	if err := terraform.Init(t.tfFilePath, t.terraformBinary); err != nil {
-		return err
-	}
-
-	applyErr := terraform.Apply(t.tfFilePath, t.terraformBinary, extraOpts...)
+func (t OpenstackDeployer) Create(applyOpts ...tfexec.ApplyOption) error {
+	applyErr := terraform.TFApply(t.workingDir, t.platform, t.target, t.terraformBinary, applyOpts)
 	if applyErr != nil {
 		return applyErr
 	}
@@ -39,12 +37,8 @@ func (t OpenstackDeployer) Create(extraOpts ...tfexec.ApplyOption) error {
 	return nil
 }
 
-func (t OpenstackDeployer) Destroy(extraOpts ...tfexec.DestroyOption) error {
-	if err := terraform.Init(t.tfFilePath, t.terraformBinary); err != nil {
-		return err
-	}
-
-	destroyErr := terraform.Destroy(t.tfFilePath, t.terraformBinary, extraOpts)
+func (t OpenstackDeployer) Destroy(destroyOpts ...tfexec.DestroyOption) error {
+	destroyErr := terraform.TFDestroy(t.workingDir, t.platform, t.target, t.terraformBinary, destroyOpts)
 	if destroyErr != nil {
 		return destroyErr
 	}
