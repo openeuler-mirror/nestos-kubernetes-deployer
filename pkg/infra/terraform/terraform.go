@@ -38,8 +38,14 @@ func newTFExec(tfFilePath string, terraformBinary string) (*tfexec.Terraform, er
 	return tf, nil
 }
 
-func Init(tfFilePath string, terraformBinary string) error {
-	tf, err := newTFExec(tfFilePath, terraformBinary)
+// terraform init
+func tfInit(dir string, platform string, target string, terraformDir string, providers []prov.Provider) (err error) {
+	err = unpack(dir, platform, target)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack Terraform modules")
+	}
+
+	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
 	}
@@ -47,12 +53,12 @@ func Init(tfFilePath string, terraformBinary string) error {
 	// 如果想导入本地已有插件，需手动构建相应目录
 	// 如openstack插件所需目录为plugins/registry.terraform.io/terraform-provider-openstack/openstack/1.51.1/linux_arm64/terraform-provider-openstack_v1.51.1
 	return errors.Wrap(
-		tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformBinary, "plugins"))),
+		tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, "plugins"))),
 		"failed doing terraform init.",
 	)
 }
 
-func Apply(tfFilePath string, terraformBinary string, extraOpts ...tfexec.ApplyOption) error {
+func tfApply(tfFilePath string, terraformBinary string, extraOpts ...tfexec.ApplyOption) error {
 	tf, err := newTFExec(tfFilePath, terraformBinary)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
@@ -67,7 +73,7 @@ func Apply(tfFilePath string, terraformBinary string, extraOpts ...tfexec.ApplyO
 	return errors.Wrap(err, "failed to apply Terraform.")
 }
 
-func Destroy(tfFilePath string, terraformBinary string, extraOpts ...tfexec.DestroyOption) error {
+func tfDestroy(tfFilePath string, terraformBinary string, extraOpts ...tfexec.DestroyOption) error {
 	tf, err := newTFExec(tfFilePath, terraformBinary)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
