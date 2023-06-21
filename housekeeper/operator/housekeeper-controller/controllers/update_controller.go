@@ -18,14 +18,18 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
 	housekeeperiov1alpha1 "housekeeper.io/operator/api/v1alpha1"
 	"housekeeper.io/pkg/common"
 	"housekeeper.io/pkg/connection"
+	"housekeeper.io/pkg/constants"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -71,7 +75,34 @@ func NewUpdateReconciler(mgr manager.Manager) *UpdateReconciler {
 
 func (r *UpdateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+	upInstance, nodeInstance := reqInstance(ctx, r, req.NamespacedName, r.HostName)
+	upgradeCluster := checkUpgrade(&nodeInstance, upInstance.Spec.OSVersion, upInstance.Spec.KubeVersion)
 	return common.RequeueAfter, nil
+}
+
+func reqInstance(ctx context.Context, r common.ReadWriterClient, name types.NamespacedName,
+	HostName string) (upInstance housekeeperiov1alpha1.Update, nodeInstance corev1.Node) {
+	if err := r.Get(ctx, name, &upInstance); err != nil {
+		logrus.Errorf("unable to fetch update instance: %v", err)
+		return
+	}
+	if err := r.Get(ctx, client.ObjectKey{Name: HostName}, &nodeInstance); err != nil {
+		logrus.Errorf("unable to fetch node instance: %v", err)
+		return
+	}
+	return
+}
+
+func checkUpgrade(node *corev1.Node, osVersionSpec string, kubeVersionSpec string) bool {
+	if len(kubeVersionSpec) > 0 {
+		labelKubeVersion := fmt.Sprintf("%s%s", constants.LabelKubeVersionPrefix, kubeVersionSpec)
+		if _, ok := node.Labels[labelKubeVersion]; ok {
+			return false
+		}
+	} else {
+		return node.Status.NodeInfo.OSImage != osVersionSpec
+	}
+	return true
 }
 
 // SetupWithManager sets up the controller with the Manager.
