@@ -22,6 +22,8 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
+	"github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,16 +33,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	housekeeperiov1alpha1 "housekeeper.io/api/v1alpha1"
-	"housekeeper.io/cmd/housekeeper-operator/controllers"
+	housekeeperiov1alpha1 "housekeeper.io/operator/api/v1alpha1"
+	"housekeeper.io/operator/housekeeper-operator/controllers"
 	"housekeeper.io/pkg/version"
 	//+kubebuilder:scaffold:imports
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -61,7 +60,7 @@ func main() {
 		HealthProbeBindAddress: "0",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		logrus.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
@@ -69,23 +68,22 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Update")
+		logrus.Error(err, "unable to create controller", "controller", "Update")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
+		logrus.Errorf("unable to set up health check: %v", err)
 		os.Exit(1)
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
+		logrus.Errorf("unable to set up ready check: %v", err)
 		os.Exit(1)
 	}
-
-	setupLog.WithValues("version: ", version.Version).Info("starting housekeeper-operator manager")
+	logrus.Infof("starting housekeeper-operator manager version:", version.Version)
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running housekeeper-operator manager")
+		logrus.Errorf("problem running housekeeper-operator manager: %v", err)
 		os.Exit(1)
 	}
 }

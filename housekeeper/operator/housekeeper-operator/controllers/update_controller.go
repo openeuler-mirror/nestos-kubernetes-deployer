@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golang/glog"
-	housekeeperiov1alpha1 "housekeeper.io/api/v1alpha1"
+	"github.com/sirupsen/logrus"
+	housekeeperiov1alpha1 "housekeeper.io/operator/api/v1alpha1"
 	"housekeeper.io/pkg/common"
 	"housekeeper.io/pkg/constants"
 
@@ -63,7 +63,8 @@ func (r *UpdateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	ctx = context.Background()
 	err := setLabels(ctx, r, req)
 	if err != nil {
-		return common.RequeueNow, fmt.Errorf("unable set nodes label: %v", err)
+		logrus.Errorf("unable set nodes label: %v", err)
+		return common.RequeueNow, err
 	}
 	return common.RequeueAfter, nil
 }
@@ -71,33 +72,40 @@ func (r *UpdateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func setLabels(ctx context.Context, r common.ReadWriterClient, req ctrl.Request) error {
 	reqUpgrade, err := labels.NewRequirement(constants.LabelUpgrading, selection.DoesNotExist, nil)
 	if err != nil {
-		return fmt.Errorf("unable to create upgrade label requirement: %v", err)
+		logrus.Errorf("unable to create upgrade label requirement: %v", err)
+		return err
 	}
 	reqMaster, err := labels.NewRequirement(constants.LabelMaster, selection.Exists, nil)
 	if err != nil {
-		return fmt.Errorf("unable to create master label requirement: %v", err)
+		logrus.Errorf("unable to create master label requirement: %v", err)
+		return err
 	}
 	reqNoMaster, err := labels.NewRequirement(constants.LabelMaster, selection.DoesNotExist, nil)
 	if err != nil {
-		return fmt.Errorf("unable to create non-master label requirement: %v", err)
+		logrus.Errorf("unable to create non-master label requirement: %v", err)
+		return err
 	}
 	masterNodes, err := getNodes(ctx, r, *reqUpgrade, *reqMaster)
 	if err != nil {
-		return fmt.Errorf("unable to get master node list: %v", err)
+		logrus.Errorf("unable to get master node list: %v", err)
+		return err
 	}
 	noMasterNodes, err := getNodes(ctx, r, *reqUpgrade, *reqNoMaster)
 	if err != nil {
-		return fmt.Errorf("unable to get non-master node list: %v", err)
+		logrus.Errorf("unable to get non-master node list: %v", err)
+		return err
 	}
 	upgradeCompleted, err := assignUpdated(ctx, r, masterNodes, req.NamespacedName)
 	if err != nil {
-		return fmt.Errorf("unabel to add the label of the master nodes: %v", err)
+		logrus.Errorf("unabel to add the label of the master nodes: %v", err)
+		return err
 	}
 	//Make sure the master upgrade is complete before start upgrading non-master nodes
 	if upgradeCompleted {
 		_, err := assignUpdated(ctx, r, noMasterNodes, req.NamespacedName)
 		if err != nil {
-			return fmt.Errorf("unabel to add the label of non-master nodes: %v", err)
+			logrus.Errorf("unabel to add the label of non-master nodes: %v", err)
+			return err
 		}
 	}
 	return nil
@@ -107,7 +115,8 @@ func getNodes(ctx context.Context, r common.ReadWriterClient, reqs ...labels.Req
 	var nodeList corev1.NodeList
 	opts := client.ListOptions{LabelSelector: labels.NewSelector().Add(reqs...)}
 	if err := r.List(ctx, &nodeList, &opts); err != nil {
-		return nil, fmt.Errorf("unable to list nodes with requirements: %v", err)
+		logrus.Errorf("unable to list nodes with requirements: %v", err)
+		return nil, err
 	}
 	return nodeList.Items, nil
 }
@@ -117,22 +126,23 @@ func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []co
 	var upInstance housekeeperiov1alpha1.Update
 	upgradeNum := -1
 	if err := r.Get(ctx, name, &upInstance); err != nil {
-		return false, fmt.Errorf("unable to get update Instance %v", err)
+		logrus.Errorf("unable to get update Instance %v", err)
+		return false, err
 	}
 	var (
 		kubeVersionSpec = upInstance.Spec.KubeVersion
 		osVersionSpec   = upInstance.Spec.OSVersion
 	)
-	// Add the label after kubernetes version upgrade
+	//labelKubeVersion added after kube version upgrade
 	labelKubeVersion := fmt.Sprintf("%s%s", constants.LabelKubeVersionPrefix, kubeVersionSpec)
-	if len(osVersionSpec) == 0 && len(kubeVersionSpec) == 0 {
-		glog.Info("the os version and kube version cannot be all empty")
+	if len(osVersionSpec) == 0 {
+		logrus.Warning("os version is required")
 		return false, nil
 	}
 	for _, node := range nodeList {
 		if len(kubeVersionSpec) > 0 {
 			if _, ok := node.Labels[labelKubeVersion]; ok {
-				glog.Infof("successfully upgraded the node: %s", node.Name)
+				logrus.Infof("successfully upgraded the node: %s", node.Name)
 				upgradeNum++
 				continue
 			}
@@ -143,7 +153,7 @@ func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []co
 		}
 		node.Labels[constants.LabelUpgrading] = ""
 		if err := r.Update(ctx, &node); err != nil {
-			glog.Errorf("unable to add %s label:%v", node.Name, err)
+			logrus.Errorf("unable to add %s label:%v", node.Name, err)
 		}
 	}
 	if len(kubeVersionSpec) == 0 {

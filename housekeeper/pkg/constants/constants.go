@@ -23,3 +23,10 @@ const (
 	// LabelMaster defines the label associated with master node.
 	LabelMaster = "node-role.kubernetes.io/master"
 )
+
+// socket file
+const (
+	SockDir  = "/run/housekeeper-daemon"
+	SockName = "housekeeper-daemon.sock"
+)
+
