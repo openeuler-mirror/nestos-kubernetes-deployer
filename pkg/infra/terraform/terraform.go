@@ -58,8 +58,13 @@ func tfInit(dir string, platform string, target string, terraformDir string, pro
 	)
 }
 
-func tfApply(tfFilePath string, terraformBinary string, extraOpts ...tfexec.ApplyOption) error {
-	tf, err := newTFExec(tfFilePath, terraformBinary)
+// terraform apply
+func tfApply(dir string, platform string, stage Stage, terraformDir string, applyOpts ...tfexec.ApplyOption) error {
+	if err := tfInit(dir, platform, stage.Name(), terraformDir, stage.Providers()); err != nil {
+		return err
+	}
+
+	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
 	}
@@ -69,7 +74,7 @@ func tfApply(tfFilePath string, terraformBinary string, extraOpts ...tfexec.Appl
 	// tf.SetStderr()
 	tf.SetLogger(newPrintfer())
 
-	err = tf.Apply(context.Background(), extraOpts...)
+	err = tf.Apply(context.Background(), applyOpts...)
 	return errors.Wrap(err, "failed to apply Terraform.")
 }
 
