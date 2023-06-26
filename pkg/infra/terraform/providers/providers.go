@@ -14,24 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package terraform
+package providers
 
-import (
-	"github.com/sirupsen/logrus"
+import "fmt"
+
+var (
+	OpenStack = provider("openstack")
 )
 
-type printfer struct {
-	logger *logrus.Logger
-	level  logrus.Level
+type Provider struct {
+	Name   string
+	Source string
 }
 
-func newPrintfer() *printfer {
-	return &printfer{
-		logger: logrus.StandardLogger(),
-		level:  logrus.DebugLevel,
+func provider(name string) Provider {
+	return Provider{
+		Name:   name,
+		Source: fmt.Sprintf("nkd/local/%s", name),
 	}
-}
-
-func (p *printfer) Printf(format string, ifs ...interface{}) {
-	p.logger.Logf(p.level, format, ifs...)
 }

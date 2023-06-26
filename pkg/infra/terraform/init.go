@@ -20,6 +20,7 @@ import (
 	"context"
 	"path/filepath"
 
+	prov "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/providers"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/openshift/installer/data"
 	"github.com/pkg/errors"
@@ -35,7 +36,7 @@ func unpack(workingDir string, platform string, target string) (err error) {
 }
 
 // terraform init
-func tfInit(workingDir string, platform string, target string, terraformBinary string, providers []prov.Provider) (err error) {
+func TFInit(workingDir string, platform string, target string, terraformBinary string, providers []prov.Provider) (err error) {
 	err = unpack(workingDir, platform, target)
 	if err != nil {
 		return errors.Wrap(err, "failed to unpack terraform modules")
