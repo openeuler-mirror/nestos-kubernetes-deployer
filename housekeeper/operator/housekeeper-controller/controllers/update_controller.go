@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/kubectl/pkg/drain"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -95,7 +96,16 @@ func (r *UpdateReconciler) upgradeNodes(ctx context.Context, upInstance *houseke
 		controlPlane = true
 	}
 	if _, ok := node.Labels[constants.LabelUpgrading]; ok {
-		//todo drain
+		drainer := &drain.Helper{
+			Ctx:                ctx,
+			Client:             r.KubeClientSet,
+			GracePeriodSeconds: -1,
+			Out:                os.Stdout,
+			ErrOut:             os.Stderr,
+		}
+		if err := drainNode(drainer, node); err != nil {
+			return err
+		}
 		pushInfo := &connection.PushInfo{
 			KubeVersion:  upInstance.Spec.KubeVersion,
 			OSImageURL:   upInstance.Spec.OSImageURL,
@@ -113,7 +123,17 @@ func (r *UpdateReconciler) upgradeNodes(ctx context.Context, upInstance *houseke
 func (r *UpdateReconciler) refreshNodes(ctx context.Context, upInstance *housekeeperiov1alpha1.Update, node *corev1.Node) error {
 	deleteLabel(ctx, r, node)
 	if node.Spec.Unschedulable {
-		//todo drain
+		drainer := &drain.Helper{
+			Ctx:                ctx,
+			Client:             r.KubeClientSet,
+			GracePeriodSeconds: -1,
+			Out:                os.Stdout,
+			ErrOut:             os.Stderr,
+		}
+		if err := drain.cordonOrUncordonNode(false, drainer, node); err != nil {
+			return err
+		}
+		logrus.Infof("uncordon successfully %s node", node.Name)
 	}
 	return nil
 }
@@ -125,6 +145,36 @@ func deleteLabel(ctx context.Context, r common.ReadWriterClient, node *corev1.No
 			logrus.Errorf("unable to delete %s node label: %w", node.Name, err)
 			return err
 		}
+	}
+	return nil
+}
+
+func cordonOrUncordonNode(desired bool, drainer *drain.Helper, node *corev1.Node) error {
+	carry := "cordon"
+	if !desired {
+		carry = "uncordon"
+	}
+	logrus.Info(node.Name, "initiating %s", carry)
+	if node.Spec.Unschedulable == desired {
+		return nil
+	}
+	err := drain.RunCordonOrUncordon(drainer, node, desired)
+	if err != nil {
+		return fmt.Errorf("failed to %s: %w", carry, err)
+	}
+	return nil
+}
+
+func drainNode(drainer *drain.Helper, node *corev1.Node) error {
+	logrus.Info(node.Name, "is cordoning")
+	// Perform cordon
+	if err := cordonOrUncordonNode(true, drainer, node); err != nil {
+		return fmt.Errorf("failed to cordon node %s: %v", node.Name, err)
+	}
+	// Attempt drain
+	logrus.Info(node.Name, "initiating drain")
+	if err := drain.RunNodeDrain(drainer, node.Name); err != nil {
+		return fmt.Errorf("unable to drain: %v", err)
 	}
 	return nil
 }
