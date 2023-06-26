@@ -16,22 +16,17 @@ limitations under the License.
 
 package terraform
 
-import (
-	"github.com/sirupsen/logrus"
-)
+import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/providers"
 
-type printfer struct {
-	logger *logrus.Logger
-	level  logrus.Level
-}
+type Stage interface {
+	Name() string
 
-func newPrintfer() *printfer {
-	return &printfer{
-		logger: logrus.StandardLogger(),
-		level:  logrus.DebugLevel,
-	}
-}
+	// terraform state file
+	StateFilename() string
 
-func (p *printfer) Printf(format string, ifs ...interface{}) {
-	p.logger.Logf(p.level, format, ifs...)
+	// outputs file
+	OutputsFilename() string
+
+	// the list of providers that are used for the stage
+	Providers() []providers.Provider
 }

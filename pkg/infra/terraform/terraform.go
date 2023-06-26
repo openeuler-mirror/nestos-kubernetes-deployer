@@ -22,7 +22,9 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"github.com/openshift/installer/pkg/lineprinter"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func newTFExec(workingDir string, terraformBinary string) (*tfexec.Terraform, error) {
@@ -32,9 +34,25 @@ func newTFExec(workingDir string, terraformBinary string) (*tfexec.Terraform, er
 		return nil, err
 	}
 
-	// TODO 日志打印
-	tf.SetStdout(os.Stdout)
-	tf.SetStderr(os.Stderr)
+	// If the log path is not set, terraform will not receive debug logs.
+	if path, ok := os.LookupEnv("TEREFORM_LOG_PATH"); ok {
+		if err := tf.SetLog(os.Getenv("TEREFORM_LOG")); err != nil {
+			logrus.Infof("Skipping setting terraform log levels: %v", err)
+		} else {
+			tf.SetLogCore(os.Getenv("TEREFORM_LOG_CORE"))         //nolint:errcheck
+			tf.SetLogProvider(os.Getenv("TEREFORM_LOG_PROVIDER")) //nolint:errcheck
+			tf.SetLogPath(path)                                   //nolint:errcheck
+		}
+	}
+
+	// Add terraform info logs to the installer log
+	lpPrint := &lineprinter.LinePrinter{Print: (&lineprinter.Trimmer{WrappedPrint: logrus.Print}).Print}
+	lpError := &lineprinter.LinePrinter{Print: (&lineprinter.Trimmer{WrappedPrint: logrus.Error}).Print}
+	defer lpPrint.Close()
+	defer lpError.Close()
+
+	tf.SetStdout(lpPrint)
+	tf.SetStderr(lpError)
 	tf.SetLogger(newPrintfer())
 
 	return tf, nil
@@ -42,7 +60,7 @@ func newTFExec(workingDir string, terraformBinary string) (*tfexec.Terraform, er
 
 // terraform apply
 func TFApply(workingDir string, platform string, stage Stage, terraformBinary string, applyOpts ...tfexec.ApplyOption) error {
-	if err := tfInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
+	if err := TFInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
 		return err
 	}
 
@@ -50,11 +68,6 @@ func TFApply(workingDir string, platform string, stage Stage, terraformBinary st
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
 	}
-
-	// TODO 日志打印
-	tf.SetStdout(os.Stdout)
-	tf.SetStderr(os.Stderr)
-	tf.SetLogger(newPrintfer())
 
 	err = tf.Apply(context.Background(), applyOpts...)
 	return errors.Wrap(err, "failed to apply Terraform.")
@@ -62,7 +75,7 @@ func TFApply(workingDir string, platform string, stage Stage, terraformBinary st
 
 // terraform destroy
 func TFDestroy(workingDir string, platform string, stage Stage, terraformBinary string, destroyOpts ...tfexec.DestroyOption) error {
-	if err := tfInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
+	if err := TFInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
 		return err
 	}
 
@@ -70,11 +83,6 @@ func TFDestroy(workingDir string, platform string, stage Stage, terraformBinary 
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec.")
 	}
-
-	// TODO 日志打印
-	tf.SetStdout(os.Stdout)
-	tf.SetStderr(os.Stderr)
-	tf.SetLogger(newPrintfer())
 
 	return errors.Wrap(
 		tf.Destroy(context.Background(), destroyOpts...),
