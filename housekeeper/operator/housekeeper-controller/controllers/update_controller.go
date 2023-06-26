@@ -75,9 +75,58 @@ func NewUpdateReconciler(mgr manager.Manager) *UpdateReconciler {
 
 func (r *UpdateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+	ctx = context.Background()
 	upInstance, nodeInstance := reqInstance(ctx, r, req.NamespacedName, r.HostName)
 	upgradeCluster := checkUpgrade(&nodeInstance, upInstance.Spec.OSVersion, upInstance.Spec.KubeVersion)
+	if upgradeCluster {
+		if err := r.upgradeNodes(ctx, &upInstance, &nodeInstance); err != nil {
+			return common.RequeueNow, err
+		}
+	} else {
+		r.refreshNodes(ctx, &upInstance, &nodeInstance)
+	}
 	return common.RequeueAfter, nil
+}
+
+func (r *UpdateReconciler) upgradeNodes(ctx context.Context, upInstance *housekeeperiov1alpha1.Update,
+	node *corev1.Node) error {
+	controlPlane := false
+	if _, ok := node.Labels[constants.LabelMaster]; ok {
+		controlPlane = true
+	}
+	if _, ok := node.Labels[constants.LabelUpgrading]; ok {
+		//todo drain
+		pushInfo := &connection.PushInfo{
+			KubeVersion:  upInstance.Spec.KubeVersion,
+			OSImageURL:   upInstance.Spec.OSImageURL,
+			OSVersion:    upInstance.Spec.OSVersion,
+			ControlPlane: controlPlane,
+		}
+		if err := r.Connection.UpgradeKubeSpec(pushInfo); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *UpdateReconciler) refreshNodes(ctx context.Context, upInstance *housekeeperiov1alpha1.Update, node *corev1.Node) error {
+	deleteLabel(ctx, r, node)
+	if node.Spec.Unschedulable {
+		//todo drain
+	}
+	return nil
+}
+
+func deleteLabel(ctx context.Context, r common.ReadWriterClient, node *corev1.Node) error {
+	if _, ok := node.Labels[constants.LabelUpgrading]; ok {
+		delete(node.Labels, constants.LabelUpgrading)
+		if err := r.Update(ctx, node); err != nil {
+			logrus.Errorf("unable to delete %s node label: %w", node.Name, err)
+			return err
+		}
+	}
+	return nil
 }
 
 func reqInstance(ctx context.Context, r common.ReadWriterClient, name types.NamespacedName,
