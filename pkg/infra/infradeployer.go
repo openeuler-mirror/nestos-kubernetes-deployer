@@ -16,8 +16,6 @@ limitations under the License.
 
 package infra
 
-import "github.com/hashicorp/terraform-exec/tfexec"
-
 type InfraSpec struct {
 	diskSize        string
 	memorySize      string
@@ -27,6 +25,4 @@ type InfraSpec struct {
 }
 
 type InfraDeployer interface {
-	Create(spec InfraSpec, config InitConfig, extraOpts ...tfexec.ApplyOption) error
-	Destroy(spec InfraSpec, config InitConfig, extraOpts ...tfexec.DestroyOption) error
 }
