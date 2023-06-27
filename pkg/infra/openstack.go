@@ -16,32 +16,14 @@ limitations under the License.
 
 package infra
 
-import (
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform"
-	"github.com/hashicorp/terraform-exec/tfexec"
-)
-
 type OpenstackDeployer struct {
-	workingDir      string
-	platform        string
-	target          string
-	terraformBinary string
 }
 
-func (t OpenstackDeployer) Create(applyOpts ...tfexec.ApplyOption) error {
-	applyErr := terraform.TFApply(t.workingDir, t.platform, t.target, t.terraformBinary, applyOpts)
-	if applyErr != nil {
-		return applyErr
-	}
-
+func (t OpenstackDeployer) Create() error {
 	return nil
 }
 
-func (t OpenstackDeployer) Destroy(destroyOpts ...tfexec.DestroyOption) error {
-	destroyErr := terraform.TFDestroy(t.workingDir, t.platform, t.target, t.terraformBinary, destroyOpts)
-	if destroyErr != nil {
-		return destroyErr
-	}
+func (t OpenstackDeployer) Destroy() error {
 
 	return nil
 }

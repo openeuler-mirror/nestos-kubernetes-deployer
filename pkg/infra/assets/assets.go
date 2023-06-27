@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package infra
+package assets
 
 // path : contents
 type Assets map[string][]byte
@@ -29,4 +29,9 @@ func (a *Assets) Merge(b Assets) *Assets {
 
 type AssetsGenerator interface {
 	GenerateAssets() Assets
+}
+
+type File struct {
+	Filename string
+	Data     []byte
 }

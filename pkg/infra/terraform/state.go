@@ -18,21 +18,23 @@ package terraform
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/pkg/errors"
 )
 
-func Outputs(workingDir string, terraformBinary string) error {
-	// TODO 解析tfstate文件，读取特定内容
+const StateFilename = "terraform.tfstate"
 
+// Reads the terraform state file.
+func Outputs(workingDir string, terraformBinary string) ([]byte, error) {
 	tf, err := newTFExec(workingDir, terraformBinary)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tfoutput, err := tf.Output(context.Background())
 	if err != nil {
-		return errors.Wrap(err, "failed to read terraform state file")
+		return nil, errors.Wrap(err, "failed to read terraform state file")
 	}
 
 	outputs := make(map[string]interface{}, len(tfoutput))
@@ -40,7 +42,10 @@ func Outputs(workingDir string, terraformBinary string) error {
 		outputs[key] = value.Value
 	}
 
-	// TODO 解析outputs
+	data, err := json.Marshal(outputs)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not marshal outputs")
+	}
 
-	return nil
+	return data, nil
 }
