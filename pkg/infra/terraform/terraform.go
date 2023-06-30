@@ -35,13 +35,13 @@ func newTFExec(workingDir string, terraformBinary string) (*tfexec.Terraform, er
 	}
 
 	// If the log path is not set, terraform will not receive debug logs.
-	if path, ok := os.LookupEnv("TEREFORM_LOG_PATH"); ok {
+	if logPath, ok := os.LookupEnv("TEREFORM_LOG_PATH"); ok {
 		if err := tf.SetLog(os.Getenv("TEREFORM_LOG")); err != nil {
 			logrus.Infof("Skipping setting terraform log levels: %v", err)
 		} else {
 			tf.SetLogCore(os.Getenv("TEREFORM_LOG_CORE"))         //nolint:errcheck
 			tf.SetLogProvider(os.Getenv("TEREFORM_LOG_PROVIDER")) //nolint:errcheck
-			tf.SetLogPath(path)                                   //nolint:errcheck
+			tf.SetLogPath(logPath)                                //nolint:errcheck
 		}
 	}
 
