@@ -4,18 +4,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	upgradeCommand = &cobra.Command{
-		Use:               "deploy [nodes]",
-		Short:             "deploy masters ",
-		Long:              "deploy cluster bootconfig for a new cluster",
-		RunE:              upgrade,
-		Args:              cobra.MaximumNArgs(1),
+func newUpgradeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "upgrade",
+		Short: "Upgrade your cluster to a newer version",
+		Long:  "",
+		RunE:  runUpgradeCmd,
 	}
-)
+	return cmd
+}
 
-
-func upgrade(command *cobra.Command, args []string) error{
-	println("deploy")
+func runUpgradeCmd(command *cobra.Command, args []string) error {
+	//todo: Upgrade k8s version function implementation
 	return nil
 }
