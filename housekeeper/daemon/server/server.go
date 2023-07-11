@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -45,7 +46,7 @@ type Server struct {
 func (s *Server) Upgrade(_ context.Context, req *pb.UpgradeRequest) (*pb.UpgradeResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
+	markFile := fmt.Sprintf("%s%s%s", "/var/housekeeper/", req.KubeVersion, ".stamp")
 	// upgrade os
 	if len(req.OsVersion) > 0 {
 		//Checking for os version
@@ -53,12 +54,20 @@ func (s *Server) Upgrade(_ context.Context, req *pb.UpgradeRequest) (*pb.Upgrade
 			return &pb.UpgradeResponse{}, err
 		}
 	}
+	if isFileExist(markFile) {
+		return &pb.UpgradeResponse{}, nil
+	}
 	// upgrade kubernetes
 	if len(req.KubeVersion) > 0 {
 		//Checking for kubernetes version
 		if err := checkKubeVersion(req); err != nil {
 			return &pb.UpgradeResponse{}, err
 		}
+	}
+	// todo: check upgrade successfully
+	if err := markNode(markFile); err != nil {
+		logrus.Errorf("failed to mark node: %v", err)
+		return &pb.UpgradeResponse{}, err
 	}
 	return &pb.UpgradeResponse{}, nil
 }
@@ -130,38 +139,85 @@ func upgradeOSVersion(req *pb.UpgradeRequest) error {
 func upgradeKubeVersion(req *pb.UpgradeRequest) error {
 	// todo: pull images before performing the upgrade
 	kubeVersion := req.KubeVersion
-	if req.ControlPlane {
-		if err := upgradeControlPlaneNode(kubeVersion); err != nil {
-			return fmt.Errorf("failed to upgrade master nodes: %v", err)
+	if ok, err := isControlPlaneNode(); err != nil {
+		return err
+	} else if ok {
+		if err = upgradeControlPlaneNode(kubeVersion); err != nil {
+			logrus.Errorf("failed to upgrade master nodes: %v", err)
+			return err
 		}
 	} else {
-		if err := upgradeNodes(); err != nil {
-			return fmt.Errorf("failed to upgrade worker nodes: %v", err)
+		if err = upgradeNodes(); err != nil {
+			logrus.Errorf("failed to upgrade worker nodes: %v", err)
+			return err
 		}
 	}
-	// todo: Mark upgrade complete
 	return nil
 }
 
 func upgradeControlPlaneNode(version string) error {
 	args := []string{"-c", upgradeControlPlaneCmd, version}
 	if err := exec.Command("/bin/sh", args...).Run(); err != nil {
-		return fmt.Errorf("failed to upgrade nodes: %w", err)
+		logrus.Errorf("failed to upgrade nodes: %w", err)
+		return err
 	}
 	if err := exec.Command("/bin/sh", "-c", kubeletUpdateCmd).Run(); err != nil {
-		return fmt.Errorf("failed to restart kubelet: %w", err)
+		logrus.Errorf("failed to restart kubelet: %w", err)
+		return err
 	}
 	return nil
 }
 
 func upgradeNodes() error {
 	if err := exec.Command("/bin/sh", "-c", upgradeNodesCmd).Run(); err != nil {
-		return fmt.Errorf("failed to upgrade nodes: %w", err)
+		logrus.Errorf("failed to upgrade nodes: %w", err)
+		return err
 	}
 	if err := exec.Command("/bin/sh", "-c", kubeletUpdateCmd).Run(); err != nil {
-		return fmt.Errorf("failed to restart kubelet: %w", err)
+		logrus.Errorf("failed to restart kubelet: %w", err)
+		return err
 	}
 	return nil
+}
+
+func isControlPlaneNode() (bool, error) {
+	if !isFileExist("/etc/kubernetes/admin.conf") {
+		return false, nil
+	}
+	ipArgs := []string{"-c", "ifconfig | grep 'inet' | grep 'broadcast'| awk '{print $2}'"}
+	ipAddress, err := runCmd("/bin/sh", ipArgs...)
+	if err != nil {
+		return false, err
+	}
+	adminArgs := []string{"-c", "cat /etc/kubernetes/admin.conf | grep 'server' |grep -E -o '([0-9]{1,3}.){3}[0-9]{1,3}'"}
+	ipControlPlane, err := runCmd("/bin/sh", adminArgs...)
+	if err != nil {
+		return false, err
+	}
+	return string(ipControlPlane) == string(ipAddress), nil
+}
+
+func markNode(file string) error {
+	if err := os.MkdirAll("/var/housekeeper", 0644); err != nil {
+		return err
+	}
+	args := []string{"-c", "touch", file}
+	_, err := runCmd("/bin/sh", args...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func isFileExist(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	if fileInfo.IsDir() {
+		return false
+	}
+	return true
 }
 
 func runCmd(name string, args ...string) ([]byte, error) {
