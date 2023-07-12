@@ -20,9 +20,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"io/ioutil"
-)
 
-const certpath = "/etc/kubernetes/pki/"
+	"github.com/sirupsen/logrus"
+)
 
 // CACertPEM 返回CA证书的PEM格式字节切片
 func (cm *CertificateManager) CACertPEM() []byte {
@@ -57,11 +57,27 @@ func (cm *CertificateManager) ComponentKeyPEM() []byte {
 }
 
 // SaveCertificateToFile 将证书保存到文件
-func SaveCertificateToFile(filename string, certPEM []byte) error {
-	return ioutil.WriteFile(certpath+filename, certPEM, 0644)
+func (cm *CertificateManager) SaveCertificateToFile(filename string, certPEM []byte) error {
+	err := ioutil.WriteFile(cm.CertDirectory+"/"+filename, certPEM, 0644)
+	if err != nil {
+		logrus.Errorf("Faile to save %s: %v", filename, err)
+		return err
+	}
+
+	logrus.Infof("Successfully saved %s", filename)
+
+	return nil
 }
 
 // SavePrivateKeyToFile 将私钥保存到文件
-func SavePrivateKeyToFile(filename string, keyPEM []byte) error {
-	return ioutil.WriteFile(certpath+filename, keyPEM, 0600)
+func (cm *CertificateManager) SavePrivateKeyToFile(filename string, keyPEM []byte) error {
+	err := ioutil.WriteFile(cm.CertDirectory+"/"+filename, keyPEM, 0600)
+	if err != nil {
+		logrus.Errorf("Faile to save %s: %v", filename, err)
+		return err
+	}
+
+	logrus.Infof("Successfully saved %s", filename)
+
+	return nil
 }

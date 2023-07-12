@@ -23,6 +23,8 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func (cm *CertificateManager) GenerateCACertificate() error {
@@ -31,6 +33,7 @@ func (cm *CertificateManager) GenerateCACertificate() error {
 	var err error
 	cm.CAKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
+		logrus.Errorf("Failed to generate CA privatekey: %v", err)
 		return err
 	}
 	caPublicKey := &cm.CACert.PublicKey
@@ -39,6 +42,7 @@ func (cm *CertificateManager) GenerateCACertificate() error {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
+		logrus.Errorf("Failed to generate serialNumber: %v", err)
 		return err
 	}
 	now := time.Now()
@@ -61,14 +65,16 @@ func (cm *CertificateManager) GenerateCACertificate() error {
 	//caCertBytes是生成证书的中间步骤，它用于将证书的二进制表示存储在内存中，以便后续操作可以使用它
 	caCertBytes, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, caPublicKey, cm.CAKey)
 	if err != nil {
+		logrus.Errorf("Failed to create CA Certificate(caCertBytes): %v", err)
 		return err
 	}
 	//cm.CACert表示已经生成的CA证书，用于存储CA证书的详细信息，例如证书序列号、主题、有效期等
 	cm.CACert, err = x509.ParseCertificate(caCertBytes)
 	if err != nil {
+		logrus.Errorf("Failed to parse CA Certificate: %v", err)
 		return err
 	}
-
+	logrus.Infof("Successfully generate CA certificate")
 	return nil
 
 }

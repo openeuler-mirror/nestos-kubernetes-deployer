@@ -33,4 +33,5 @@ type CertificateManager struct {
 	ComponentKey  *rsa.PrivateKey
 	ComponentCert *x509.Certificate
 	ValidDays     int
+	CertDirectory string
 }
