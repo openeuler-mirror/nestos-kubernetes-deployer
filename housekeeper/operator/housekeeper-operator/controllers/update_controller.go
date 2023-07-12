@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	housekeeperiov1alpha1 "housekeeper.io/operator/api/v1alpha1"
@@ -124,30 +123,34 @@ func getNodes(ctx context.Context, r common.ReadWriterClient, reqs ...labels.Req
 // Add the label to nodes
 func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []corev1.Node, name types.NamespacedName) (bool, error) {
 	var upInstance housekeeperiov1alpha1.Update
-	upgradeNum := -1
 	if err := r.Get(ctx, name, &upInstance); err != nil {
 		logrus.Errorf("unable to get update Instance %v", err)
 		return false, err
 	}
 	var (
+		upgradeNum      = -1
 		kubeVersionSpec = upInstance.Spec.KubeVersion
 		osVersionSpec   = upInstance.Spec.OSVersion
 	)
-	//labelKubeVersion added after kube version upgrade
-	labelKubeVersion := fmt.Sprintf("%s%s", constants.LabelKubeVersionPrefix, kubeVersionSpec)
 	if len(osVersionSpec) == 0 {
 		logrus.Warning("os version is required")
 		return false, nil
 	}
 	for _, node := range nodeList {
+		var (
+			kubeProxyVersion = node.Status.NodeInfo.KubeProxyVersion
+			kubeletVersion   = node.Status.NodeInfo.KubeletVersion
+			osVersion        = node.Status.NodeInfo.OSImage
+		)
 		if len(kubeVersionSpec) > 0 {
-			if _, ok := node.Labels[labelKubeVersion]; ok {
+			//If kube-proxy, kubelet are the same as the version to be upgraded k8s, then k8s is successfully upgraded
+			if kubeVersionSpec == kubeProxyVersion && kubeVersionSpec == kubeletVersion {
 				logrus.Infof("successfully upgraded the node: %s", node.Name)
 				upgradeNum++
 				continue
 			}
 		} else {
-			if osVersionSpec == node.Status.NodeInfo.OSImage {
+			if osVersionSpec == osVersion {
 				continue
 			}
 		}
