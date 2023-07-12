@@ -23,6 +23,8 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // 使用CA证书和私钥生成组件证书和私钥
@@ -32,6 +34,7 @@ func (cm *CertificateManager) GenerateComponentCertificate(componentName string)
 	var err error
 	cm.ComponentKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
+		logrus.Errorf("Failed to generate %s privatekey: %v", componentName, err)
 		return err
 	}
 	componentPublicKey := &cm.ComponentKey.PublicKey
@@ -40,6 +43,7 @@ func (cm *CertificateManager) GenerateComponentCertificate(componentName string)
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
+		logrus.Errorf("Failed to generate %s serialNumber: %v", componentName, err)
 		return err
 	}
 	now := time.Now()
@@ -57,13 +61,16 @@ func (cm *CertificateManager) GenerateComponentCertificate(componentName string)
 	// 使用CA证书和私钥生成组件证书
 	componentCertBytes, err := x509.CreateCertificate(rand.Reader, componentTemplate, cm.CACert, componentPublicKey, cm.CAKey)
 	if err != nil {
+		logrus.Errorf("Failed to create %s Certificate(caCertBytes): %v", componentName, err)
 		return err
 	}
 
 	cm.ComponentCert, err = x509.ParseCertificate(componentCertBytes)
 	if err != nil {
+		logrus.Errorf("Failed to parse %s Certificate: %v", componentName, err)
 		return err
 	}
 
+	logrus.Infof("Successfully generate %s certificate", componentName)
 	return nil
 }
