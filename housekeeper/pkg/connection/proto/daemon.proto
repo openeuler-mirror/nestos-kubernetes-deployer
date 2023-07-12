@@ -28,7 +28,6 @@ message UpgradeRequest {
   string kube_version = 1;
   string os_image_url = 2;
   string os_version = 3;
-  bool control_plane = 4;
 }
 
 message UpgradeResponse {

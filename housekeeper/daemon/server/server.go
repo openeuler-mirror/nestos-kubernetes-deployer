@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"housekeeper.io/pkg/common"
 	pb "housekeeper.io/pkg/connection/proto"
 	utilVersion "k8s.io/apimachinery/pkg/util/version"
 )
@@ -54,7 +55,7 @@ func (s *Server) Upgrade(_ context.Context, req *pb.UpgradeRequest) (*pb.Upgrade
 			return &pb.UpgradeResponse{}, err
 		}
 	}
-	if isFileExist(markFile) {
+	if common.IsFileExist(markFile) {
 		return &pb.UpgradeResponse{}, nil
 	}
 	// upgrade kubernetes
@@ -181,7 +182,7 @@ func upgradeNodes() error {
 }
 
 func isControlPlaneNode() (bool, error) {
-	if !isFileExist("/etc/kubernetes/admin.conf") {
+	if !common.IsFileExist("/etc/kubernetes/admin.conf") {
 		return false, nil
 	}
 	ipArgs := []string{"-c", "ifconfig | grep 'inet' | grep 'broadcast'| awk '{print $2}'"}
@@ -207,17 +208,6 @@ func markNode(file string) error {
 		return err
 	}
 	return nil
-}
-
-func isFileExist(path string) bool {
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	if fileInfo.IsDir() {
-		return false
-	}
-	return true
 }
 
 func runCmd(name string, args ...string) ([]byte, error) {

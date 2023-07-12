@@ -18,8 +18,6 @@ package constants
 const (
 	// LabelUpgrading is the key of the upgrading label for nodes
 	LabelUpgrading = "upgrade.housekeeper.io/upgrading"
-	// LabelKubeVersionPrefix defines the label associated with kubernetes version
-	LabelKubeVersionPrefix = "upgrade.kubernetes.version.io/"
 	// LabelMaster defines the label associated with master node.
 	LabelMaster = "node-role.kubernetes.io/master"
 )
@@ -29,4 +27,3 @@ const (
 	SockDir  = "/run/housekeeper-daemon"
 	SockName = "housekeeper-daemon.sock"
 )
-
