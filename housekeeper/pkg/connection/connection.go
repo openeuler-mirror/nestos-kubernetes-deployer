@@ -32,10 +32,9 @@ type Client struct {
 }
 
 type PushInfo struct {
-	OSImageURL   string
-	OSVersion    string
-	KubeVersion  string
-	ControlPlane bool
+	OSImageURL  string
+	OSVersion   string
+	KubeVersion string
 }
 
 // Create a grpc channel
@@ -58,10 +57,9 @@ func New(socketAddr string) (*Client, error) {
 func (c *Client) UpgradeKubeSpec(pushInfo *PushInfo) error {
 	_, err := c.client.Upgrade(context.Background(),
 		&pb.UpgradeRequest{
-			KubeVersion:  pushInfo.KubeVersion,
-			OsImageUrl:   pushInfo.OSImageURL,
-			OsVersion:    pushInfo.OSVersion,
-			ControlPlane: pushInfo.ControlPlane,
+			KubeVersion: pushInfo.KubeVersion,
+			OsImageUrl:  pushInfo.OSImageURL,
+			OsVersion:   pushInfo.OSVersion,
 		})
 	return err
 }

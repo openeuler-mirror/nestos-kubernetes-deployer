@@ -16,6 +16,7 @@ limitations under the License.
 package common
 
 import (
+	"os"
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,3 +37,14 @@ var (
 	RequeueNow   = ctrl.Result{Requeue: true}
 	RequeueAfter = ctrl.Result{Requeue: true, RequeueAfter: time.Second * 20}
 )
+
+func IsFileExist(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	if fileInfo.IsDir() {
+		return false
+	}
+	return true
+}
