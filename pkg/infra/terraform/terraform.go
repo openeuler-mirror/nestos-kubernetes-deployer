@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/openshift/installer/pkg/lineprinter"
@@ -27,21 +28,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func newTFExec(workingDir string, terraformBinary string) (*tfexec.Terraform, error) {
-	execPath := filepath.Join(terraformBinary, "bin", "terraform")
-	tf, err := tfexec.NewTerraform(workingDir, execPath)
+func newTFExec(dir string, terraformDir string) (*tfexec.Terraform, error) {
+	tfPath := filepath.Join(terraformDir, "bin", runtime.GOOS+"_"+runtime.GOARCH, "terraform")
+	tf, err := tfexec.NewTerraform(dir, tfPath)
 	if err != nil {
 		return nil, err
 	}
 
 	// If the log path is not set, terraform will not receive debug logs.
-	if logPath, ok := os.LookupEnv("TEREFORM_LOG_PATH"); ok {
-		if err := tf.SetLog(os.Getenv("TEREFORM_LOG")); err != nil {
+	if logPath, ok := os.LookupEnv("TERRAFORM_LOG_PATH"); ok {
+		if err := tf.SetLog(os.Getenv("TERRAFORM_LOG")); err != nil {
 			logrus.Infof("Skipping setting terraform log levels: %v", err)
 		} else {
-			tf.SetLogCore(os.Getenv("TEREFORM_LOG_CORE"))         //nolint:errcheck
-			tf.SetLogProvider(os.Getenv("TEREFORM_LOG_PROVIDER")) //nolint:errcheck
-			tf.SetLogPath(logPath)                                //nolint:errcheck
+			tf.SetLogCore(os.Getenv("TERRAFORM_LOG_CORE"))         //nolint:errcheck
+			tf.SetLogProvider(os.Getenv("TERRAFORM_LOG_PROVIDER")) //nolint:errcheck
+			tf.SetLogPath(logPath)                                 //nolint:errcheck
 		}
 	}
 
@@ -59,33 +60,39 @@ func newTFExec(workingDir string, terraformBinary string) (*tfexec.Terraform, er
 }
 
 // terraform apply
-func TFApply(workingDir string, platform string, stage Stage, terraformBinary string, applyOpts ...tfexec.ApplyOption) error {
-	if err := TFInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
+func TFApply(dir string, terraformDir string, applyOpts ...tfexec.ApplyOption) error {
+	if err := TFInit(dir, terraformDir); err != nil {
 		return err
 	}
 
-	tf, err := newTFExec(workingDir, terraformBinary)
+	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
-		return errors.Wrap(err, "failed to create a new tfexec.")
+		return errors.Wrap(err, "failed to create a new tfexec")
 	}
 
 	err = tf.Apply(context.Background(), applyOpts...)
-	return errors.Wrap(err, "failed to apply Terraform.")
+	if err != nil {
+		return errors.Wrap(err, "failed to apply Terraform")
+	}
+
+	return nil
 }
 
 // terraform destroy
-func TFDestroy(workingDir string, platform string, stage Stage, terraformBinary string, destroyOpts ...tfexec.DestroyOption) error {
-	if err := TFInit(workingDir, platform, stage.Name(), terraformBinary, stage.Providers()); err != nil {
+func TFDestroy(dir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
+	if err := TFInit(dir, terraformDir); err != nil {
 		return err
 	}
 
-	tf, err := newTFExec(workingDir, terraformBinary)
+	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
-		return errors.Wrap(err, "failed to create a new tfexec.")
+		return errors.Wrap(err, "failed to destroy a new tfexec")
 	}
 
-	return errors.Wrap(
-		tf.Destroy(context.Background(), destroyOpts...),
-		"failed doing terraform destroy.",
-	)
+	err = tf.Destroy(context.Background(), destroyOpts...)
+	if err != nil {
+		return errors.Wrap(err, "failed to destroy terraform")
+	}
+
+	return nil
 }
