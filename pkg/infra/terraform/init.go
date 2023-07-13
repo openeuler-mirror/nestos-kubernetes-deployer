@@ -20,37 +20,22 @@ import (
 	"context"
 	"path/filepath"
 
-	prov "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/providers"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"github.com/openshift/installer/data"
 	"github.com/pkg/errors"
 )
 
-func unpack(workingDir string, platform string, target string) (err error) {
-	err = data.Unpack(workingDir, filepath.Join(platform, target))
+// terraform init
+func TFInit(dir string, terraformDir string) error {
+	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create a new tfexec")
+	}
+
+	// 使用本地terraform插件
+	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, "plugins")))
+	if err != nil {
+		return errors.Wrap(err, "failed to init terraform")
 	}
 
 	return nil
-}
-
-// terraform init
-func TFInit(workingDir string, platform string, target string, terraformBinary string, providers []prov.Provider) (err error) {
-	err = unpack(workingDir, platform, target)
-	if err != nil {
-		return errors.Wrap(err, "failed to unpack terraform modules")
-	}
-
-	tf, err := newTFExec(workingDir, terraformBinary)
-	if err != nil {
-		return errors.Wrap(err, "failed to create a new tfexec.")
-	}
-
-	// 如果想导入本地已有插件，需构建相应目录
-	// 如openstack插件所需目录为plugins/registry.terraform.io/terraform-provider-openstack/openstack/1.51.1/linux_arm64/terraform-provider-openstack_v1.51.1
-	return errors.Wrap(
-		tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformBinary, "plugins"))),
-		"failed doing terraform init.",
-	)
 }
