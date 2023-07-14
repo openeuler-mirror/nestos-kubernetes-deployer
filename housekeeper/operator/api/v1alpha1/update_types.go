@@ -27,9 +27,10 @@ import (
 type UpdateSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	OSVersion   string `json:"osVersion"`
-	OSImageURL  string `json:"osImageURL"`
-	KubeVersion string `json:"kubeVersion"`
+	OSVersion     string `json:"osVersion"`
+	OSImageURL    string `json:"osImageURL"`
+	KubeVersion   string `json:"kubeVersion"`
+	EvictPodForce bool   `json:"evictPodForce"`
 }
 
 // UpdateStatus defines the observed state of Update

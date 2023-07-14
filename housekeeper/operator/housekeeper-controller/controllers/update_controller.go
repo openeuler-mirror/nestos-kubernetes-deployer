@@ -102,12 +102,14 @@ func (r *UpdateReconciler) upgradeNodes(ctx context.Context, upInstance *houseke
 		drainer := &drain.Helper{
 			Ctx:                 ctx,
 			Client:              r.KubeClientSet,
-			Force:               true,
 			IgnoreAllDaemonSets: true,
 			DeleteEmptyDirData:  true,
 			GracePeriodSeconds:  -1,
 			Out:                 os.Stdout,
 			ErrOut:              os.Stderr,
+		}
+		if upInstance.Spec.EvictPodForce {
+			drainer.Force = true
 		}
 		if err := drainNode(drainer, node); err != nil {
 			return err
@@ -129,14 +131,11 @@ func (r *UpdateReconciler) refreshNodes(ctx context.Context, upInstance *houseke
 	deleteLabel(ctx, r, node)
 	if node.Spec.Unschedulable {
 		drainer := &drain.Helper{
-			Ctx:                 ctx,
-			Client:              r.KubeClientSet,
-			Force:               true,
-			IgnoreAllDaemonSets: true,
-			DeleteEmptyDirData:  true,
-			GracePeriodSeconds:  -1,
-			Out:                 os.Stdout,
-			ErrOut:              os.Stderr,
+			Ctx:                ctx,
+			Client:             r.KubeClientSet,
+			GracePeriodSeconds: -1,
+			Out:                os.Stdout,
+			ErrOut:             os.Stderr,
 		}
 		if err := cordonOrUncordonNode(false, drainer, node); err != nil {
 			logrus.Errorf("failed to uncordon node %s: %v", node.Name, err)
