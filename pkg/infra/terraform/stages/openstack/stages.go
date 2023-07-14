@@ -8,10 +8,10 @@ import (
 
 var PlatformStages = []terraform.Stage{}
 
-func AddPlatformStage(stage string) {
+func AddPlatformStage(name string) {
 	newStage := stages.NewStage(
 		"openstack",
-		stage,
+		name,
 		[]providers.Provider{providers.OpenStack},
 	)
 
