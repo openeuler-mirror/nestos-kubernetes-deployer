@@ -35,6 +35,7 @@ import (
 
 type InfraProvider interface {
 	Create()
+	Destroy()
 }
 
 type Cluster struct {
@@ -104,4 +105,46 @@ func (c *Cluster) applyTerraform(dir string, terraformDir string, applyOpts ...t
 	return outputsFile, nil
 }
 
-// TODO：(c *Cluster) Destroy
+func (c *Cluster) Destroy() error {
+	terraformDir := filepath.Join(c.InstallDir, "terraform")
+	dir := filepath.Join(terraformDir, c.Platform, c.Name)
+
+	logrus.Infof("start to destroy %s in %s", c.Name, c.Platform)
+
+	// TODO: Destroy的tfvarsFiles的获取
+
+	// terraformVariables := &TerraformVariables{}
+	// tfvarsFiles := make([]*assets.File, 0, len(terraformVariables.Files())+len(c.Platform)+len(c.Name))
+	// tfvarsFiles = append(tfvarsFiles, terraformVariables.Files()...)
+
+	err := c.destroyStage(dir, terraformDir, tfvarsFiles)
+	if err != nil {
+		return errors.Wrapf(err, "failed to destroy %s in %s", c.Name, c.Platform)
+	}
+	os.Remove(dir)
+
+	logrus.Infof("succeed in destroying %s in %s", c.Name, c.Platform)
+
+	return nil
+}
+
+func (c *Cluster) destroyStage(dir string, terraformDir string, tfvarsFiles []*assets.File) error {
+	var destroyOpts []tfexec.DestroyOption
+	for _, file := range tfvarsFiles {
+		if err := os.WriteFile(filepath.Join(dir, file.Filename), file.Data, 0o600); err != nil {
+			return err
+		}
+		destroyOpts = append(destroyOpts, tfexec.VarFile(filepath.Join(dir, file.Filename)))
+	}
+
+	return destroyTerraform(dir, terraformDir, destroyOpts...)
+}
+
+func destroyTerraform(dir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
+	destroyErr := terraform.TFDestroy(dir, terraformDir, destroyOpts...)
+	if destroyErr != nil {
+		return errors.WithMessage(destroyErr, "failed to destroy Terraform")
+	}
+
+	return nil
+}
