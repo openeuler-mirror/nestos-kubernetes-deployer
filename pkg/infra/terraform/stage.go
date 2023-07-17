@@ -21,12 +21,6 @@ import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/provi
 type Stage interface {
 	Name() string
 
-	// terraform state file
-	StateFilename() string
-
-	// outputs file
-	OutputsFilename() string
-
 	// the list of providers that are used for the stage
 	Providers() []providers.Provider
 }

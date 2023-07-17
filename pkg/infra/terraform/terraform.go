@@ -47,12 +47,12 @@ func newTFExec(dir string, terraformDir string) (*tfexec.Terraform, error) {
 	}
 
 	// Add terraform info logs to the installer log
-	lpPrint := &lineprinter.LinePrinter{Print: (&lineprinter.Trimmer{WrappedPrint: logrus.Print}).Print}
+	lpDebug := &lineprinter.LinePrinter{Print: (&lineprinter.Trimmer{WrappedPrint: logrus.Debug}).Print}
 	lpError := &lineprinter.LinePrinter{Print: (&lineprinter.Trimmer{WrappedPrint: logrus.Error}).Print}
-	defer lpPrint.Close()
+	defer lpDebug.Close()
 	defer lpError.Close()
 
-	tf.SetStdout(lpPrint)
+	tf.SetStdout(lpDebug)
 	tf.SetStderr(lpError)
 	tf.SetLogger(newPrintfer())
 
