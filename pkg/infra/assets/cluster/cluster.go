@@ -111,11 +111,11 @@ func (c *Cluster) Destroy() error {
 
 	logrus.Infof("start to destroy %s in %s", c.Name, c.Platform)
 
-	// TODO: Destroy的tfvarsFiles的获取
+	// Question: Destroy的tfvarsFiles的获取
 
-	// terraformVariables := &TerraformVariables{}
-	// tfvarsFiles := make([]*assets.File, 0, len(terraformVariables.Files())+len(c.Platform)+len(c.Name))
-	// tfvarsFiles = append(tfvarsFiles, terraformVariables.Files()...)
+	terraformVariables := &TerraformVariables{}
+	tfvarsFiles := make([]*assets.File, 0, len(terraformVariables.Files())+len(c.Platform)+len(c.Name))
+	tfvarsFiles = append(tfvarsFiles, terraformVariables.Files()...)
 
 	err := c.destroyStage(dir, terraformDir, tfvarsFiles)
 	if err != nil {
