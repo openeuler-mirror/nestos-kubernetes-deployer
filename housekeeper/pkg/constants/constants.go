@@ -15,6 +15,8 @@ limitations under the License.
 */
 package constants
 
+import "time"
+
 const (
 	// LabelUpgrading is the key of the upgrading label for nodes
 	LabelUpgrading = "upgrade.housekeeper.io/upgrading"
@@ -27,3 +29,5 @@ const (
 	SockDir  = "/run/housekeeper-daemon"
 	SockName = "housekeeper-daemon.sock"
 )
+
+const Timeout = 3 * time.Minute
