@@ -16,7 +16,16 @@ limitations under the License.
 
 package cluster
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/assets"
+import (
+	"encoding/json"
+	"html/template"
+	"os"
+	"path/filepath"
+
+	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/assets"
+	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/tfvars/openstack"
+	"github.com/pkg/errors"
+)
 
 type TerraformVariables struct {
 	FileList []*assets.File
@@ -24,4 +33,51 @@ type TerraformVariables struct {
 
 func (t *TerraformVariables) Files() []*assets.File {
 	return t.FileList
+}
+
+func Generate() error {
+	// 从文件中读取 jsonData
+	jsonData, err := os.ReadFile("data/json/openstack/main.tf.json")
+	if err != nil {
+		return errors.Wrap(err, "error reading json data")
+	}
+
+	// 解析 JSON 数据
+	var terraformData openstack.TerraformData
+	err = json.Unmarshal(jsonData, &terraformData)
+	if err != nil {
+		return errors.Wrap(err, "error parsing json data")
+	}
+
+	// 从文件中读取 terraformConfig
+	terraformConfig, err := os.ReadFile("data/templates/openstack/main.tf.template")
+	if err != nil {
+		return errors.Wrap(err, "error reading terraform config template")
+	}
+
+	// 使用模板填充数据
+	tmpl, err := template.New("terraform").Parse(string(terraformConfig))
+	if err != nil {
+		return errors.Wrap(err, "error creating terraform config template")
+	}
+
+	// 创建一个新的文件用于写入填充后的数据
+	tfDir := filepath.Join("/root", "terraform")
+	if err := os.MkdirAll(tfDir, os.ModePerm); err != nil {
+		return errors.Wrap(err, "could not create the terraform directory")
+	}
+
+	outputFile, err := os.Create(filepath.Join(tfDir, "main.tf"))
+	if err != nil {
+		return errors.Wrap(err, "error creating terraform config")
+	}
+	defer outputFile.Close()
+
+	// 将填充后的数据写入文件
+	err = tmpl.Execute(outputFile, terraformData)
+	if err != nil {
+		return errors.Wrap(err, "error executing terraform config")
+	}
+
+	return nil
 }
