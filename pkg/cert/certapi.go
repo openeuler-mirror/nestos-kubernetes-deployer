@@ -17,21 +17,30 @@ limitations under the License.
 package cert
 
 import (
-	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"net"
+	"time"
 )
 
 type CertificateGenerator interface {
 	GenerateCACertificate() error
-	GenerateCertificate(commonName string) error
+	GenerateSignedCertificate(commonName string) error
 }
 
-// CertificateManager 是证书管理器
-type CertificateManager struct {
-	CAKey         *rsa.PrivateKey
-	CACert        *x509.Certificate
-	ComponentKey  *rsa.PrivateKey
-	ComponentCert *x509.Certificate
-	ValidDays     int
-	CertDirectory string
+//  CertKey 包含证书和私钥
+type CertKey struct {
+	CertRaw  []byte
+	KeyRaw   []byte
+	SavePath string
+}
+
+type CertConfig struct {
+	DNSNames     []string
+	ExtKeyUsages []x509.ExtKeyUsage
+	IPAddresses  []net.IP
+	KeyUsages    x509.KeyUsage
+	Subject      pkix.Name
+	Validity     time.Duration
+	IsCA         bool
 }

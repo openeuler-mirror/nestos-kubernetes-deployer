@@ -17,48 +17,52 @@ limitations under the License.
 package cert
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// CACertPEM 返回CA证书的PEM格式字节切片
-func (cm *CertificateManager) CACertPEM() []byte {
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cm.CACert.Raw,
-	})
+//PrivateKey负责生成密钥
+func PrivateKey() (*rsa.PrivateKey, error) {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to generate RSA private key")
+	}
+
+	return rsaKey, nil
 }
 
-// CAKeyPEM 返回CA私钥的PEM格式字节切片
-func (cm *CertificateManager) CAKeyPEM() []byte {
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(cm.CAKey),
-	})
+// PrivateKeyToPem 返回私钥的PEM格式字节切片
+func PrivateKeyToPem(key *rsa.PrivateKey) []byte {
+	keyInBytes := x509.MarshalPKCS1PrivateKey(key)
+	keyinPem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: keyInBytes,
+		},
+	)
+	return keyinPem
 }
 
-// ComponentCertPEM 返回组件证书的PEM格式字节切片
-func (cm *CertificateManager) ComponentCertPEM() []byte {
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cm.ComponentCert.Raw,
-	})
-}
-
-// ComponentKeyPEM 返回组件私钥的PEM格式字节切片
-func (cm *CertificateManager) ComponentKeyPEM() []byte {
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(cm.ComponentKey),
-	})
+// CACertPEM 返回证书的PEM格式字节切片
+func CertToPem(cert *x509.Certificate) []byte {
+	certInPem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		},
+	)
+	return certInPem
 }
 
 // SaveCertificateToFile 将证书保存到文件
-func (cm *CertificateManager) SaveCertificateToFile(filename string, certPEM []byte) error {
-	err := ioutil.WriteFile(cm.CertDirectory+"/"+filename, certPEM, 0644)
+func (c *CertKey) SaveCertificateToFile(filename string) error {
+	err := ioutil.WriteFile(c.SavePath+"/"+filename, c.CertRaw, 0644)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", filename, err)
 		return err
@@ -70,8 +74,8 @@ func (cm *CertificateManager) SaveCertificateToFile(filename string, certPEM []b
 }
 
 // SavePrivateKeyToFile 将私钥保存到文件
-func (cm *CertificateManager) SavePrivateKeyToFile(filename string, keyPEM []byte) error {
-	err := ioutil.WriteFile(cm.CertDirectory+"/"+filename, keyPEM, 0600)
+func (c *CertKey) SavePrivateKeyToFile(filename string) error {
+	err := ioutil.WriteFile(c.SavePath+"/"+filename, c.KeyRaw, 0600)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", filename, err)
 		return err

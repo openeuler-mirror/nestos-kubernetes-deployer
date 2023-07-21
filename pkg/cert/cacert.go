@@ -17,64 +17,21 @@ limitations under the License.
 package cert
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"math/big"
-	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
-func (cm *CertificateManager) GenerateCACertificate() error {
+type RootCA struct {
+	SelfSignedCertKey
+}
 
-	// 生成CA的私钥和公钥
-	var err error
-	cm.CAKey, err = rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		logrus.Errorf("Failed to generate CA privatekey: %v", err)
-		return err
-	}
-	caPublicKey := &cm.CACert.PublicKey
-
-	// 生成一个介于 0 和 2^128 - 1 之间的随机序列号，并将结果存储在 serialNumber 变量中
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-	if err != nil {
-		logrus.Errorf("Failed to generate serialNumber: %v", err)
-		return err
-	}
-	now := time.Now()
-
-	// 设置生成证书的参数，构建CA证书模板
-	caTemplate := &x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			Organization: []string{"NKD"},
-			CommonName:   "CA",
-		}, //这里还可以加很多参数信息
-		NotBefore:             now,
-		NotAfter:              now.AddDate(10, 0, 0),                                                      // 有效期为10年
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,               // openssl 中的 keyUsage 字段
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}, // openssl 中的 extendedKeyUsage = clientAuth, serverAuth 字段
-		BasicConstraintsValid: true,
-		IsCA:                  true, //表示用于CA
+func (c *RootCA) Generate() error {
+	cfg := &CertConfig{
+		Subject:   pkix.Name{CommonName: "rootca", OrganizationalUnit: []string{"NestOS"}},
+		KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		Validity:  3650,
+		IsCA:      true,
 	}
 
-	//caCertBytes是生成证书的中间步骤，它用于将证书的二进制表示存储在内存中，以便后续操作可以使用它
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, caPublicKey, cm.CAKey)
-	if err != nil {
-		logrus.Errorf("Failed to create CA Certificate(caCertBytes): %v", err)
-		return err
-	}
-	//cm.CACert表示已经生成的CA证书，用于存储CA证书的详细信息，例如证书序列号、主题、有效期等
-	cm.CACert, err = x509.ParseCertificate(caCertBytes)
-	if err != nil {
-		logrus.Errorf("Failed to parse CA Certificate: %v", err)
-		return err
-	}
-	logrus.Infof("Successfully generate CA certificate")
-	return nil
-
+	return c.SelfSignedCertKey.Generate(cfg, "rootca")
 }
