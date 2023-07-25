@@ -1,8 +1,8 @@
 terraform {
-  required_version = ">= 0.14.0"
   required_providers {
     openstack = {
-      source  = "XXXXXXXXXX"
+      source = "terraform-provider-openstack/openstack"
+      version = "1.52.1"
     }
   }
 }
@@ -15,6 +15,20 @@ provider "openstack" {
   region      = "{{.Openstack.Region}}"
 }
 
+resource "openstack_images_image_v2" "image" {
+  name                  = "{{.Image.Name}}"
+  
+  image_source_url      = "{{.Image.Image_source_url}}"
+  image_source_username = "{{.Image.Image_source_username}}"
+  image_source_password = "{{.Image.Image_source_password}}"
+  web_download          = "{{.Image.Web_download}}"
+
+  local_file_path       = "{{.Image.local_file_path}}"
+
+  container_format      = "{{.Image.Container_format}}"
+  disk_format           = "{{.Image.Disk_format}}"
+}
+
 resource "openstack_compute_flavor_v2" "flavor" {
   name      = "{{.Flavor.Name}}"
   ram       = "{{.Flavor.Ram}}"
@@ -23,17 +37,41 @@ resource "openstack_compute_flavor_v2" "flavor" {
   is_public = "{{.Flavor.Is_public}}"
 }
 
+resource "openstack_compute_keypair_v2" "keypair" {
+  name       = "{{.Keypair.Name}}"
+  public_key = "{{.Keypair.Public_key}}"
+}
+
+resource "openstack_compute_secgroup_v2" "secgroup" {
+  name        = "{{.Secgroup.Name}}"
+  description = "{{.Secgroup.Name}}"
+
+  rule {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = -1
+    to_port     = -1
+    ip_protocol = "icmp"
+    cidr        = "0.0.0.0/0"
+  }
+}
+
 resource "openstack_compute_instance_v2" "instance" {
   count           = "{{.Instance.Count}}"
   name            = "{{.Instance.Name}}"
-  image_name      = "{{.Instance.Image_name}}"
+  image_name      = openstack_images_image_v2.image.name
   flavor_name     = openstack_compute_flavor_v2.flavor.name
-  key_pair        = "{{.Instance.Key_pair}}"
-  security_groups = ["XXXXXXXXXX"]
-  user_data       = "${file("XXXXXXXXXX")}"
+  key_pair        = openstack_compute_keypair_v2.keypair.name
+  security_groups = [openstack_compute_secgroup_v2.secgroup.name]
+  user_data       = "{{.Instance.User_data}}"
 
   network {
-    name = "XXXXXXXXXX"
+    name        = "{{.Instance.Network.Name}}"
   }
 }
 
@@ -42,15 +80,16 @@ resource "openstack_networking_floatingip_v2" "floatip" {
   pool  = "{{.Floatip.Pool}}"
 }
 
-resource "openstack_compute_floatingip_associate_v2" "floatip" {
-  count = length(openstack_compute_instance_v2.instance)
-  instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
+resource "openstack_compute_floatingip_associate_v2" "fip_associate" {
+  count       = length(openstack_compute_instance_v2.instance)
   floating_ip = openstack_networking_floatingip_v2.floatip.*.address[count.index]
+  instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
 }
 
 output "instance_info" {
   value = {
-    floating_ip_addresses = openstack_networking_floatingip_v2.floatip.*.address
     instance_status = openstack_compute_instance_v2.instance.*.power_state
+    access_ip_v4    = openstack_compute_instance_v2.instance.*.access_ip_v4
+    floating_ip     = openstack_networking_floatingip_v2.floatip.*.address
   }
 }
