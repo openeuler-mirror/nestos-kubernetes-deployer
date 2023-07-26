@@ -37,9 +37,10 @@ func runUpgradeCmd(command *cobra.Command, args []string) error {
 		evictPodForce  = false
 		maxUnavailable = 2
 		loopTimeout    = 2 * time.Minute
+		kubeconfig     = ""
 	)
 	// Get the kubeconfig configuration
-	config, err := clientcmd.BuildConfigFromFlags("", "/root/.kube/config")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		config, err = rest.InClusterConfig()
 		if err != nil {
