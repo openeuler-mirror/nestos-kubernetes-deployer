@@ -23,6 +23,18 @@ import (
 	"time"
 )
 
+type CertInterface interface {
+	// Cert returns the certificate.
+	Cert() []byte
+}
+
+// CertKeyInterface contains a private key and the associated cert.
+type CertKeyInterface interface {
+	CertInterface
+	// Key returns the private key.
+	Key() []byte
+}
+
 type CertificateGenerator interface {
 	GenerateCACertificate() error
 	GenerateSignedCertificate(commonName string) error
