@@ -49,6 +49,14 @@ func PrivateKeyToPem(key *rsa.PrivateKey) []byte {
 	return keyinPem
 }
 
+func PemToPrivateKey(data []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.Errorf("could not find a PEM block in the private key")
+	}
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}
+
 // CACertPEM 返回证书的PEM格式字节切片
 func CertToPem(cert *x509.Certificate) []byte {
 	certInPem := pem.EncodeToMemory(
@@ -58,6 +66,14 @@ func CertToPem(cert *x509.Certificate) []byte {
 		},
 	)
 	return certInPem
+}
+
+func PemToCertificate(data []byte) (*x509.Certificate, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.Errorf("could not find a PEM block in the certificate")
+	}
+	return x509.ParseCertificate(block.Bytes)
 }
 
 // SaveCertificateToFile 将证书保存到文件
