@@ -31,7 +31,8 @@ func NewConfigCommand() *cobra.Command {
 			return configRunner.Run()
 		},
 	}
-	configRunner.AppendPhase(phases.NewPrintDefaultNkdConfigCmd())
+
+	cmd.AddCommand(phases.NewPrintDefaultNkdConfigCommand())
 
 	return cmd
 }
