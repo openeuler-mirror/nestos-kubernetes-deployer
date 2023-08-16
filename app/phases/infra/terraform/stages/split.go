@@ -3,7 +3,7 @@ package stages
 import (
 	"fmt"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/providers"
+	"nestos-kubernetes-deployer/pkg/infra/terraform/providers"
 )
 
 type StageOption func(*SplitStage)

@@ -16,7 +16,7 @@ limitations under the License.
 
 package phases
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/app/apis/nkd"
+import "nestos-kubernetes-deployer/app/apis/nkd"
 
 type InitData interface {
 	Cfg() *nkd.Nkd

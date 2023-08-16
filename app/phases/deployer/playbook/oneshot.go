@@ -1,8 +1,8 @@
 package playbook
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/deployer/phase"
+import "nestos-kubernetes-deployer/pkg/deployer/phase"
 
-func OneshotPlaybook() Playbook{
+func OneshotPlaybook() Playbook {
 	return Playbook{
 		phase.InitPhase{},
 	}

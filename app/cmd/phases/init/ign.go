@@ -15,7 +15,7 @@ limitations under the License.
 */
 package phases
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/workflow"
+import "nestos-kubernetes-deployer/app/cmd/phases/workflow"
 
 func NewGenerateIgnCmd() workflow.Phase {
 	return workflow.Phase{

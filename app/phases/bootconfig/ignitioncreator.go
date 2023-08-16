@@ -1,6 +1,6 @@
 package bootconfig
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra"
+import "nestos-kubernetes-deployer/pkg/infra"
 
 type IgnitionAssembler struct {
 }

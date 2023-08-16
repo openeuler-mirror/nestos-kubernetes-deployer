@@ -19,7 +19,8 @@ package phases
 import (
 	"fmt"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/apis/nkd"
+	"nestos-kubernetes-deployer/app/apis/nkd"
+
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )

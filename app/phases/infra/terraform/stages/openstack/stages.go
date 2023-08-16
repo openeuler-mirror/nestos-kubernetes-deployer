@@ -1,9 +1,9 @@
 package openstack
 
 import (
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/providers"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/stages"
+	"nestos-kubernetes-deployer/pkg/infra/terraform"
+	"nestos-kubernetes-deployer/pkg/infra/terraform/providers"
+	"nestos-kubernetes-deployer/pkg/infra/terraform/stages"
 )
 
 var PlatformStages = []terraform.Stage{}

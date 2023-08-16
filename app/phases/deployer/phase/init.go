@@ -1,11 +1,11 @@
 package phase
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra"
+import "nestos-kubernetes-deployer/pkg/infra"
 
 type InitPhase struct {
 }
 
-func (p InitPhase) Do()  {
+func (p InitPhase) Do() {
 	generator := infra.GetBootConfigAssembler(clusterInfo.OsType)
 	masterInitConfig := generator.Assemble(generateInitAssets())
 	masterSpec := parseSpecFromClusterInfo(clusterInfo)

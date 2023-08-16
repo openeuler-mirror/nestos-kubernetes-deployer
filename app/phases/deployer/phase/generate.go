@@ -1,13 +1,12 @@
 package phase
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra"
+import "nestos-kubernetes-deployer/pkg/infra"
 
-
-type GeneratePhase struct{
-	Mode string  // master, node
+type GeneratePhase struct {
+	Mode string // master, node
 }
 
-func (p GeneratePhase)GenerateAssets() infra.Assets{
+func (p GeneratePhase) GenerateAssets() infra.Assets {
 	//managers = [
 	//"etcd",
 	//"manifests",

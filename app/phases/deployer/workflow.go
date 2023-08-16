@@ -1,10 +1,11 @@
 package deployer
 
 import (
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/deployer/phase"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra"
+	"nestos-kubernetes-deployer/pkg"
+	"nestos-kubernetes-deployer/pkg/deployer/phase"
+	"nestos-kubernetes-deployer/pkg/infra"
 )
+
 // TODO 断点续传机制
 
 func InitCluster(filename string) error {
@@ -12,7 +13,6 @@ func InitCluster(filename string) error {
 	// cluster state:  pending, running, stopped
 	// infra state: none, pending, created, starting, running, stopping, stopped
 	// k8s state: TODO
-
 
 	clusterInfo := ParseFromFile(filename)
 	infraDeployer := infra.GetInfraDeployer(clusterInfo.InfraDriver)
@@ -27,8 +27,6 @@ func InitCluster(filename string) error {
 	return nil
 }
 
-
-
 func JoinToCluster(filename string) {
 	clusterInfo := ParseFromFile(filename)
 	infraDeployer := infra.GetInfraDeployer(clusterInfo.InfraDriver)
@@ -41,7 +39,7 @@ func JoinToCluster(filename string) {
 	apiMonitor.WaitForWorkersReady(0)
 }
 
-func OneShot(filename string){
+func OneShot(filename string) {
 	clusterInfo := ParseFromFile(filename)
 	infraDeployer := infra.GetInfraDeployer(clusterInfo.InfraDriver)
 	apiMonitor := pkg.ApiMonitor{clusterInfo.ApiEndpoint}
@@ -55,7 +53,6 @@ func OneShot(filename string){
 	_ = infraDeployer.Create(masterSpec, masterInitConfig)
 	apiMonitor.WaitForMastersReady(0)
 
-
 	initConfig := generator.Assemble(generateJoinAssets())
 	spec := parseSpecFromClusterInfo(clusterInfo)
 	_ = infraDeployer.Create(spec, initConfig)
@@ -67,8 +64,6 @@ func parseSpecFromClusterInfo(info ClusterInfo) infra.InfraSpec {
 	return infra.InfraSpec{}
 }
 
-
-
-func generateJoinAssets() infra.Assets{
+func generateJoinAssets() infra.Assets {
 	return infra.Assets{}
 }
