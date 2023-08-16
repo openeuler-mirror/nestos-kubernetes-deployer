@@ -17,12 +17,19 @@ package workflow
 
 import (
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 type Runner struct {
-	Phases       []Phase
-	phaseRunners []*phaseRunner
+	Phases             []Phase
+	phaseRunners       []*phaseRunner
+	runData            RunData
+	runDataInitializer func(*cobra.Command, []string) (RunData, error)
+	runCmd             *cobra.Command
 }
+
+type RunData interface{}
 
 type phaseRunner struct {
 	Phase
@@ -39,12 +46,28 @@ func NewRunner() *Runner {
 	}
 }
 
+func (r *Runner) InitData(args []string) (RunData, error) {
+	if r.runData == nil && r.runDataInitializer != nil {
+		var err error
+		if r.runData, err = r.runDataInitializer(r.runCmd, args); err != nil {
+			return nil, err
+		}
+		return r.runData, nil
+	}
+	return nil, nil
+}
+
+func (r *Runner) SetDataInitializer(builder func(*cobra.Command, []string) (RunData, error)) {
+	r.runDataInitializer = builder
+}
+
 func (r *Runner) Run() error {
 	r.prepareForExcution()
+	data := r.runData
 
 	err := r.VisitAll(func(p *phaseRunner) error {
 		if p.Run != nil {
-			if err := p.Run(); err != nil {
+			if err := p.Run(data); err != nil {
 				return err
 			}
 		}

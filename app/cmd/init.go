@@ -13,13 +13,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
+	"fmt"
+
+	"gitee.com/openeuler/nestos-kubernetes-deployer/app/apis/nkd"
 	phases "gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/init"
 	"gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/workflow"
+	"gitee.com/openeuler/nestos-kubernetes-deployer/app/util/config"
 	"github.com/spf13/cobra"
 )
+
+type initData struct {
+	cfg *nkd.Nkd
+}
 
 func NewInitCommand() *cobra.Command {
 	initRunner := workflow.NewRunner()
@@ -27,6 +36,12 @@ func NewInitCommand() *cobra.Command {
 		Use:   "init",
 		Short: "Use this command to init insert or config",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			c, err := initRunner.InitData(args)
+			if err != nil {
+				return err
+			}
+			data := c.(*initData)
+			fmt.Println(data.cfg)
 			return initRunner.Run()
 		},
 	}
@@ -34,5 +49,27 @@ func NewInitCommand() *cobra.Command {
 	phases.NewGenerateCertsCmd()
 	initRunner.AppendPhase(phases.NewGenerateCertsCmd())
 	initRunner.AppendPhase(phases.NewGenerateIgnCmd())
+	initRunner.SetDataInitializer(func(cmd *cobra.Command, args []string) (workflow.RunData, error) {
+		data, err := newInitData(cmd, args)
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
+	})
 	return cmd
+}
+
+func (i *initData) Cfg() *nkd.Nkd {
+	return i.cfg
+}
+func newInitData(cmd *cobra.Command, args []string) (*initData, error) {
+
+	var newNkd *nkd.Nkd
+	cfg, err := config.LoadOrDefaultInitConfiguration("path", newNkd)
+	if err != nil {
+		return nil, err
+	}
+	return &initData{
+		cfg: cfg,
+	}, nil
 }
