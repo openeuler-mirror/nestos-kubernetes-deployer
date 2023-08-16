@@ -16,7 +16,7 @@ limitations under the License.
 
 package terraform
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/providers"
+import "nestos-kubernetes-deployer/pkg/infra/terraform/providers"
 
 type Stage interface {
 	Name() string

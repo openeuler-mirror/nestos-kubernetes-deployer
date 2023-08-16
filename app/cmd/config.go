@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	phases "gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/config"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/workflow"
+	phases "nestos-kubernetes-deployer/app/cmd/phases/config"
+	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
 
 	"github.com/spf13/cobra"
 )

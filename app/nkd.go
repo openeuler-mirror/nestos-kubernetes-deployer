@@ -18,7 +18,7 @@ package app
 import (
 	"os"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd"
+	"nestos-kubernetes-deployer/app/cmd"
 )
 
 func Run() error {

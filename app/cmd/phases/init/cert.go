@@ -18,7 +18,7 @@ package phases
 import (
 	"fmt"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/workflow"
+	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
 )
 
 func NewGenerateCertsCmd() workflow.Phase {

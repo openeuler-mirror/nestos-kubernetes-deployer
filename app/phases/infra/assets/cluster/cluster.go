@@ -20,8 +20,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/assets"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform"
+	"nestos-kubernetes-deployer/pkg/infra/assets"
+	"nestos-kubernetes-deployer/pkg/infra/terraform"
+
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

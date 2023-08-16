@@ -22,8 +22,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/assets"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/tfvars/openstack"
+	"nestos-kubernetes-deployer/pkg/infra/assets"
+	"nestos-kubernetes-deployer/pkg/infra/tfvars/openstack"
+
 	"github.com/pkg/errors"
 )
 

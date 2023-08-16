@@ -20,7 +20,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/apis/nkd"
+	"nestos-kubernetes-deployer/app/apis/nkd"
+
 	"gopkg.in/yaml.v2"
 )
 

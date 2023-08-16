@@ -19,10 +19,11 @@ package cmd
 import (
 	"fmt"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/apis/nkd"
-	phases "gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/init"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/workflow"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/util/config"
+	"nestos-kubernetes-deployer/app/apis/nkd"
+	phases "nestos-kubernetes-deployer/app/cmd/phases/init"
+	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
+	"nestos-kubernetes-deployer/app/util/config"
+
 	"github.com/spf13/cobra"
 )
 

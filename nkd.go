@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "gitee.com/openeuler/nestos-kubernetes-deployer/app"
+import "nestos-kubernetes-deployer/app"
 
 func main() {
 	app.Run()

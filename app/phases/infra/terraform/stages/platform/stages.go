@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform"
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra/terraform/stages/openstack"
+	"nestos-kubernetes-deployer/pkg/infra/terraform"
+	"nestos-kubernetes-deployer/pkg/infra/terraform/stages/openstack"
 )
 
 func StagesForPlatform(platform string, stage string) ([]terraform.Stage, error) {

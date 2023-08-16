@@ -17,7 +17,7 @@ limitations under the License.
 package cert
 
 import (
-	"gitee.com/openeuler/nestos-kubernetes-deployer/pkg/infra"
+	"nestos-kubernetes-deployer/pkg/infra"
 )
 
 type EtcdCaGenerator struct {
