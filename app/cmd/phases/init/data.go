@@ -13,24 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package phases
 
-import (
-	"fmt"
+import "gitee.com/openeuler/nestos-kubernetes-deployer/app/apis/nkd"
 
-	"gitee.com/openeuler/nestos-kubernetes-deployer/app/cmd/phases/workflow"
-)
-
-func NewGenerateCertsCmd() workflow.Phase {
-	return workflow.Phase{
-		Name:  "cert",
-		Short: "Run certs to generate certs",
-		Run:   runGenerateCertsConfig,
-	}
-}
-
-func runGenerateCertsConfig(r workflow.RunData) error {
-	data := r.(InitData)
-	fmt.Println(data.Cfg())
-	return nil
+type InitData interface {
+	Cfg() *nkd.Nkd
 }

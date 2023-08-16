@@ -25,6 +25,7 @@ func NewGenerateIgnCmd() workflow.Phase {
 	}
 }
 
-func runGenerateIgnConfig() error {
+func runGenerateIgnConfig(r workflow.RunData) error {
+
 	return nil
 }
