@@ -1,0 +1,12 @@
+[Unit]
+Description=install cni network plugin for kubernetes
+Requires=init-cluster.service
+After=init-cluster.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=kubectl apply -f /etc/calico.yaml --kubeconfig=/etc/kubernetes/admin.conf
+
+[Install]
+WantedBy=multi-user.target

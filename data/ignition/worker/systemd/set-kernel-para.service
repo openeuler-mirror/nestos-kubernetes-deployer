@@ -1,0 +1,14 @@
+[Unit]
+Description=set kernel para for Kubernetes
+ConditionPathExists=!/var/nkd/log/set-kernel-para.stamp
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=modprobe br_netfilter
+ExecStart=sysctl -p /etc/sysctl.d/kubernetes.conf
+ExecStart=/bin/touch /var/nkd/log/set-kernel-para.stamp
+
+[Install]
+WantedBy=multi-user.target
+
