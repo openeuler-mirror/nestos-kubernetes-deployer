@@ -21,18 +21,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewDeployCommand() *cobra.Command {
+func NewDestroyCommand() *cobra.Command {
 	var dir, role string
 
 	cmd := &cobra.Command{
-		Use:   "deploy",
-		Short: "Use this command to deploy kubernetes node",
+		Use:   "destroy",
+		Short: "Use this command to destroy kubernetes node",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cluster := &infra.Cluster{
 				Dir:  dir,
 				Role: role,
 			}
-			return cluster.Create()
+			return cluster.Destroy()
 		},
 	}
 
