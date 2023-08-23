@@ -23,11 +23,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-const StateFilename = "terraform.tfstate"
-
-// Reads the terraform state file.
-func Outputs(workingDir string, terraformBinary string) ([]byte, error) {
-	tf, err := newTFExec(workingDir, terraformBinary)
+// Outputs reads the terraform state file and returns the outputs of the stage as json.
+func Outputs(dir string, terraformDir string) ([]byte, error) {
+	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
 		return nil, err
 	}

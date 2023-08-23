@@ -20,7 +20,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/openshift/installer/pkg/lineprinter"
@@ -28,9 +27,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func newTFExec(dir string, terraformDir string) (*tfexec.Terraform, error) {
-	tfPath := filepath.Join(terraformDir, "bin", runtime.GOOS+"_"+runtime.GOARCH, "terraform")
-	tf, err := tfexec.NewTerraform(dir, tfPath)
+/*
+	tfDir: tf配置文件所在目录
+	terraformDir: terraform执行文件所在目录
+*/
+
+func newTFExec(tfDir string, terraformDir string) (*tfexec.Terraform, error) {
+	tfPath := filepath.Join(terraformDir, "terraform")
+	tf, err := tfexec.NewTerraform(tfDir, tfPath)
 	if err != nil {
 		return nil, err
 	}
@@ -59,13 +63,29 @@ func newTFExec(dir string, terraformDir string) (*tfexec.Terraform, error) {
 	return tf, nil
 }
 
-// terraform apply
-func TFApply(dir string, terraformDir string, applyOpts ...tfexec.ApplyOption) error {
-	if err := TFInit(dir, terraformDir); err != nil {
-		return err
+// terraform init
+func TFInit(tfDir string, terraformDir string) (err error) {
+	tf, err := newTFExec(tfDir, terraformDir)
+	if err != nil {
+		return errors.Wrap(err, "failed to create a new tfexec")
 	}
 
-	tf, err := newTFExec(dir, terraformDir)
+	// 使用本地terraform插件
+	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, "plugins")))
+	if err != nil {
+		return errors.Wrap(err, "failed to init terraform")
+	}
+
+	return nil
+}
+
+// terraform apply
+func TFApply(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption) error {
+	if err := TFInit(tfDir, terraformDir); err != nil {
+		return errors.Wrap(err, "failed to init terraform")
+	}
+
+	tf, err := newTFExec(tfDir, terraformDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec")
 	}
@@ -79,12 +99,12 @@ func TFApply(dir string, terraformDir string, applyOpts ...tfexec.ApplyOption) e
 }
 
 // terraform destroy
-func TFDestroy(dir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
-	if err := TFInit(dir, terraformDir); err != nil {
+func TFDestroy(tfDir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
+	if err := TFInit(tfDir, terraformDir); err != nil {
 		return err
 	}
 
-	tf, err := newTFExec(dir, terraformDir)
+	tf, err := newTFExec(tfDir, terraformDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to destroy a new tfexec")
 	}
