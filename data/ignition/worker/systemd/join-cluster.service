@@ -1,0 +1,16 @@
+[Unit]
+Description=init kubernetes cluster
+Requires=set-kernel-para.service disable-selinux.service
+After=set-kernel-para.service disable-selinux.service
+ConditionPathExists=/var/nkd/log/set-kernel-para.stamp
+ConditionPathExists=/var/nkd/log/disable-selinux.stamp
+ConditionPathExists=!/var/nkd/log/join-cluster.stamp
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=kubeadm join {{.APIServerURL}}:6443 --token {{.Token}}  --discovery-token-ca-cert-hash {{.TokenCACertHash}} --cri-socket=/var/run/isulad.sock
+ExecStart=/bin/touch /var/nkd/log/join-cluster.stamp
+
+[Install]
+WantedBy=multi-user.target

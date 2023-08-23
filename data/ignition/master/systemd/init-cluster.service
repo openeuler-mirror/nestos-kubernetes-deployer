@@ -1,0 +1,18 @@
+[Unit]
+Description=init kubernetes cluster
+Requires=set-kernel-para.service disable-selinux.service
+After=set-kernel-para.service disable-selinux.service
+ConditionPathExists=/var/nkd/log/set-kernel-para.stamp
+ConditionPathExists=/var/nkd/log/disable-selinux.stamp
+ConditionPathExists=!/var/nkd/log/init-cluster.stamp
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=kubeadm init --config=/etc/init-config.yaml --upload-certs
+ExecStart=/bin/touch /var/nkd/log/init-cluster.stamp
+
+[Install]
+WantedBy=multi-user.target
+
+
