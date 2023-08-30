@@ -34,6 +34,7 @@ func NewNkdCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	cmds.AddCommand(NewInitCommand())
 	cmds.AddCommand(NewDeployCommand())
 	cmds.AddCommand(NewDestroyCommand())
+	cmds.AddCommand(NewUpgradeCommand())
 
 	return cmds
 }

@@ -42,7 +42,7 @@ func NewGenerateIgnCmd() workflow.Phase {
 	}
 }
 
-type commonTemplateDate struct {
+type commonTemplateData struct {
 	SSHKey          string
 	APIServerURL    string
 	Hsip            string
@@ -73,8 +73,8 @@ func runGenerateIgnConfig(r workflow.RunData) error {
 	return nil
 }
 
-func getTmplData(nkdConfig *nkd.Nkd) *commonTemplateDate {
-	return &commonTemplateDate{
+func getTmplData(nkdConfig *nkd.Nkd) *commonTemplateData {
+	return &commonTemplateData{
 		SSHKey:          "",
 		APIServerURL:    "",
 		ImageRegistry:   nkdConfig.Repo.Registry,
@@ -84,7 +84,7 @@ func getTmplData(nkdConfig *nkd.Nkd) *commonTemplateDate {
 	}
 }
 
-func generateConfig(ctd *commonTemplateDate) error {
+func generateConfig(ctd *commonTemplateData) error {
 	config := igntypes.Config{
 		Ignition: igntypes.Ignition{
 			Version: igntypes.MaxVersion.String(),
