@@ -73,7 +73,7 @@ func runGenerateIgnConfig(r workflow.RunData) error {
 	return nil
 }
 
-func getTmplData(nkdConfig *nkd.Nkd) *commonTemplateData {
+func getTmplData(nkdConfig *nkd.Master) *commonTemplateData {
 	return &commonTemplateData{
 		SSHKey:          "",
 		APIServerURL:    "",

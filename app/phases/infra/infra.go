@@ -57,7 +57,7 @@ func (c *Cluster) Create() error {
 	}
 
 	// 解析 yaml 数据
-	var configData nkd.Nkd
+	var configData nkd.Master
 	err = yaml.Unmarshal(infraData, &configData)
 	if err != nil {
 		return errors.WithMessage(err, "failed to parse yaml data")
@@ -142,7 +142,7 @@ func (c *Cluster) Destroy() error {
 	}
 
 	// 解析 yaml 数据
-	var configData nkd.Nkd
+	var configData nkd.Master
 	err = yaml.Unmarshal(infraData, &configData)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml data")

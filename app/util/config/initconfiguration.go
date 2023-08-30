@@ -25,7 +25,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func LoadOrDefaultInitConfiguration(cfgPath string, cfg *nkd.Nkd) (*nkd.Nkd, error) {
+func LoadOrDefaultInitConfiguration(cfgPath string, cfg *nkd.Master) (*nkd.Master, error) {
 	if cfgPath != "" {
 		cfg, err := LoadInitConfigurationFromFile()
 		if err != nil {
@@ -41,8 +41,8 @@ func LoadOrDefaultInitConfiguration(cfgPath string, cfg *nkd.Nkd) (*nkd.Nkd, err
 
 }
 
-func LoadInitConfigurationFromFile() (*nkd.Nkd, error) {
-	conf := new(nkd.Nkd)
+func LoadInitConfigurationFromFile() (*nkd.Master, error) {
+	conf := new(nkd.Master)
 	yamlFile, err := ioutil.ReadFile("test.yaml")
 	fmt.Println(err)
 	if err != nil {
@@ -53,6 +53,6 @@ func LoadInitConfigurationFromFile() (*nkd.Nkd, error) {
 	return conf, nil
 }
 
-func DefaultinitConfiguration() (*nkd.Nkd, error) {
+func DefaultinitConfiguration() (*nkd.Master, error) {
 	return nil, nil
 }

@@ -30,63 +30,159 @@ func NewPrintDefaultNkdConfigCommand() *cobra.Command {
 		Use:   "print",
 		Short: "use this command to print nkd config",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runPrintDefaultConfig()
+			return nil
+			// return runPrintDefaultConfig()
+		},
+	}
+	cmd.AddCommand(newPrintMasterDefaultConfigCommand())
+	cmd.AddCommand(newPrintWorkerDefaultConfigCommand())
+	return cmd
+}
+
+func newPrintMasterDefaultConfigCommand() *cobra.Command {
+	return newCommandPrintDefaultNodeConfig("master")
+}
+
+func newPrintWorkerDefaultConfigCommand() *cobra.Command {
+	return newCommandPrintDefaultNodeConfig("worker")
+}
+
+func newCommandPrintDefaultNodeConfig(node string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   fmt.Sprintf("%s", node),
+		Short: fmt.Sprintf("use this command to init %s default config", node),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("111")
+			return runPrintDefaultConfig(node)
+			// return nil
 		},
 	}
 	return cmd
 }
 
-func runPrintDefaultConfig() error {
-	internalconfig := &nkd.Nkd{}
-	DefaultedStaticInitConfiguration(internalconfig)
-	conf, err := yaml.Marshal(&internalconfig)
-	fmt.Println(string(conf))
-	if err != nil {
-		return err
+func runPrintDefaultConfig(node string) error {
+	if node == "master" {
+		internalconfig := &nkd.Master{}
+		DefaultedStaticMasterConfiguration(internalconfig)
+		conf, err := yaml.Marshal(&internalconfig)
+		fmt.Println(string(conf))
+		if err != nil {
+			return err
+		}
+	} else if node == "worker" {
+		internalconfig := &nkd.Worker{}
+		DefaultedStaticWorkerConfiguration(internalconfig)
+		conf, err := yaml.Marshal(&internalconfig)
+		fmt.Println(string(conf))
+		if err != nil {
+			return err
+		}
 	}
-	return err
+	return nil
 }
 
-// return internal Nkd with static defaults
-func DefaultedStaticInitConfiguration(internalconfig *nkd.Nkd) *nkd.Nkd {
-	cluster := nkd.Cluster{Name: nkd.NkdClusterName}
+func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker {
+	repo := nkd.Repo{
+		Secret:   nkd.Secret,
+		Registry: nkd.Registry,
+	}
+	openstack := nkd.Openstack{
+		User_name:        nkd.Openstack_UserName,
+		Password:         nkd.Openstack_Password,
+		Tenant_name:      nkd.Openstack_Tenant_name,
+		Auth_url:         nkd.Openstack_Auth_url,
+		Region:           nkd.Openstack_Region,
+		Internal_network: nkd.Openstack_Internal_network,
+		External_network: nkd.Openstack_External_network,
+		Glance:           nkd.Openstack_Glance_Name,
+		Flavor:           nkd.Openstack_Flavor_Name,
+	}
 
-	system1 := nkd.System{Hostname: nkd.Hostname1,
+	system1 := nkd.System{
+		Count:    nkd.Master_Count,
+		Ips:      nkd.Openstack_Master_ip,
+		HostName: nkd.HostName,
 		Username: nkd.Username,
 		Password: nkd.Password,
 	}
 
-	repo := nkd.Repo{Secret: nkd.Secret,
+	vmsize := nkd.Size{
+		Vcpus: nkd.Vcpus,
+		Ram:   nkd.Ram,
+		Disk:  nkd.Disk,
+	}
+
+	infra := nkd.Infra{
+		Platform:  nkd.Platform,
+		Openstack: openstack,
+		Vmsize:    vmsize,
+	}
+
+	bootstrapTokenDiscovery := nkd.BootstrapTokenDiscovery{
+		APIServerEndpoint:        nkd.APIServerEndpoint,
+		Token:                    nkd.Token,
+		UnsafeSkipCAVerification: nkd.UnsafeSkipCAVerification,
+	}
+
+	discover := nkd.Discovery{
+		BootstrapToken:    &bootstrapTokenDiscovery,
+		Timeout:           nkd.WorkerDiscoverTimeout,
+		TlsBootstrapToken: nkd.TlsBootstrapToken,
+	}
+
+	nodeRegistrationOptions := nkd.NodeRegistrationOptions{
+		CRISocket:       nkd.CriSocket,
+		ImagePullPolicy: nkd.PullPolicy(nkd.ImagePullPolicy),
+		Name:            nkd.Name,
+		Taints:          nil,
+	}
+
+	worker := nkd.WorkerK8s{
+		Discovery:        discover,
+		CaCertPath:       nkd.CaCertPath,
+		NodeRegistration: nodeRegistrationOptions,
+	}
+	internalconfig.Node = nkd.WorkerNode
+	internalconfig.Repo = repo
+	internalconfig.System = system1
+	internalconfig.Infra = infra
+	internalconfig.Worker = worker
+	return nil
+}
+
+// return internal Nkd with static defaults
+func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master {
+	cluster := nkd.Cluster{Name: nkd.NkdClusterName}
+
+	system1 := nkd.System{
+		Count:    nkd.Master_Count,
+		Ips:      nkd.Openstack_Master_ip,
+		HostName: nkd.HostName,
+		Username: nkd.Username,
+		Password: nkd.Password,
+	}
+
+	repo := nkd.Repo{
+		Secret:   nkd.Secret,
 		Registry: nkd.Registry,
 	}
 
 	openstack := nkd.Openstack{
-		User_name:            nkd.Openstack_UserName,
-		Password:             nkd.Openstack_Password,
-		Tenant_name:          nkd.Openstack_Tenant_name,
-		Auth_url:             nkd.Openstack_Auth_url,
-		Region:               nkd.Openstack_Region,
-		Master_instance_name: nkd.Openstack_MasterNodeName,
-		Worker_instance_name: nkd.Openstack_WorkerNodeName,
-		Internal_network:     nkd.Openstack_Internal_network,
-		External_network:     nkd.Openstack_External_network,
-		Master_ip:            nkd.Openstack_Master_ip,
-		Worker_ip:            nkd.Openstack_Worker_ip,
-		Glance:               nkd.Openstack_Glance_Name,
-		Flavor:               nkd.Openstack_Flavor_Name,
+		User_name:        nkd.Openstack_UserName,
+		Password:         nkd.Openstack_Password,
+		Tenant_name:      nkd.Openstack_Tenant_name,
+		Auth_url:         nkd.Openstack_Auth_url,
+		Region:           nkd.Openstack_Region,
+		Internal_network: nkd.Openstack_Internal_network,
+		External_network: nkd.Openstack_External_network,
+		Glance:           nkd.Openstack_Glance_Name,
+		Flavor:           nkd.Openstack_Flavor_Name,
 	}
 
-	vmsize := nkd.Vmsize{
-		Master: nkd.Size{
-			Vcpus: nkd.Vcpus,
-			Ram:   nkd.Ram,
-			Disk:  nkd.Disk,
-		},
-		Worker: nkd.Size{
-			Vcpus: nkd.Vcpus,
-			Ram:   nkd.Ram,
-			Disk:  nkd.Disk,
-		},
+	vmsize := nkd.Size{
+		Vcpus: nkd.Vcpus,
+		Ram:   nkd.Ram,
+		Disk:  nkd.Disk,
 	}
 
 	infra := nkd.Infra{
@@ -140,10 +236,11 @@ func DefaultedStaticInitConfiguration(internalconfig *nkd.Nkd) *nkd.Nkd {
 		LocalAPIEndpoint:     localAPIEndpoint,
 		NodeRegistration:     NodeRegistrationOptions,
 	}
+	internalconfig.Node = nkd.MasterNode
 	internalconfig.Kubeadm = kubeadm
 	internalconfig.Cluster = cluster
 	internalconfig.Infra = infra
-	internalconfig.System = []nkd.System{system1}
+	internalconfig.System = system1
 	internalconfig.Repo = repo
 
 	return internalconfig

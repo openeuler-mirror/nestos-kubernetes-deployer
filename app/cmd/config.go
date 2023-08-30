@@ -33,6 +33,6 @@ func NewConfigCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(phases.NewPrintDefaultNkdConfigCommand())
-
+	cmd.AddCommand(NewInitDefaultNkdConfigCommand())
 	return cmd
 }

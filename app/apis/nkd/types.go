@@ -21,25 +21,24 @@ import (
 )
 
 type System struct {
-	Hostname string `yaml:"hostname"`
+	Count    int
+	HostName string
+	Ips      []string
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+	SSHKey   string
 }
 
 type Openstack struct {
-	User_name            string
-	Password             string
-	Tenant_name          string
-	Auth_url             string
-	Region               string
-	Master_instance_name []string
-	Worker_instance_name []string
-	Internal_network     string
-	External_network     string
-	Master_ip            []string
-	Worker_ip            []string
-	Glance               string
-	Flavor               string
+	User_name        string
+	Password         string
+	Tenant_name      string
+	Auth_url         string
+	Region           string
+	Internal_network string
+	External_network string
+	Glance           string
+	Flavor           string
 }
 
 type Libvirt struct {
@@ -51,15 +50,10 @@ type Size struct {
 	Disk  int
 }
 
-type Vmsize struct {
-	Master Size
-	Worker Size
-}
-
 type Infra struct {
 	Platform  string
 	Openstack Openstack
-	Vmsize    Vmsize
+	Vmsize    Size
 }
 
 type Cluster struct {
@@ -352,11 +346,49 @@ type Kubeadm struct {
 type Addon struct {
 	Addons []map[string]string
 }
-type Nkd struct {
+
+// type Nkd struct {
+// 	Cluster Cluster
+// 	System  []System
+// 	Repo    Repo
+// 	Kubeadm Kubeadm
+// 	Addon   Addon
+// 	Infra   Infra
+// }
+
+type Master struct {
+	Node    string
 	Cluster Cluster
-	System  []System
+	System  System
 	Repo    Repo
 	Kubeadm Kubeadm
 	Addon   Addon
 	Infra   Infra
+}
+
+type WorkerK8s struct {
+	Discovery        Discovery
+	CaCertPath       string
+	NodeRegistration NodeRegistrationOptions
+}
+
+type BootstrapTokenDiscovery struct {
+	Token                    string
+	APIServerEndpoint        string
+	UnsafeSkipCAVerification bool
+}
+
+type Discovery struct {
+	BootstrapToken    *BootstrapTokenDiscovery
+	Timeout           string
+	TlsBootstrapToken string
+}
+
+type Worker struct {
+	Node   string
+	Repo   Repo
+	System System
+	Infra  Infra
+	Addon  Addon
+	Worker WorkerK8s
 }
