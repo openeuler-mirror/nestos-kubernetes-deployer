@@ -28,25 +28,33 @@ import (
 )
 
 type initData struct {
-	cfg *nkd.Nkd
+	cfg *nkd.Master
 }
 
-func NewInitCommand() *cobra.Command {
+type Config struct {
+	config string
+}
+
+func NewInitDefaultNkdConfigCommand() *cobra.Command {
 	initRunner := workflow.NewRunner()
+	var config string
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Use this command to init insert or config",
+		Short: "Use this command to init ign, cert config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := initRunner.InitData(args)
 			if err != nil {
 				return err
 			}
+
 			data := c.(*initData)
 			fmt.Println(data.cfg)
 			return initRunner.Run()
 		},
 	}
 
+	// fmt.Println(config)
+	cmd.PersistentFlags().StringVarP(&config, "config", "c", "", "config for init")
 	phases.NewGenerateCertsCmd()
 	initRunner.AppendPhase(phases.NewGenerateCertsCmd())
 	initRunner.AppendPhase(phases.NewGenerateIgnCmd())
@@ -60,12 +68,12 @@ func NewInitCommand() *cobra.Command {
 	return cmd
 }
 
-func (i *initData) Cfg() *nkd.Nkd {
+func (i *initData) Cfg() *nkd.Master {
 	return i.cfg
 }
 func newInitData(cmd *cobra.Command, args []string) (*initData, error) {
 
-	var newNkd *nkd.Nkd
+	var newNkd *nkd.Master
 	cfg, err := config.LoadOrDefaultInitConfiguration("path", newNkd)
 	if err != nil {
 		return nil, err

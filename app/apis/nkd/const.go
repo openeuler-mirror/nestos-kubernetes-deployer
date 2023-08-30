@@ -22,11 +22,11 @@ var (
 	NkdClusterName = "example nkd cluster"
 
 	// system
-	Hostname1 = "master01"
-	Hostname2 = "master01"
-	Hostname3 = "master01"
-	Username  = "user1"
-	Password  = "********"
+	HostName = "master"
+	// Hostname2 = "master01"
+	// Hostname3 = "master01"
+	Username = "user1"
+	Password = "********"
 
 	// repo
 	Secret   = []map[string]string{{"repousre": "********"}}
@@ -89,4 +89,18 @@ var (
 	KubernetesVersion = "1.23.0"
 	DnsDomain         = "cluster.local"
 	ServiceSubnet     = "10.96.0.0/12"
+
+	// worker
+	APIServerEndpoint        = "kube-apiserver:6443"
+	Token                    = "abcdef.0123456789abcdef"
+	UnsafeSkipCAVerification = true
+	WorkerDiscoverTimeout    = "5m0s"
+	TlsBootstrapToken        = "abcdef.0123456789abcdef"
+	CaCertPath               = "/etc/kubernetes/pki/ca.crt"
+
+	MasterNode = "master"
+	WorkerNode = "worker"
+
+	Master_Count = 3
+	Worker_Count = 3
 )
