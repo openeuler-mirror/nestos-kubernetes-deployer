@@ -45,16 +45,15 @@ func NewGenerateIgnCmd() workflow.Phase {
 type commonTemplateData struct {
 	SSHKey          string
 	APIServerURL    string
-	Hsip            string
+	Hsip            string //HostName + IP
 	ImageRegistry   string
 	PodSandboxImage string
 	KubeVersion     string
 	ServiceSubnet   string
 	PodSubnet       string
-	HostName        string
 	Token           string
-	TokenCACertHash string
 	NodeType        string
+	NodeName        string
 }
 
 var (
@@ -69,11 +68,21 @@ var (
 )
 
 func runGenerateIgnConfig(r workflow.RunData) error {
-	//todo: get the configuration dependencies
+	count := 1
+	data, ok := r.(InitData)
+	if !ok {
+		panic(fmt.Sprintf("Expect to fetch configuration data but got a %T", r))
+	}
+	//todo: master、worker节点配置分别调用的实现
+	ctd := getMasterTmplData(data.Cfg(), count)
+	if err := generateConfig(ctd); err != nil {
+		return err
+	}
 	return nil
 }
 
-func getTmplData(nkdConfig *nkd.Master) *commonTemplateData {
+func getMasterTmplData(nkdConfig *nkd.Master, count int) *commonTemplateData {
+	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.HostName, count)
 	return &commonTemplateData{
 		SSHKey:          "",
 		APIServerURL:    "",
@@ -81,6 +90,9 @@ func getTmplData(nkdConfig *nkd.Master) *commonTemplateData {
 		PodSandboxImage: "",
 		ServiceSubnet:   nkdConfig.Kubeadm.Networking.ServiceSubnet,
 		PodSubnet:       nkdConfig.Kubeadm.Networking.PodSubnet,
+		Token:           "",
+		NodeName:        oneNodeName,
+		NodeType:        "master",
 	}
 }
 
@@ -118,7 +130,8 @@ func generateConfig(ctd *commonTemplateData) error {
 			},
 		},
 	}
-	if err := AddStorageFiles(&config, "/", "data/ignition/files", ctd); err != nil {
+	nodeFilesPath := fmt.Sprintf("data/ignition/%s/files", ctd.NodeType)
+	if err := AddStorageFiles(&config, "/", nodeFilesPath, ctd); err != nil {
 		logrus.Errorf("failed to add files to a ignition config: %v", err)
 		return err
 	}
@@ -127,7 +140,7 @@ func generateConfig(ctd *commonTemplateData) error {
 		logrus.Errorf("failed to add systemd units to a ignition config: %v", err)
 		return err
 	}
-	ignName := fmt.Sprintf("%s%s", ctd.HostName, ".ign")
+	ignName := fmt.Sprintf("%s%s", ctd.NodeName, ".ign")
 	if err := generateFile(&config, "./", ignName); err != nil {
 		logrus.Errorf("failed to generate ignition file: %v", err)
 		return err
