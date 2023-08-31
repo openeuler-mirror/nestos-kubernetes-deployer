@@ -25,34 +25,82 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func LoadOrDefaultInitConfiguration(cfgPath string, cfg *nkd.Master) (*nkd.Master, error) {
+// func LoadOrDefaultInitConfiguration(cfgPath string, cfg *nkd.Master) (*nkd.Master, error) {
+func LoadOrDefaultInitConfiguration(cfgPath string) (interface{}, string, error) {
 	if cfgPath != "" {
-		cfg, err := LoadInitConfigurationFromFile()
+		cfg, nodetype, err := LoadInitConfigurationFromFile(cfgPath)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		return cfg, nil
+		fmt.Println(cfg)
+
+		return cfg, nodetype, nil
 	}
 	cfg, err := DefaultinitConfiguration()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return cfg, nil
+	return cfg, "", nil
 
 }
 
-func LoadInitConfigurationFromFile() (*nkd.Master, error) {
-	conf := new(nkd.Master)
-	yamlFile, err := ioutil.ReadFile("test.yaml")
-	fmt.Println(err)
+func LoadInitConfigurationFromFile(cfg string) (interface{}, string, error) {
+	// conf := new(nkd.Node)
+	// yamlFile, err := ioutil.ReadFile(cfg)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// err = yaml.Unmarshal(yamlFile, conf)
+	// fmt.Println(conf)
+	// if err != nil {
+	// 	fmt.Println("marshal error")
+	// }
+	// // return conf, nil
+	// return nil, nil
+	node := new(nkd.Node)
+	yamlFile, err := ioutil.ReadFile(cfg)
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	err = yaml.Unmarshal(yamlFile, node)
+	if err != nil {
+		return nil, "", err
+	}
+
+	nodetype := node.Node
+
+	if nodetype == "master" {
+		master := new(nkd.Master)
+		masterinfo, err := Unmarshal(master, yamlFile)
+		if err != nil {
+			return nil, "", err
+		}
+		return masterinfo, nodetype, nil
+
+	} else if nodetype == "worker" {
+		worker := new(nkd.Worker)
+		workerinfo, err := Unmarshal(worker, yamlFile)
+		if err != nil {
+			return nil, "", err
+		}
+		return workerinfo, nodetype, nil
+
+	} else {
+		return nil, "", err
+	}
+
+}
+
+func Unmarshal(nodeinfo interface{}, cfg []byte) (interface{}, error) {
+	err := yaml.Unmarshal(cfg, nodeinfo)
 	if err != nil {
 		return nil, err
 	}
-	err = yaml.Unmarshal(yamlFile, conf)
-	fmt.Println(conf.Infra.Platform)
-	return conf, nil
+	return nodeinfo, nil
 }
 
-func DefaultinitConfiguration() (*nkd.Master, error) {
+func DefaultinitConfiguration() (*interface{}, error) {
 	return nil, nil
 }

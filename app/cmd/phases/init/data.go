@@ -19,5 +19,6 @@ package phases
 import "nestos-kubernetes-deployer/app/apis/nkd"
 
 type InitData interface {
-	Cfg() *nkd.Master
+	MasterCfg() *nkd.Master
+	WorkerCfg() *nkd.Worker
 }

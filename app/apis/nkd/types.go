@@ -392,3 +392,7 @@ type Worker struct {
 	Addon  Addon
 	Worker WorkerK8s
 }
+
+type Node struct {
+	Node string
+}

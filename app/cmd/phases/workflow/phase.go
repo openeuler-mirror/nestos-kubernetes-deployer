@@ -19,5 +19,5 @@ type Phase struct {
 	Name   string
 	Short  string
 	Phases []Phase
-	Run    func(data RunData) error
+	Run    func(data RunData, node string) error
 }
