@@ -20,7 +20,7 @@ import (
 	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
 )
 
-func NewGenerateCertsCmd() workflow.Phase {
+func NewGenerateTFCmd() workflow.Phase {
 	return workflow.Phase{
 		Name:  "cert",
 		Short: "Run certs to generate certs",
@@ -28,7 +28,7 @@ func NewGenerateCertsCmd() workflow.Phase {
 	}
 }
 
-func runGenerateCertsConfig(r workflow.RunData, node string) error {
+func runGenerateTFConfig(r workflow.RunData, node string) error {
 	if node == "worker" {
 		fmt.Println(r.(InitData).WorkerCfg())
 	} else {

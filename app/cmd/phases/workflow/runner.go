@@ -22,10 +22,11 @@ import (
 )
 
 type Runner struct {
+	node               string
 	Phases             []Phase
 	phaseRunners       []*phaseRunner
 	runData            RunData
-	runDataInitializer func(*cobra.Command, []string) (RunData, error)
+	runDataInitializer func(*cobra.Command, []string) (RunData, string, error)
 	runCmd             *cobra.Command
 }
 
@@ -46,18 +47,18 @@ func NewRunner() *Runner {
 	}
 }
 
-func (r *Runner) InitData(args []string) (RunData, error) {
+func (r *Runner) InitData(args []string) (RunData, string, error) {
 	if r.runData == nil && r.runDataInitializer != nil {
 		var err error
-		if r.runData, err = r.runDataInitializer(r.runCmd, args); err != nil {
-			return nil, err
+		if r.runData, r.node, err = r.runDataInitializer(r.runCmd, args); err != nil {
+			return nil, "", err
 		}
-		return r.runData, nil
+		return r.runData, r.node, nil
 	}
-	return nil, nil
+	return nil, "", nil
 }
 
-func (r *Runner) SetDataInitializer(builder func(*cobra.Command, []string) (RunData, error)) {
+func (r *Runner) SetDataInitializer(builder func(*cobra.Command, []string) (RunData, string, error)) {
 	r.runDataInitializer = builder
 }
 
@@ -67,7 +68,7 @@ func (r *Runner) Run() error {
 
 	err := r.VisitAll(func(p *phaseRunner) error {
 		if p.Run != nil {
-			if err := p.Run(data); err != nil {
+			if err := p.Run(data, r.node); err != nil {
 				return err
 			}
 		}

@@ -52,9 +52,7 @@ func newCommandPrintDefaultNodeConfig(node string) *cobra.Command {
 		Use:   fmt.Sprintf("%s", node),
 		Short: fmt.Sprintf("use this command to init %s default config", node),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("111")
 			return runPrintDefaultConfig(node)
-			// return nil
 		},
 	}
 	return cmd
