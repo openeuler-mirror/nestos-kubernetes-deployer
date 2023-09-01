@@ -14,3 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package cmd
+
+import (
+	"nestos-kubernetes-deployer/app/cmd/phases/extend"
+
+	"github.com/spf13/cobra"
+)
+
+func NewExtendCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "extend",
+		Short: "Extend kubernetes cluster",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
+	}
+
+	cmd.AddCommand(extend.NewExtendMasterCommand())
+	cmd.AddCommand(extend.NewExtendWorkerCommand())
+
+	return cmd
+}

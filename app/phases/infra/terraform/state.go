@@ -27,7 +27,7 @@ import (
 func Outputs(dir string, terraformDir string) ([]byte, error) {
 	tf, err := newTFExec(dir, terraformDir)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to destroy a new tfexec")
 	}
 
 	tfoutput, err := tf.Output(context.Background())
