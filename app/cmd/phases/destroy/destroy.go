@@ -13,25 +13,45 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+
+package destroy
 
 import (
-	"nestos-kubernetes-deployer/app/cmd/phases/destroy"
+	"nestos-kubernetes-deployer/app/phases/infra"
 
 	"github.com/spf13/cobra"
 )
 
-func NewDestroyCommand() *cobra.Command {
+func NewDestroyMasterCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "destroy",
-		Short: "Destroy kubernetes cluster",
+		Use:   "master",
+		Short: "destroy kubernetes master node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
+			cluster := &infra.Cluster{
+				Dir:  "./",
+				Node: "master",
+			}
+
+			return cluster.Destroy()
 		},
 	}
 
-	cmd.AddCommand(destroy.NewDestroyMasterCommand())
-	cmd.AddCommand(destroy.NewDestroyWorkerCommand())
+	return cmd
+}
+
+func NewDestroyWorkerCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "worker",
+		Short: "destroy kubernetes worker node",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cluster := &infra.Cluster{
+				Dir:  "./",
+				Node: "worker",
+			}
+
+			return cluster.Destroy()
+		},
+	}
 
 	return cmd
 }

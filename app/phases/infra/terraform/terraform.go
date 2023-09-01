@@ -101,7 +101,7 @@ func TFApply(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption)
 // terraform destroy
 func TFDestroy(tfDir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
 	if err := TFInit(tfDir, terraformDir); err != nil {
-		return err
+		return errors.Wrap(err, "failed to init terraform")
 	}
 
 	tf, err := newTFExec(tfDir, terraformDir)

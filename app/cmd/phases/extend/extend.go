@@ -13,7 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+
+package extend
 
 import (
 	"nestos-kubernetes-deployer/app/phases/infra"
@@ -21,19 +22,48 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewDeployCommand() *cobra.Command {
+func NewExtendMasterCommand() *cobra.Command {
+	var num string
 	cmd := &cobra.Command{
-		Use:   "deploy",
-		Short: "Deploy kubernetes cluster",
+		Use:   "master",
+		Short: "Extend kubernetes master node",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cluster := &infra.Cluster{
 				Dir:  "./",
 				Node: "master",
+				Num:  num,
 			}
 
-			return cluster.Create()
+			if num == "" {
+				return cmd.Help()
+			}
+			return cluster.Extend()
 		},
 	}
+	cmd.PersistentFlags().StringVarP(&num, "num", "n", "", "number of the extend nodes")
+
+	return cmd
+}
+
+func NewExtendWorkerCommand() *cobra.Command {
+	var num string
+	cmd := &cobra.Command{
+		Use:   "worker",
+		Short: "Extend kubernetes worker node",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cluster := &infra.Cluster{
+				Dir:  "./",
+				Node: "worker",
+				Num:  num,
+			}
+
+			if num == "" {
+				return cmd.Help()
+			}
+			return cluster.Extend()
+		},
+	}
+	cmd.PersistentFlags().StringVarP(&num, "num", "n", "", "number of the extend nodes")
 
 	return cmd
 }
