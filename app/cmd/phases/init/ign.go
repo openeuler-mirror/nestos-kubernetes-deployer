@@ -67,16 +67,39 @@ var (
 	}
 )
 
-func runGenerateIgnConfig(r workflow.RunData) error {
-	count := 1
+func runGenerateIgnConfig(r workflow.RunData, node string) error {
 	data, ok := r.(InitData)
 	if !ok {
 		panic(fmt.Sprintf("Expect to fetch configuration data but got a %T", r))
 	}
-	//todo: master、worker节点配置分别调用的实现
-	ctd := getMasterTmplData(data.Cfg(), count)
-	if err := generateConfig(ctd); err != nil {
-		return err
+	var (
+		hsip        string
+		hostName    string
+		oneNodeName string
+		nodeCount   int
+	)
+	if node == "master" {
+		nodeCount = data.MasterCfg().System.Count
+		hostName = data.MasterCfg().System.HostName
+		for i := 0; i < nodeCount; i++ {
+			oneNodeName = fmt.Sprintf("%s%02d", hostName, i+1)
+			temp := data.MasterCfg().System.Ips[i] + oneNodeName + "\n"
+			hsip = hsip + temp
+		}
+		for j := 0; j < nodeCount; j++ {
+			ctd := getMasterTmplData(data.MasterCfg(), j+1)
+			if err := generateConfig(ctd); err != nil {
+				return err
+			}
+		}
+	} else {
+		nodeCount = data.WorkerCfg().System.Count
+		for j := 0; j < nodeCount; j++ {
+			ctd := getWorkerTmplData(data.WorkerCfg(), j+1)
+			if err := generateConfig(ctd); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -84,7 +107,7 @@ func runGenerateIgnConfig(r workflow.RunData) error {
 func getMasterTmplData(nkdConfig *nkd.Master, count int) *commonTemplateData {
 	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.HostName, count)
 	return &commonTemplateData{
-		SSHKey:          "",
+		SSHKey:          nkdConfig.System.SSHKey,
 		APIServerURL:    "",
 		ImageRegistry:   nkdConfig.Repo.Registry,
 		PodSandboxImage: "",
@@ -93,6 +116,19 @@ func getMasterTmplData(nkdConfig *nkd.Master, count int) *commonTemplateData {
 		Token:           "",
 		NodeName:        oneNodeName,
 		NodeType:        "master",
+	}
+}
+
+func getWorkerTmplData(nkdConfig *nkd.Worker, count int) *commonTemplateData {
+	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.HostName, count)
+	return &commonTemplateData{
+		SSHKey:          nkdConfig.System.SSHKey,
+		APIServerURL:    "",
+		ImageRegistry:   nkdConfig.Repo.Registry,
+		PodSandboxImage: "",
+		Token:           nkdConfig.Worker.Discovery.TlsBootstrapToken,
+		NodeName:        oneNodeName,
+		NodeType:        "worker",
 	}
 }
 
