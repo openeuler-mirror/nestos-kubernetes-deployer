@@ -140,11 +140,17 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 		CaCertPath:       nkd.CaCertPath,
 		NodeRegistration: nodeRegistrationOptions,
 	}
+
+	containerdaemon := nkd.ContainerDaemon{
+		Pause: nkd.Pauseversion,
+	}
+
 	internalconfig.Node = nkd.WorkerNode
 	internalconfig.Repo = repo
 	internalconfig.System = system1
 	internalconfig.Infra = infra
 	internalconfig.Worker = worker
+	internalconfig.ContainerDaemon = containerdaemon
 	return nil
 }
 
@@ -200,10 +206,6 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		Usages: nkd.DefaultUsages,
 	}
 
-	typemeta := nkd.TypeMeta{
-		ApiVersion: nkd.DefaultapiVersion,
-	}
-
 	localAPIEndpoint := nkd.APIEndpoint{
 		AdvertiseAddress: nkd.AdvertiseAddress,
 		BindPort:         nkd.BindPort,
@@ -217,7 +219,6 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 	}
 
 	ClusterConfiguration := nkd.ClusterConfiguration{
-		TypeMeta:          typemeta,
 		CertificatesDir:   nkd.CertificatesDir,
 		ClusterName:       nkd.ClusterName,
 		Etcd:              nkd.Etcd{Local: &nkd.LocalEtcd{DataDir: nkd.LocalDir}},
@@ -229,17 +230,22 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 
 	kubeadm := nkd.Kubeadm{
 		ClusterConfiguration: ClusterConfiguration,
-		TypeMeta:             typemeta,
 		BootstrapTokens:      []nkd.BootstrapToken{bootstrapToken},
 		LocalAPIEndpoint:     localAPIEndpoint,
 		NodeRegistration:     NodeRegistrationOptions,
 	}
+
+	containerdaemon := nkd.ContainerDaemon{
+		Pause: nkd.Pauseversion,
+	}
+
 	internalconfig.Node = nkd.MasterNode
 	internalconfig.Kubeadm = kubeadm
 	internalconfig.Cluster = cluster
 	internalconfig.Infra = infra
 	internalconfig.System = system1
 	internalconfig.Repo = repo
+	internalconfig.ContainerDaemon = containerdaemon
 
 	return internalconfig
 }

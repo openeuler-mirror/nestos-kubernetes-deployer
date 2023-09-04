@@ -65,11 +65,6 @@ type Repo struct {
 	Registry string              `yaml:"registry"`
 }
 
-type TypeMeta struct {
-	// Kind       string
-	ApiVersion string
-}
-
 type BootstrapTokenString struct {
 	ID     string `json:"-"`
 	Secret string `json:"-" datapolicy:"token"`
@@ -256,8 +251,6 @@ type DNS struct {
 	ImageMeta `json:",inline"`
 }
 type ClusterConfiguration struct {
-	TypeMeta
-
 	// ComponentConfigs holds component configs known to kubeadm, should long-term only exist in the internal kubeadm API
 	// +k8s:conversion-gen=false
 	ComponentConfigs ComponentConfigMap
@@ -335,7 +328,6 @@ type Patches struct {
 
 type Kubeadm struct {
 	ClusterConfiguration
-	TypeMeta
 	BootstrapTokens  []BootstrapToken
 	LocalAPIEndpoint APIEndpoint
 	NodeRegistration NodeRegistrationOptions
@@ -347,23 +339,19 @@ type Addon struct {
 	Addons []map[string]string
 }
 
-// type Nkd struct {
-// 	Cluster Cluster
-// 	System  []System
-// 	Repo    Repo
-// 	Kubeadm Kubeadm
-// 	Addon   Addon
-// 	Infra   Infra
-// }
+type ContainerDaemon struct {
+	Pause string
+}
 
 type Master struct {
-	Node    string
-	Cluster Cluster
-	System  System
-	Repo    Repo
-	Kubeadm Kubeadm
-	Addon   Addon
-	Infra   Infra
+	Node            string
+	ContainerDaemon ContainerDaemon
+	Cluster         Cluster
+	System          System
+	Repo            Repo
+	Kubeadm         Kubeadm
+	Addon           Addon
+	Infra           Infra
 }
 
 type WorkerK8s struct {
@@ -385,12 +373,13 @@ type Discovery struct {
 }
 
 type Worker struct {
-	Node   string
-	Repo   Repo
-	System System
-	Infra  Infra
-	Addon  Addon
-	Worker WorkerK8s
+	Node            string
+	ContainerDaemon ContainerDaemon
+	Repo            Repo
+	System          System
+	Infra           Infra
+	Addon           Addon
+	Worker          WorkerK8s
 }
 
 type Node struct {

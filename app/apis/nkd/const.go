@@ -103,4 +103,7 @@ var (
 
 	Master_Count = 3
 	Worker_Count = 3
+
+	// containerdaemon
+	Pauseversion = "pause:3.6"
 )

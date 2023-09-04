@@ -45,18 +45,6 @@ func LoadOrDefaultInitConfiguration(cfgPath string) (interface{}, string, error)
 }
 
 func LoadInitConfigurationFromFile(cfg string) (interface{}, string, error) {
-	// conf := new(nkd.Node)
-	// yamlFile, err := ioutil.ReadFile(cfg)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// err = yaml.Unmarshal(yamlFile, conf)
-	// fmt.Println(conf)
-	// if err != nil {
-	// 	fmt.Println("marshal error")
-	// }
-	// // return conf, nil
-	// return nil, nil
 	node := new(nkd.Node)
 	yamlFile, err := ioutil.ReadFile(cfg)
 
