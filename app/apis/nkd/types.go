@@ -65,11 +65,6 @@ type Repo struct {
 	Registry string              `yaml:"registry"`
 }
 
-type TypeMeta struct {
-	// Kind       string
-	ApiVersion string
-}
-
 type BootstrapTokenString struct {
 	ID     string `json:"-"`
 	Secret string `json:"-" datapolicy:"token"`
@@ -256,8 +251,6 @@ type DNS struct {
 	ImageMeta `json:",inline"`
 }
 type ClusterConfiguration struct {
-	TypeMeta
-
 	// ComponentConfigs holds component configs known to kubeadm, should long-term only exist in the internal kubeadm API
 	// +k8s:conversion-gen=false
 	ComponentConfigs ComponentConfigMap
@@ -335,7 +328,6 @@ type Patches struct {
 
 type Kubeadm struct {
 	ClusterConfiguration
-	TypeMeta
 	BootstrapTokens  []BootstrapToken
 	LocalAPIEndpoint APIEndpoint
 	NodeRegistration NodeRegistrationOptions

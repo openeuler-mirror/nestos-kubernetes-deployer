@@ -206,10 +206,6 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		Usages: nkd.DefaultUsages,
 	}
 
-	typemeta := nkd.TypeMeta{
-		ApiVersion: nkd.DefaultapiVersion,
-	}
-
 	localAPIEndpoint := nkd.APIEndpoint{
 		AdvertiseAddress: nkd.AdvertiseAddress,
 		BindPort:         nkd.BindPort,
@@ -223,7 +219,6 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 	}
 
 	ClusterConfiguration := nkd.ClusterConfiguration{
-		TypeMeta:          typemeta,
 		CertificatesDir:   nkd.CertificatesDir,
 		ClusterName:       nkd.ClusterName,
 		Etcd:              nkd.Etcd{Local: &nkd.LocalEtcd{DataDir: nkd.LocalDir}},
@@ -235,7 +230,6 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 
 	kubeadm := nkd.Kubeadm{
 		ClusterConfiguration: ClusterConfiguration,
-		TypeMeta:             typemeta,
 		BootstrapTokens:      []nkd.BootstrapToken{bootstrapToken},
 		LocalAPIEndpoint:     localAPIEndpoint,
 		NodeRegistration:     NodeRegistrationOptions,
