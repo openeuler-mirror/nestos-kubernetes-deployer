@@ -140,11 +140,17 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 		CaCertPath:       nkd.CaCertPath,
 		NodeRegistration: nodeRegistrationOptions,
 	}
+
+	containerdaemon := nkd.ContainerDaemon{
+		Pause: nkd.Pauseversion,
+	}
+
 	internalconfig.Node = nkd.WorkerNode
 	internalconfig.Repo = repo
 	internalconfig.System = system1
 	internalconfig.Infra = infra
 	internalconfig.Worker = worker
+	internalconfig.ContainerDaemon = containerdaemon
 	return nil
 }
 
@@ -234,12 +240,18 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		LocalAPIEndpoint:     localAPIEndpoint,
 		NodeRegistration:     NodeRegistrationOptions,
 	}
+
+	containerdaemon := nkd.ContainerDaemon{
+		Pause: nkd.Pauseversion,
+	}
+
 	internalconfig.Node = nkd.MasterNode
 	internalconfig.Kubeadm = kubeadm
 	internalconfig.Cluster = cluster
 	internalconfig.Infra = infra
 	internalconfig.System = system1
 	internalconfig.Repo = repo
+	internalconfig.ContainerDaemon = containerdaemon
 
 	return internalconfig
 }
