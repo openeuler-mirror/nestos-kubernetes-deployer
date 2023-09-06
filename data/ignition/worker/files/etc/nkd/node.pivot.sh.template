@@ -1,0 +1,16 @@
+#!/bin/sh
+service_name="isulad"
+if systemctl is-active --quiet $service_name ; then
+    echo "$service_name is already running"
+else
+    echo "$service_name is not running, starting..."
+    systemctl start $service_name
+    systemctl enable $service_name
+    if [ $? -eq 0 ]; then
+           echo "$service_name starting success."
+    else
+           echo "unable to start $service_name."
+    exit 1
+    fi
+fi
+rpm-ostree rebase --experimental ostree-unverified-image:docker://{{.ReleaseImageURl}} --bypass-driver

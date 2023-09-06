@@ -21,6 +21,7 @@ import (
 	"io"
 	"nestos-kubernetes-deployer/app/apis/nkd"
 	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -47,13 +48,16 @@ type commonTemplateData struct {
 	APIServerURL    string
 	Hsip            string //HostName + IP
 	ImageRegistry   string
-	PodSandboxImage string
+	PauseImageTag   string
 	KubeVersion     string
 	ServiceSubnet   string
 	PodSubnet       string
 	Token           string
 	NodeType        string
 	NodeName        string
+	CorednsImageTag string
+	IpSegment       string
+	ReleaseImageURl string
 }
 
 var (
@@ -80,22 +84,36 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 	)
 	if node == "master" {
 		nodeCount = data.MasterCfg().System.Count
-		hostName = data.MasterCfg().System.HostName
+		hostName = data.MasterCfg().System.MasterHostName
+		ip := net.ParseIP(data.MasterCfg().System.Ips[0])
+		if ip == nil {
+			logrus.Warning("Invalid ip address!")
+			return nil
+		}
+		ipSegment := ip.To4()
+		ipSegment[2] = 0
+		ipSegment[3] = 0
 		for i := 0; i < nodeCount; i++ {
 			oneNodeName = fmt.Sprintf("%s%02d", hostName, i+1)
-			temp := data.MasterCfg().System.Ips[i] + oneNodeName + "\n"
+			temp := data.MasterCfg().System.Ips[i] + " " + oneNodeName + "\n"
 			hsip = hsip + temp
 		}
 		for j := 0; j < nodeCount; j++ {
-			ctd := getMasterTmplData(data.MasterCfg(), j+1)
+			ctd := getMasterTmplData(data.MasterCfg(), j+1, ipSegment.String(), hsip)
 			if err := generateConfig(ctd); err != nil {
 				return err
 			}
 		}
 	} else {
 		nodeCount = data.WorkerCfg().System.Count
+		hostName = data.WorkerCfg().System.MasterHostName
+		for i := 0; i < len(data.WorkerCfg().System.Ips); i++ {
+			oneNodeName = fmt.Sprintf("%s%02d", hostName, i+1)
+			temp := data.WorkerCfg().System.Ips[i] + " " + oneNodeName + "\n"
+			hsip = hsip + temp
+		}
 		for j := 0; j < nodeCount; j++ {
-			ctd := getWorkerTmplData(data.WorkerCfg(), j+1)
+			ctd := getWorkerTmplData(data.WorkerCfg(), j+1, hsip)
 			if err := generateConfig(ctd); err != nil {
 				return err
 			}
@@ -104,31 +122,37 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 	return nil
 }
 
-func getMasterTmplData(nkdConfig *nkd.Master, count int) *commonTemplateData {
-	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.HostName, count)
+func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string) *commonTemplateData {
+	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.MasterHostName, count)
 	return &commonTemplateData{
 		SSHKey:          nkdConfig.System.SSHKey,
-		APIServerURL:    "",
+		APIServerURL:    nkdConfig.System.Ips[0],
+		Hsip:            hsip,
 		ImageRegistry:   nkdConfig.Repo.Registry,
-		PodSandboxImage: "",
+		PauseImageTag:   nkdConfig.ContainerDaemon.PauseImageTag,
 		ServiceSubnet:   nkdConfig.Kubeadm.Networking.ServiceSubnet,
 		PodSubnet:       nkdConfig.Kubeadm.Networking.PodSubnet,
-		Token:           "",
+		Token:           "abcdef.0123456789abcdef",
 		NodeName:        oneNodeName,
 		NodeType:        "master",
+		CorednsImageTag: nkdConfig.ContainerDaemon.CorednsImageTag,
+		IpSegment:       ip,
+		ReleaseImageURl: nkdConfig.ContainerDaemon.ReleaseImageURl,
 	}
 }
 
-func getWorkerTmplData(nkdConfig *nkd.Worker, count int) *commonTemplateData {
-	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.HostName, count)
+func getWorkerTmplData(nkdConfig *nkd.Worker, count int, hsip string) *commonTemplateData {
+	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.WorkerHostName, count)
 	return &commonTemplateData{
 		SSHKey:          nkdConfig.System.SSHKey,
-		APIServerURL:    "",
+		APIServerURL:    nkdConfig.Worker.Discovery.BootstrapToken.APIServerEndpoint,
+		Hsip:            hsip,
 		ImageRegistry:   nkdConfig.Repo.Registry,
-		PodSandboxImage: "",
+		PauseImageTag:   nkdConfig.ContainerDaemon.PauseImageTag,
 		Token:           nkdConfig.Worker.Discovery.TlsBootstrapToken,
 		NodeName:        oneNodeName,
 		NodeType:        "worker",
+		ReleaseImageURl: nkdConfig.ContainerDaemon.ReleaseImageURl,
 	}
 }
 
@@ -177,7 +201,11 @@ func generateConfig(ctd *commonTemplateData) error {
 		return err
 	}
 	ignName := fmt.Sprintf("%s%s", ctd.NodeName, ".ign")
-	if err := generateFile(&config, "./", ignName); err != nil {
+	filepath := "./master"
+	if ctd.NodeType == "worker" {
+		filepath = "./worker"
+	}
+	if err := generateFile(&config, filepath, ignName); err != nil {
 		logrus.Errorf("failed to generate ignition file: %v", err)
 		return err
 	}

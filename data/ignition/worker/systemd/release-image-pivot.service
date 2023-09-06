@@ -1,0 +1,15 @@
+[Unit]
+Description=Pivot node to the nkd release image
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/nkd/log/node-pivot.stamp
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=sh /etc/nkd/node-pivot.sh
+ExecStart=/bin/touch /var/nkd/log/node-pivot.stamp
+ExecStart=systemctl reboot
+
+[Install]
+WantedBy=multi-user.target

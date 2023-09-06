@@ -58,7 +58,7 @@ func NewInitDefaultNkdConfigCommand() *cobra.Command {
 		},
 	}
 	phases.NewGenerateCertsCmd()
-	initRunner.AppendPhase(phases.NewGenerateCertsCmd())
+	// initRunner.AppendPhase(phases.NewGenerateCertsCmd())
 	initRunner.AppendPhase(phases.NewGenerateIgnCmd())
 	initRunner.AppendPhase(phases.NewGenerateTFCmd())
 	cmd.PersistentFlags().StringVarP(&config, "config", "c", "", "config for init")
