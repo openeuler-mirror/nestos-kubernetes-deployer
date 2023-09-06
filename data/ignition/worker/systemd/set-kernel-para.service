@@ -1,6 +1,7 @@
 [Unit]
 Description=set kernel para for Kubernetes
 ConditionPathExists=!/var/nkd/log/set-kernel-para.stamp
+ConditionPathExists=/var/nkd/log/node-pivot.stamp
 
 [Service]
 Type=oneshot

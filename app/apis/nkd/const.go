@@ -22,15 +22,16 @@ var (
 	NkdClusterName = "example nkd cluster"
 
 	// system
-	HostName = "master"
+	MasterHostName = "master"
+	WorkerHostName = "worker"
 	// Hostname2 = "master01"
 	// Hostname3 = "master01"
-	Username = "user1"
+	Username = "root"
 	Password = "********"
 
 	// repo
 	Secret   = []map[string]string{{"repousre": "********"}}
-	Registry = "kubeadm.k8s.io/v1beta3"
+	Registry = "registry.cn-hangzhou.aliyuncs.com/google_containers"
 
 	// infra
 	Platform = "openstack"
@@ -50,7 +51,7 @@ var (
 	Openstack_WorkerNodeName   = []string{"node01", "node02", "node03"}
 	Openstack_Internal_network = "existing internal net name"
 	Openstack_External_network = "existing external net name"
-	Openstack_Master_ip        = []string{"*.*.*.*", "*.*.*.*", "*.*.*.*"}
+	Openstack_Master_ip        = []string{"10.1.10.51", "10.1.10.52", "10.1.10.53"}
 	Openstack_Worker_ip        = []string{"*.*.*.*", "*.*.*.*", "*.*.*.*"}
 	Openstack_Flavor_Name      = "existing flavor name"
 	Openstack_Glance_Name      = "existing glance name"
@@ -71,7 +72,7 @@ var (
 	BindPort         int32 = 6643
 
 	// nodeRegistration
-	CriSocket       = "/var/run/dockershim.sock"
+	CriSocket       = "/var/run/isulad.sock"
 	ImagePullPolicy = "IfNotPresent"
 	Name            = "node"
 	Taints          = []Taint{}
@@ -85,13 +86,14 @@ var (
 
 	// etcd
 	LocalDir          = "/var/lib/etcd"
-	ImageRepository   = "registry.k8s.io"
-	KubernetesVersion = "1.23.0"
+	ImageRepository   = "registry.cn-hangzhou.aliyuncs.com/google_containers"
+	KubernetesVersion = "1.23.10"
 	DnsDomain         = "cluster.local"
-	ServiceSubnet     = "10.96.0.0/12"
+	ServiceSubnet     = "10.96.0.0/16"
+	PodSubnet         = "10.100.0.0/16"
 
 	// worker
-	APIServerEndpoint        = "kube-apiserver:6443"
+	APIServerEndpoint        = "10.1.10.51:6443"
 	Token                    = "abcdef.0123456789abcdef"
 	UnsafeSkipCAVerification = true
 	WorkerDiscoverTimeout    = "5m0s"
@@ -103,7 +105,10 @@ var (
 
 	Master_Count = 3
 	Worker_Count = 3
+	SSHKey       = "ssh-rsa AAAAB3N... root@localhost.localdomain"
 
 	// containerdaemon
-	Pauseversion = "pause:3.6"
+	PauseImageTag   = "3.6"
+	CorednsImageTag = "v1.8.6"
+	ReleaseImageURl = ""
 )

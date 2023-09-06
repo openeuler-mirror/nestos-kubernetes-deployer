@@ -21,12 +21,13 @@ import (
 )
 
 type System struct {
-	Count    int
-	HostName string
-	Ips      []string
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	SSHKey   string
+	Count          int
+	MasterHostName string
+	WorkerHostName string
+	Ips            []string
+	Username       string `yaml:"username"`
+	Password       string `yaml:"password"`
+	SSHKey         string
 }
 
 type Openstack struct {
@@ -340,7 +341,9 @@ type Addon struct {
 }
 
 type ContainerDaemon struct {
-	Pause string
+	PauseImageTag   string
+	CorednsImageTag string
+	ReleaseImageURl string
 }
 
 type Master struct {

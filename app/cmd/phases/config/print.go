@@ -97,11 +97,13 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 	}
 
 	system1 := nkd.System{
-		Count:    nkd.Master_Count,
-		Ips:      nkd.Openstack_Master_ip,
-		HostName: nkd.HostName,
-		Username: nkd.Username,
-		Password: nkd.Password,
+		Count:          nkd.Master_Count,
+		Ips:            nkd.Openstack_Master_ip,
+		WorkerHostName: nkd.WorkerHostName,
+		MasterHostName: nkd.MasterHostName,
+		Username:       nkd.Username,
+		Password:       nkd.Password,
+		SSHKey:         nkd.SSHKey,
 	}
 
 	vmsize := nkd.Size{
@@ -142,7 +144,9 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 	}
 
 	containerdaemon := nkd.ContainerDaemon{
-		Pause: nkd.Pauseversion,
+		PauseImageTag:   nkd.PauseImageTag,
+		CorednsImageTag: nkd.CorednsImageTag,
+		ReleaseImageURl: nkd.ReleaseImageURl,
 	}
 
 	internalconfig.Node = nkd.WorkerNode
@@ -159,11 +163,12 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 	cluster := nkd.Cluster{Name: nkd.NkdClusterName}
 
 	system1 := nkd.System{
-		Count:    nkd.Master_Count,
-		Ips:      nkd.Openstack_Master_ip,
-		HostName: nkd.HostName,
-		Username: nkd.Username,
-		Password: nkd.Password,
+		Count:          nkd.Master_Count,
+		Ips:            nkd.Openstack_Master_ip,
+		MasterHostName: nkd.MasterHostName,
+		Username:       nkd.Username,
+		Password:       nkd.Password,
+		SSHKey:         nkd.SSHKey,
 	}
 
 	repo := nkd.Repo{
@@ -224,7 +229,7 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		Etcd:              nkd.Etcd{Local: &nkd.LocalEtcd{DataDir: nkd.LocalDir}},
 		ImageRepository:   nkd.ImagePullPolicy,
 		KubernetesVersion: nkd.KubernetesVersion,
-		Networking:        nkd.Networking{DNSDomain: nkd.DnsDomain, ServiceSubnet: nkd.ServiceSubnet},
+		Networking:        nkd.Networking{DNSDomain: nkd.DnsDomain, ServiceSubnet: nkd.ServiceSubnet, PodSubnet: nkd.PodSubnet},
 		APIServer:         apiServer,
 	}
 
@@ -236,7 +241,9 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 	}
 
 	containerdaemon := nkd.ContainerDaemon{
-		Pause: nkd.Pauseversion,
+		PauseImageTag:   nkd.PauseImageTag,
+		CorednsImageTag: nkd.CorednsImageTag,
+		ReleaseImageURl: nkd.ReleaseImageURl,
 	}
 
 	internalconfig.Node = nkd.MasterNode

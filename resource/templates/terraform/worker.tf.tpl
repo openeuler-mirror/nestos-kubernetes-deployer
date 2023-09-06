@@ -20,7 +20,7 @@ variable "instance_count" {
 }
 
 variable "instance_name" {
-  default = "{{.System.HostName}}"
+  default = "{{.System.WorkerHostName}}"
 }
 
 resource "openstack_compute_flavor_v2" "flavor" {

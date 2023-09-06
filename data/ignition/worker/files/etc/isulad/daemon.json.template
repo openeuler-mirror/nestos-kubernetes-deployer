@@ -29,7 +29,7 @@
     "insecure-registries": [
         "{{.ImageRegistry}}"
     ],
-    "pod-sandbox-image": "{{.PodSandboxImage}}",
+    "pod-sandbox-image": "{{.ImageRegistry}}/pause:{{.PauseImageTag}}",
     "native.umask": "secure",
     "network-plugin": "cni",
     "cni-bin-dir": "/opt/cni/bin",

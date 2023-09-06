@@ -1,6 +1,7 @@
 [Unit]
 Description=disable selinux for kubernetes
 ConditionPathExists=!/var/nkd/log/disable-selinux.stamp
+ConditionPathExists=/var/nkd/log/node-pivot.stamp
 
 [Service]
 Type=oneshot
