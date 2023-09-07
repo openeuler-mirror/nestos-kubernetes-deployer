@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/app/apis/nkd"
-	phases "nestos-kubernetes-deployer/app/cmd/phases/init"
+	"nestos-kubernetes-deployer/app/cmd/phases/initconfig"
 	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
 	"nestos-kubernetes-deployer/app/util/config"
 
@@ -28,12 +28,6 @@ import (
 type initData struct {
 	mastercfg *nkd.Master
 	workercfg *nkd.Worker
-	// cfg *nkd.Master
-	// cfg *interface{}
-}
-
-type Config struct {
-	config string
 }
 
 func NewInitDefaultNkdConfigCommand() *cobra.Command {
@@ -57,10 +51,9 @@ func NewInitDefaultNkdConfigCommand() *cobra.Command {
 			return initRunner.Run()
 		},
 	}
-	phases.NewGenerateCertsCmd()
-	// initRunner.AppendPhase(phases.NewGenerateCertsCmd())
-	initRunner.AppendPhase(phases.NewGenerateIgnCmd())
-	initRunner.AppendPhase(phases.NewGenerateTFCmd())
+	// initRunner.AppendPhase(initconfig.NewGenerateCertsCmd())
+	initRunner.AppendPhase(initconfig.NewGenerateIgnCmd())
+	initRunner.AppendPhase(initconfig.NewGenerateTFCmd())
 	cmd.PersistentFlags().StringVarP(&config, "config", "c", "", "config for init")
 	return cmd
 }
@@ -73,13 +66,12 @@ func (i *initData) WorkerCfg() *nkd.Worker {
 	return i.workercfg
 }
 func newInitData(cmd *cobra.Command, args []string, cfgPath string) (*initData, string, error) {
-	// var newNkd *nkd.Master
 	cfg, nodetype, err := config.LoadOrDefaultInitConfiguration(cfgPath)
 	if err != nil {
 		return nil, "", err
 	}
 	_, ok := cfg.(*nkd.Master)
-	if ok == true {
+	if ok {
 		return &initData{
 			mastercfg: cfg.(*nkd.Master),
 		}, nodetype, nil

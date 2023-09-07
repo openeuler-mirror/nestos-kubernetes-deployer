@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package phases
+package initconfig
 
 import (
 	"fmt"
@@ -30,20 +30,20 @@ import (
 func NewGenerateTFCmd() workflow.Phase {
 	return workflow.Phase{
 		Name:  "tf",
-		Short: "Run tf to generate certs",
+		Short: "Run tf to generate .tf config files",
 		Run:   runGenerateTFConfig,
 	}
 }
 
 func runGenerateTFConfig(r workflow.RunData, node string) error {
-	outputFile, err := os.Create(filepath.Join("./", fmt.Sprintf("%s.tf", node)))
+	outputFile, err := os.Create(filepath.Join(node, fmt.Sprintf("%s.tf", node)))
 	if err != nil {
 		return errors.Wrap(err, "failed to create terraform config file")
 	}
 	defer outputFile.Close()
 
 	// 从文件中读取 terraformConfig
-	terraformConfig, err := os.ReadFile(filepath.Join("resource/templates/terraform", fmt.Sprintf("%s.tf.tpl", node)))
+	terraformConfig, err := os.ReadFile(filepath.Join("data/terraform", fmt.Sprintf("%s.tf.template", node)))
 	if err != nil {
 		return errors.Wrap(err, "failed to read terraform config template")
 	}
@@ -54,20 +54,29 @@ func runGenerateTFConfig(r workflow.RunData, node string) error {
 		return errors.Wrap(err, "failed to create terraform config template")
 	}
 
-	quotedStrs := make([]string, len(r.(InitData).MasterCfg().System.Ips))
-	for i, s := range r.(InitData).MasterCfg().System.Ips {
-		quotedStrs[i] = fmt.Sprintf(`"%s"`, s)
-	}
-	joinedStr := strings.Join(quotedStrs, ",")
-
-	r.(InitData).MasterCfg().System.Ips = []string{joinedStr}
-
 	// 将填充后的数据写入文件
 	if node == "master" {
+		quotedStrs := make([]string, len(r.(InitData).MasterCfg().System.Ips))
+		for i, s := range r.(InitData).MasterCfg().System.Ips {
+			quotedStrs[i] = fmt.Sprintf(`"%s"`, s)
+		}
+		joinedStr := strings.Join(quotedStrs, ",")
+
+		r.(InitData).MasterCfg().System.Ips = []string{joinedStr}
+
 		err = tmpl.Execute(outputFile, r.(InitData).MasterCfg())
 	} else {
+		quotedStrs := make([]string, len(r.(InitData).WorkerCfg().System.Ips))
+		for i, s := range r.(InitData).WorkerCfg().System.Ips {
+			quotedStrs[i] = fmt.Sprintf(`"%s"`, s)
+		}
+		joinedStr := strings.Join(quotedStrs, ",")
+
+		r.(InitData).WorkerCfg().System.Ips = []string{joinedStr}
+
 		err = tmpl.Execute(outputFile, r.(InitData).WorkerCfg())
 	}
+
 	if err != nil {
 		return errors.Wrap(err, "failed to write terraform config")
 	}

@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"nestos-kubernetes-deployer/app/phases/infra"
+	"nestos-kubernetes-deployer/app/cmd/phases/deploy"
 
 	"github.com/spf13/cobra"
 )
@@ -26,14 +26,12 @@ func NewDeployCommand() *cobra.Command {
 		Use:   "deploy",
 		Short: "Deploy kubernetes cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cluster := &infra.Cluster{
-				Dir:  "./",
-				Node: "master",
-			}
-
-			return cluster.Create()
+			return cmd.Help()
 		},
 	}
+
+	cmd.AddCommand(deploy.NewDeployMasterCommand())
+	cmd.AddCommand(deploy.NewDeployWorkerCommand())
 
 	return cmd
 }

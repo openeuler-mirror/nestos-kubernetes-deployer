@@ -14,10 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package phases
+package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"nestos-kubernetes-deployer/app/apis/nkd"
 
@@ -63,16 +65,30 @@ func runPrintDefaultConfig(node string) error {
 		internalconfig := &nkd.Master{}
 		DefaultedStaticMasterConfiguration(internalconfig)
 		conf, err := yaml.Marshal(&internalconfig)
-		fmt.Println(string(conf))
 		if err != nil {
+			return err
+		}
+
+		if err = os.MkdirAll(node, os.ModePerm); err != nil {
+			return err
+		}
+
+		if err = os.WriteFile(filepath.Join(node, "master.yaml"), conf, 0644); err != nil {
 			return err
 		}
 	} else if node == "worker" {
 		internalconfig := &nkd.Worker{}
 		DefaultedStaticWorkerConfiguration(internalconfig)
 		conf, err := yaml.Marshal(&internalconfig)
-		fmt.Println(string(conf))
 		if err != nil {
+			return err
+		}
+
+		if err = os.MkdirAll(node, os.ModePerm); err != nil {
+			return err
+		}
+
+		if err = os.WriteFile(filepath.Join(node, "worker.yaml"), conf, 0644); err != nil {
 			return err
 		}
 	}
@@ -98,7 +114,7 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 
 	system1 := nkd.System{
 		Count:          nkd.Master_Count,
-		Ips:            nkd.Openstack_Master_ip,
+		Ips:            nkd.Openstack_Worker_ip,
 		WorkerHostName: nkd.WorkerHostName,
 		MasterHostName: nkd.MasterHostName,
 		Username:       nkd.Username,

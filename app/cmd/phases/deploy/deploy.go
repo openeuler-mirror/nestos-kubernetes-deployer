@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package extend
+package deploy
 
 import (
 	"nestos-kubernetes-deployer/app/phases/infra"
@@ -22,48 +22,34 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewExtendMasterCommand() *cobra.Command {
-	var num string
+func NewDeployMasterCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "master",
-		Short: "Extend kubernetes master node",
+		Short: "deploy kubernetes master node",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cluster := &infra.Cluster{
-				Dir:  "./",
 				Node: "master",
-				Num:  num,
 			}
 
-			if num == "" {
-				return cmd.Help()
-			}
-			return cluster.Extend()
+			return cluster.Deploy()
 		},
 	}
-	cmd.PersistentFlags().StringVarP(&num, "num", "n", "", "number of the extend nodes")
 
 	return cmd
 }
 
-func NewExtendWorkerCommand() *cobra.Command {
-	var num string
+func NewDeployWorkerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "worker",
-		Short: "Extend kubernetes worker node",
+		Short: "deploy kubernetes worker node",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cluster := &infra.Cluster{
-				Dir:  "./",
 				Node: "worker",
-				Num:  num,
 			}
 
-			if num == "" {
-				return cmd.Help()
-			}
-			return cluster.Extend()
+			return cluster.Deploy()
 		},
 	}
-	cmd.PersistentFlags().StringVarP(&num, "num", "n", "", "number of the extend nodes")
 
 	return cmd
 }

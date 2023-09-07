@@ -28,7 +28,6 @@ func NewDestroyMasterCommand() *cobra.Command {
 		Short: "destroy kubernetes master node",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cluster := &infra.Cluster{
-				Dir:  "./",
 				Node: "master",
 			}
 
@@ -45,7 +44,6 @@ func NewDestroyWorkerCommand() *cobra.Command {
 		Short: "destroy kubernetes worker node",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cluster := &infra.Cluster{
-				Dir:  "./",
 				Node: "worker",
 			}
 

@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package phases
+package initconfig
 
 import (
 	"bytes"
@@ -251,7 +251,7 @@ func AddStorageFiles(config *igntypes.Config, base string, uri string, tmplData 
 	if err != nil {
 		return err
 	}
-	ign := fileFromBytes(strings.TrimSuffix(base, ".template"), 0644, data)
+	ign := fileFromBytes(strings.TrimSuffix(base, ".template"), 0755, data)
 	config.Storage.Files = appendFiles(config.Storage.Files, ign)
 	return nil
 }

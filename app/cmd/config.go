@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	phases "nestos-kubernetes-deployer/app/cmd/phases/config"
+	"nestos-kubernetes-deployer/app/cmd/phases/config"
 	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
 
 	"github.com/spf13/cobra"
@@ -32,7 +32,7 @@ func NewConfigCommand() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(phases.NewPrintDefaultNkdConfigCommand())
+	cmd.AddCommand(config.NewPrintDefaultNkdConfigCommand())
 	cmd.AddCommand(NewInitDefaultNkdConfigCommand())
 	return cmd
 }
