@@ -3,7 +3,7 @@ Description=kubelet: The Kubernetes Node Agent
 Documentation=https://kubernetes.io/docs/
 Wants=network-online.target
 After=network-online.target
-ConditionPathExists=/var/nkd/log/node-pivot.stamp
+ConditionPathExists=/var/log/node-pivot.stamp
 
 [Service]
 ExecStart=/usr/bin/kubelet

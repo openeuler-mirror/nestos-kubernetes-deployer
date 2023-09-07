@@ -2,16 +2,16 @@
 Description=init kubernetes cluster
 Requires=set-kernel-para.service disable-selinux.service release-image-pivot.service
 After=set-kernel-para.service disable-selinux.service release-image-pivot.service
-ConditionPathExists=/var/nkd/log/set-kernel-para.stamp
-ConditionPathExists=/var/nkd/log/disable-selinux.stamp
-ConditionPathExists=/var/nkd/log/node-pivot.stamp
-ConditionPathExists=!/var/nkd/log/init-cluster.stamp
+ConditionPathExists=/var/log/set-kernel-para.stamp
+ConditionPathExists=/var/log/disable-selinux.stamp
+ConditionPathExists=/var/log/node-pivot.stamp
+ConditionPathExists=!/var/log/init-cluster.stamp
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=kubeadm init --config=/etc/init-config.yaml --upload-certs
-ExecStart=/bin/touch /var/nkd/log/init-cluster.stamp
+ExecStart=/bin/touch /var/log/init-cluster.stamp
 
 [Install]
 WantedBy=multi-user.target

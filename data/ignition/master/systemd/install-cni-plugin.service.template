@@ -2,7 +2,7 @@
 Description=install cni network plugin for kubernetes
 Requires=init-cluster.service
 After=init-cluster.service
-ConditionPathExists=/var/nkd/log/init-k8s-cluster.stamp
+ConditionPathExists=/var/log/init-k8s-cluster.stamp
 
 [Service]
 Type=oneshot
