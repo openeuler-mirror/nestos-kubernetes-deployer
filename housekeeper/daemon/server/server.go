@@ -32,9 +32,9 @@ import (
 
 const (
 	ostreeImage      = "ostree-unverified-image:docker://"
-	kubeadmCmd       = "/usr/local/bin/kubeadm"
-	upgradeMasterCmd = "/usr/local/bin/kubeadm upgrade apply -y"
-	upgradeWorkerCmd = "/usr/local/bin/kubeadm upgrade node"
+	kubeadmCmd       = "/usr/bin/kubeadm"
+	upgradeMasterCmd = "/usr/bin/kubeadm upgrade apply -y"
+	upgradeWorkerCmd = "/usr/bin/kubeadm upgrade node"
 	kubeletUpdateCmd = "systemctl daemon-reload && systemctl restart kubelet"
 	adminFile        = "/etc/kubernetes/admin.conf"
 )
@@ -110,7 +110,7 @@ func checkKubeVersion(req *pb.UpgradeRequest) error {
 		logrus.Errorf("failed to parse kubeadm version: %v", err)
 		return err
 	} else if cmp == -1 {
-		logrus.Infof("The request upgraded version %s is larger than kubeadm's version %s",
+		logrus.Infof("the request upgraded version %s is larger than kubeadm's version %s",
 			req.KubeVersion, string(kubeadmVersion))
 		return nil
 	}
