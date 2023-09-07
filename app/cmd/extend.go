@@ -16,22 +16,27 @@ limitations under the License.
 package cmd
 
 import (
-	"nestos-kubernetes-deployer/app/cmd/phases/extend"
+	"nestos-kubernetes-deployer/app/phases/infra"
 
 	"github.com/spf13/cobra"
 )
 
 func NewExtendCommand() *cobra.Command {
+	var num int
 	cmd := &cobra.Command{
-		Use:   "extend",
-		Short: "Extend kubernetes cluster",
+		Use:   "extended",
+		Short: "Extended worker nodes of kubernetes cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
+			cluster := &infra.Cluster{
+				Node: "worker",
+				Num:  num,
+			}
+
+			return cluster.Extend()
 		},
 	}
 
-	cmd.AddCommand(extend.NewExtendMasterCommand())
-	cmd.AddCommand(extend.NewExtendWorkerCommand())
+	cmd.PersistentFlags().IntVarP(&num, "num", "n", 3, "number of the extended nodes")
 
 	return cmd
 }

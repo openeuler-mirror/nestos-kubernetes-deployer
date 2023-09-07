@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 
 	"nestos-kubernetes-deployer/app/apis/nkd"
@@ -32,7 +31,6 @@ func LoadOrDefaultInitConfiguration(cfgPath string) (interface{}, string, error)
 		if err != nil {
 			return nil, "", err
 		}
-		fmt.Println(cfg)
 
 		return cfg, nodetype, nil
 	}

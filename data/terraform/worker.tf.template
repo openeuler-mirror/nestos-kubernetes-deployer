@@ -19,48 +19,54 @@ variable "instance_count" {
   default = "3"
 }
 
+variable "create_flavor" {
+  default = true
+}
+
 variable "instance_name" {
   default = "{{.System.WorkerHostName}}"
 }
 
 resource "openstack_compute_flavor_v2" "flavor" {
-  name      = var.instance_names[count.index]
+  count     = var.create_flavor?1:0
+  name      = var.instance_name
   ram       = "{{.Infra.Vmsize.Ram}}"
   vcpus     = "{{.Infra.Vmsize.Vcpus}}"
   disk      = "{{.Infra.Vmsize.Disk}}"
   is_public = "true"
 }
 
-resource "openstack_compute_secgroup_v2" "secgroup" {
-  name        = "k8s_worker_secgroup"
-  description = "secgroup for k8s worker"
-
-  rule {
-    from_port   = 22
-    to_port     = 22
-    ip_protocol = "tcp"
-    cidr        = "0.0.0.0/0"
-  }
-
-  rule {
-    from_port   = -1
-    to_port     = -1
-    ip_protocol = "icmp"
-    cidr        = "0.0.0.0/0"
-  }
-}
+# resource "openstack_compute_secgroup_v2" "secgroup" {
+#   name        = "k8s_worker_secgroup"
+#   description = "secgroup for k8s worker"
+# 
+#   rule {
+#     from_port   = 22
+#     to_port     = 22
+#     ip_protocol = "tcp"
+#     cidr        = "0.0.0.0/0"
+#   }
+# 
+#   rule {
+#     from_port   = -1
+#     to_port     = -1
+#     ip_protocol = "icmp"
+#     cidr        = "0.0.0.0/0"
+#   }
+# }
 
 resource "openstack_compute_instance_v2" "instance" {
-  count           = var.instance_count
-  name            = format("${var.instance_name}%02d", count.index + 1)
-  image_name      = "{{.Infra.Openstack.Glance}}"
-  flavor_name     = openstack_compute_flavor_v2.flavor.name
-  security_groups = [openstack_compute_secgroup_v2.secgroup.name]
-  user_data       = file("/etc/nkd/instance.ign")
+  count              = var.instance_count
+  name               = format("${var.instance_name}%d", count.index + 1)
+  image_name         = "{{.Infra.Openstack.Glance}}"
+  flavor_name        = var.instance_name
+  key_pair           = ""
+  security_groups    = ["K8S"]
+  availability_zone  = "Intel Xeon Gold 6326 x86_64"
+  user_data          = file("${format("../worker/${var.instance_name}%d.ign", count.index + 1)}")
 
   network {
     name        = "{{.Infra.Openstack.Internal_network}}"
-    fixed_ip_v4 = element({{.System.Ips}}, count.index)
   }
 }
 

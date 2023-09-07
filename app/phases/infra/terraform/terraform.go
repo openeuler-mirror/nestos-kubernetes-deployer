@@ -18,6 +18,7 @@ package terraform
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -71,7 +72,7 @@ func TFInit(tfDir string, terraformDir string) (err error) {
 	}
 
 	// 使用本地terraform插件
-	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, "plugins")))
+	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, ".terraform/providers")))
 	if err != nil {
 		return errors.Wrap(err, "failed to init terraform")
 	}
@@ -93,6 +94,25 @@ func TFApply(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption)
 	err = tf.Apply(context.Background(), applyOpts...)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply Terraform")
+	}
+
+	return nil
+}
+
+// terraform apply for nkd extend
+func TFExtend(tfDir string, terraformDir string, num int) error {
+	if err := TFInit(tfDir, terraformDir); err != nil {
+		return errors.Wrap(err, "failed to init terraform")
+	}
+
+	tf, err := newTFExec(tfDir, terraformDir)
+	if err != nil {
+		return errors.Wrap(err, "failed to create a new tfexec")
+	}
+
+	err = tf.Apply(context.Background(), tfexec.Var(fmt.Sprintf("instance_count=%d", num)))
+	if err != nil {
+		return errors.Wrap(err, "failed to extend Terraform")
 	}
 
 	return nil

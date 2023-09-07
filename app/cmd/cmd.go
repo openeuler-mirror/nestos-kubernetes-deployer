@@ -29,7 +29,6 @@ func NewNkdCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 
 	cmds.ResetFlags()
 	// TODO: 修改名称
-	// TODO: 添加ExtendCommand
 	cmds.AddCommand(NewConfigCommand())
 	cmds.AddCommand(NewDeployCommand())
 	cmds.AddCommand(NewDestroyCommand())
