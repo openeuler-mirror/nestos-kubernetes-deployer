@@ -5,11 +5,12 @@ After=network-online.target
 ConditionPathExists=!/var/log/node-pivot.stamp
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
 ExecStart=sh /etc/nkd/node-pivot.sh
-ExecStart=/bin/touch /var/log/node-pivot.stamp
-ExecStart=systemctl reboot
+ExecStart=/bin/bash -c "/etc/nkd/node-pivot.sh && touch /var/log/node-pivot.stamp && systemctl reboot"
+
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
+

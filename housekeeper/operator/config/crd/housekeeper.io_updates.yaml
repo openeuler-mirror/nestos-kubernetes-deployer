@@ -47,11 +47,15 @@ spec:
               evictPodForce:
                 description: 'If true, force evict the pod'
                 type: boolean
+              maxUnavailable:
+                description: 'If true, force evict the pod'
+                type: integer             
             required:
             - kubeVersion
             - osImageURL
             - osVersion
             - evictPodForce
+            - maxUnavailable
             type: object
           status:
             description: UpdateStatus defines the observed state of Update

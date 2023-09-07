@@ -62,7 +62,7 @@ resource "openstack_compute_instance_v2" "instance" {
   flavor_name        = var.instance_name
   key_pair           = ""
   security_groups    = ["K8S"]
-  availability_zone  = "Intel Xeon Gold 6326 x86_64"
+  availability_zone  = ""
   user_data          = file(format("../master/${var.instance_name}%d.ign", count.index + 1))
 
   network {
