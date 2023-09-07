@@ -25,7 +25,7 @@ var (
 	MasterHostName = "master"
 	WorkerHostName = "worker"
 	Username       = "root"
-	Password       = ""
+	Password       = "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/"
 
 	// repo
 	Secret   = []map[string]string{{"repousre": ""}}

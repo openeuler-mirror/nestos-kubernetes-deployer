@@ -114,6 +114,7 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 
 	system1 := nkd.System{
 		Count:          nkd.Worker_Count,
+		Ips:            nkd.Openstack_Master_ip,
 		WorkerHostName: nkd.WorkerHostName,
 		MasterHostName: nkd.MasterHostName,
 		Username:       nkd.Username,

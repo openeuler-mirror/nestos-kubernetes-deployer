@@ -58,6 +58,7 @@ type commonTemplateData struct {
 	CorednsImageTag string
 	IpSegment       string
 	ReleaseImageURl string
+	PasswordHash    string
 }
 
 var (
@@ -105,18 +106,15 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 			}
 		}
 	} else {
-		nodeCount = data.WorkerCfg().System.Count
 		hostName = data.WorkerCfg().System.MasterHostName
 		for i := 0; i < len(data.WorkerCfg().System.Ips); i++ {
 			oneNodeName = fmt.Sprintf("%s%02d", hostName, i+1)
 			temp := data.WorkerCfg().System.Ips[i] + " " + oneNodeName + "\n"
 			hsip = hsip + temp
 		}
-		for j := 0; j < nodeCount; j++ {
-			ctd := getWorkerTmplData(data.WorkerCfg(), j+1, hsip)
-			if err := generateConfig(ctd); err != nil {
-				return err
-			}
+		ctd := getWorkerTmplData(data.WorkerCfg(), hsip)
+		if err := generateConfig(ctd); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -138,11 +136,11 @@ func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string)
 		CorednsImageTag: nkdConfig.ContainerDaemon.CorednsImageTag,
 		IpSegment:       ip,
 		ReleaseImageURl: nkdConfig.ContainerDaemon.ReleaseImageURl,
+		PasswordHash:    nkdConfig.System.Password,
 	}
 }
 
-func getWorkerTmplData(nkdConfig *nkd.Worker, count int, hsip string) *commonTemplateData {
-	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.WorkerHostName, count)
+func getWorkerTmplData(nkdConfig *nkd.Worker, hsip string) *commonTemplateData {
 	return &commonTemplateData{
 		SSHKey:          nkdConfig.System.SSHKey,
 		APIServerURL:    nkdConfig.Worker.Discovery.BootstrapToken.APIServerEndpoint,
@@ -150,9 +148,10 @@ func getWorkerTmplData(nkdConfig *nkd.Worker, count int, hsip string) *commonTem
 		ImageRegistry:   nkdConfig.Repo.Registry,
 		PauseImageTag:   nkdConfig.ContainerDaemon.PauseImageTag,
 		Token:           nkdConfig.Worker.Discovery.TlsBootstrapToken,
-		NodeName:        oneNodeName,
+		NodeName:        nkdConfig.System.WorkerHostName,
 		NodeType:        "worker",
 		ReleaseImageURl: nkdConfig.ContainerDaemon.ReleaseImageURl,
+		PasswordHash:    nkdConfig.System.Password,
 	}
 }
 
@@ -168,6 +167,7 @@ func generateConfig(ctd *commonTemplateData) error {
 					SSHAuthorizedKeys: []igntypes.SSHAuthorizedKey{
 						igntypes.SSHAuthorizedKey(ctd.SSHKey),
 					},
+					PasswordHash: &ctd.PasswordHash,
 					Groups: []igntypes.Group{
 						igntypes.Group("adm"),
 						igntypes.Group("sudo"),
