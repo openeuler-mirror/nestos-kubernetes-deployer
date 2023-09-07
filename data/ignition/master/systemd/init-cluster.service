@@ -10,10 +10,8 @@ ConditionPathExists=!/var/log/init-cluster.stamp
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=kubeadm init --config=/etc/init-config.yaml --upload-certs
+ExecStart=kubeadm init --config=/etc/nkd/init-config.yaml --upload-certs
 ExecStart=/bin/touch /var/log/init-cluster.stamp
 
 [Install]
 WantedBy=multi-user.target
-
-
