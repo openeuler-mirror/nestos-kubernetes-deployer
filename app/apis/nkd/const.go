@@ -45,12 +45,9 @@ var (
 	Openstack_Tenant_name      = ""
 	Openstack_Auth_url         = ""
 	Openstack_Region           = ""
-	Openstack_MasterNodeName   = []string{"master01", "master02", "master03"}
-	Openstack_WorkerNodeName   = []string{"worker01", "worker02", "worker03"}
 	Openstack_Internal_network = ""
 	Openstack_External_network = ""
 	Openstack_Master_ip        = []string{"10.1.10.51", "10.1.10.52", "10.1.10.53"}
-	Openstack_Worker_ip        = []string{"", "", ""}
 	Openstack_Flavor_Name      = ""
 	Openstack_Glance_Name      = ""
 
@@ -108,5 +105,5 @@ var (
 	// containerdaemon
 	PauseImageTag   = "3.6"
 	CorednsImageTag = "v1.8.6"
-	ReleaseImageURl = "hub.oepkgs.net/nestos/nestos-test@sha256:857058e7fb43155bec0f648d7e1004abf72266b0b45a49a92138881f334a1988"
+	ReleaseImageURl = ""
 )

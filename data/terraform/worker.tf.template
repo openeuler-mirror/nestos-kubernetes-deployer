@@ -16,7 +16,7 @@ provider "openstack" {
 }
 
 variable "instance_count" {
-  default = "3"
+  default = "{{.System.Count}}"
 }
 
 variable "create_flavor" {
@@ -36,24 +36,24 @@ resource "openstack_compute_flavor_v2" "flavor" {
   is_public = "true"
 }
 
-# resource "openstack_compute_secgroup_v2" "secgroup" {
-#   name        = "k8s_worker_secgroup"
-#   description = "secgroup for k8s worker"
-# 
-#   rule {
-#     from_port   = 22
-#     to_port     = 22
-#     ip_protocol = "tcp"
-#     cidr        = "0.0.0.0/0"
-#   }
-# 
-#   rule {
-#     from_port   = -1
-#     to_port     = -1
-#     ip_protocol = "icmp"
-#     cidr        = "0.0.0.0/0"
-#   }
-# }
+resource "openstack_compute_secgroup_v2" "secgroup" {
+  name        = "k8s_worker_secgroup"
+  description = "secgroup for k8s worker"
+
+  rule {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = -1
+    to_port     = -1
+    ip_protocol = "icmp"
+    cidr        = "0.0.0.0/0"
+  }
+}
 
 resource "openstack_compute_instance_v2" "instance" {
   count              = var.instance_count
@@ -61,9 +61,9 @@ resource "openstack_compute_instance_v2" "instance" {
   image_name         = "{{.Infra.Openstack.Glance}}"
   flavor_name        = var.instance_name
   key_pair           = ""
-  security_groups    = ["K8S"]
+  security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
   availability_zone  = ""
-  user_data          = file("${format("../worker/${var.instance_name}%d.ign", count.index + 1)}")
+  user_data          = file(format("../worker/${var.instance_name}%d.ign", count.index + 1))
 
   network {
     name        = "{{.Infra.Openstack.Internal_network}}"

@@ -17,14 +17,13 @@ limitations under the License.
 package config
 
 import (
-	"io/ioutil"
+	"os"
 
 	"nestos-kubernetes-deployer/app/apis/nkd"
 
 	"gopkg.in/yaml.v2"
 )
 
-// func LoadOrDefaultInitConfiguration(cfgPath string, cfg *nkd.Master) (*nkd.Master, error) {
 func LoadOrDefaultInitConfiguration(cfgPath string) (interface{}, string, error) {
 	if cfgPath != "" {
 		cfg, nodetype, err := LoadInitConfigurationFromFile(cfgPath)
@@ -44,7 +43,7 @@ func LoadOrDefaultInitConfiguration(cfgPath string) (interface{}, string, error)
 
 func LoadInitConfigurationFromFile(cfg string) (interface{}, string, error) {
 	node := new(nkd.Node)
-	yamlFile, err := ioutil.ReadFile(cfg)
+	yamlFile, err := os.ReadFile(cfg)
 
 	if err != nil {
 		return nil, "", err
