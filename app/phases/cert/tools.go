@@ -21,13 +21,13 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-//PrivateKey负责生成密钥
+// PrivateKey负责生成密钥
 func PrivateKey() (*rsa.PrivateKey, error) {
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -78,7 +78,7 @@ func PemToCertificate(data []byte) (*x509.Certificate, error) {
 
 // SaveCertificateToFile 将证书保存到文件
 func (c *CertKey) SaveCertificateToFile(filename string) error {
-	err := ioutil.WriteFile(c.SavePath+"/"+filename, c.CertRaw, 0644)
+	err := os.WriteFile(c.SavePath+"/"+filename, c.CertRaw, 0644)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", filename, err)
 		return err
@@ -91,7 +91,7 @@ func (c *CertKey) SaveCertificateToFile(filename string) error {
 
 // SavePrivateKeyToFile 将私钥保存到文件
 func (c *CertKey) SavePrivateKeyToFile(filename string) error {
-	err := ioutil.WriteFile(c.SavePath+"/"+filename, c.KeyRaw, 0600)
+	err := os.WriteFile(c.SavePath+"/"+filename, c.KeyRaw, 0600)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", filename, err)
 		return err
