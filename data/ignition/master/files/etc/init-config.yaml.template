@@ -28,5 +28,5 @@ networking:
   dnsDomain: "cluster.local"
 dns:
   type: CoreDNS
-  imageRepository: {{.ImageRegistry}}/coredns
+  imageRepository: {{.ImageRegistry}}
   imageTag: {{.CorednsImageTag}}
