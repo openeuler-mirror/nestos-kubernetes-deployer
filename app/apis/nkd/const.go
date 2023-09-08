@@ -47,7 +47,7 @@ var (
 	Openstack_Region           = ""
 	Openstack_Internal_network = ""
 	Openstack_External_network = ""
-	Openstack_Master_ip        = []string{"", "", ""}
+	Openstack_Master_ip        = []string{"10.1.10.51", "", ""}
 	Openstack_Flavor_Name      = ""
 	Openstack_Glance_Name      = ""
 	Availability_zone          = ""
