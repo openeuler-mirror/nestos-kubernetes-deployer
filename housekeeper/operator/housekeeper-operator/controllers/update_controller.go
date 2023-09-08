@@ -96,7 +96,7 @@ func reconcile(ctx context.Context, r common.ReadWriterClient, req ctrl.Request)
 		return common.RequeueNow, err
 	}
 	maxUnavailable := min(update.Spec.MaxUnavailable, len(workerNodesItems))
-	if assignUpdated(ctx, r, masterNodesItems, maxUnavailable, update); err != nil {
+	if assignUpdated(ctx, r, workerNodesItems, maxUnavailable, update); err != nil {
 		return common.RequeueNow, err
 	}
 
@@ -162,15 +162,13 @@ func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []co
 		count           = 0
 		wg              sync.WaitGroup
 	)
-
-	// 创建一个通道来接收任务结果
+	// Create a channel to receive the task result
 	resultChan := make(chan error)
-
 	for _, node := range nodeList {
 		if count >= maxUnavailable {
 			count = 0
-			//为了控制升级任务的并发数，每处理 maxUnavailable 个节点后，休眠 2 分钟
-			time.Sleep(constants.NodeSleepTime)
+			// Wait for a timeout or update to complete after each maxUnavailable node upgrade
+			wg.Wait()
 		}
 		if conditionMet(node, kubeVersionSpec, osVersionSpec) {
 			node.Labels[constants.LabelUpgrading] = ""
@@ -179,18 +177,14 @@ func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []co
 				return err
 			}
 			count++
-			wg.Add(1) // 增加 WaitGroup 的计数器
+			wg.Add(1) // Increase WaitGroup counter
 			go func(node corev1.Node) {
 				waitForUpgradeComplete(node, kubeVersionSpec, osVersionSpec, resultChan, &wg)
 			}(node)
 		}
 	}
-	//等待所有任务完成
-	wg.Wait()
-
-	//关闭结果通道
 	close(resultChan)
-	// 遍历结果通道，处理每个任务的结果
+	// Iterate over the results channel and process the results of each task
 	for err := range resultChan {
 		if err != nil {
 			return err
@@ -201,7 +195,7 @@ func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []co
 
 func waitForUpgradeComplete(node corev1.Node, kubeVersionSpec string, osVersionSpec string,
 	resultChan chan<- error, wg *sync.WaitGroup) {
-	defer wg.Done() // goroutine 执行完成后减少 WaitGroup 的计数器
+	defer wg.Done() // Reduce the number of waitgroups when the execution is complete
 
 	ctx, cancel := context.WithTimeout(context.Background(), constants.NodeTimeout)
 	defer cancel()
@@ -220,13 +214,11 @@ func waitForUpgradeComplete(node corev1.Node, kubeVersionSpec string, osVersionS
 		logrus.Infof("successful upgrade node: %s", node.Name)
 		resultChan <- nil
 	case <-ctx.Done():
-		// 上下文超时，跳出循环
 		if ctx.Err() == context.DeadlineExceeded {
 			logrus.Errorf("failed to upgrade node: %s: %v", node.Name, ctx.Err())
 			resultChan <- ctx.Err()
 		}
 	}
-	//确保在任务完成后关闭done通道
 	close(done)
 }
 
