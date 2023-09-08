@@ -25,7 +25,7 @@ var (
 	MasterHostName = "master"
 	WorkerHostName = "worker"
 	Username       = "root"
-	Password       = "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/"
+	Password       = ""
 
 	// repo
 	Secret   = []map[string]string{{"repousre": ""}}
@@ -37,7 +37,7 @@ var (
 	// size
 	Vcpus = 4
 	Ram   = 8192
-	Disk  = 128
+	Disk  = 100
 
 	// openstack
 	Openstack_UserName         = ""
@@ -47,9 +47,10 @@ var (
 	Openstack_Region           = ""
 	Openstack_Internal_network = ""
 	Openstack_External_network = ""
-	Openstack_Master_ip        = []string{"10.1.10.51", "10.1.10.52", "10.1.10.53"}
+	Openstack_Master_ip        = []string{"", "", ""}
 	Openstack_Flavor_Name      = ""
 	Openstack_Glance_Name      = ""
+	Availability_zone          = ""
 
 	// bootstrapTokens
 	BootstrapTokensGroups = []string{"system:bootstrappers:kubeadm:default-node-token"}

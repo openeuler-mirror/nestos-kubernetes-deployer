@@ -57,13 +57,13 @@ resource "openstack_compute_secgroup_v2" "secgroup" {
 
 resource "openstack_compute_instance_v2" "instance" {
   count              = var.instance_count
-  name               = format("${var.instance_name}%d", count.index + 1)
+  name               = format("${var.instance_name}%02d", count.index + 1)
   image_name         = "{{.Infra.Openstack.Glance}}"
   flavor_name        = var.instance_name
   key_pair           = ""
   security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
-  availability_zone  = ""
-  user_data          = file(format("../worker/${var.instance_name}%d.ign", count.index + 1))
+  availability_zone  = "{{.Infra.Openstack.Zone}}"
+  user_data          = file("../worker/${var.instance_name}.ign")
 
   network {
     name        = "{{.Infra.Openstack.Internal_network}}"

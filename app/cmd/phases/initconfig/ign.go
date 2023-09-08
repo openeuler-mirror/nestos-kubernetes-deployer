@@ -121,7 +121,7 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 }
 
 func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string) *commonTemplateData {
-	oneNodeName := fmt.Sprintf("%s%d", nkdConfig.System.MasterHostName, count)
+	oneNodeName := fmt.Sprintf("%s%02d", nkdConfig.System.MasterHostName, count)
 	return &commonTemplateData{
 		SSHKey:          nkdConfig.System.SSHKey,
 		APIServerURL:    nkdConfig.System.Ips[0],

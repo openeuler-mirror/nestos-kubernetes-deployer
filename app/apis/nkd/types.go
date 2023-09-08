@@ -40,6 +40,7 @@ type Openstack struct {
 	External_network string
 	Glance           string
 	Flavor           string
+	Zone             string
 }
 
 type Libvirt struct {
