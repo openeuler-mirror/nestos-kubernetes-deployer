@@ -164,6 +164,7 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 		PauseImageTag:   nkd.PauseImageTag,
 		CorednsImageTag: nkd.CorednsImageTag,
 		ReleaseImageURl: nkd.ReleaseImageURl,
+		CertificateKey:  nkd.CertificateKey,
 	}
 
 	internalconfig.Node = nkd.WorkerNode

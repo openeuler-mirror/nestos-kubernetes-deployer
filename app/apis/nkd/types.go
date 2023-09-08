@@ -345,6 +345,7 @@ type ContainerDaemon struct {
 	PauseImageTag   string
 	CorednsImageTag string
 	ReleaseImageURl string
+	CertificateKey  string
 }
 
 type Master struct {

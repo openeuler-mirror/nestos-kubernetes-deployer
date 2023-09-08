@@ -107,4 +107,5 @@ var (
 	PauseImageTag   = "3.6"
 	CorednsImageTag = "v1.8.6"
 	ReleaseImageURl = ""
+	CertificateKey  = ""
 )

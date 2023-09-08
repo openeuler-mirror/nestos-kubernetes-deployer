@@ -1,17 +1,17 @@
 [Unit]
-Description=init kubernetes cluster
+Description=worker node join the cluster
 Requires=set-kernel-para.service disable-selinux.service release-image-pivot.service
 After=set-kernel-para.service disable-selinux.service release-image-pivot.service
 ConditionPathExists=/var/log/set-kernel-para.stamp
 ConditionPathExists=/var/log/disable-selinux.stamp
 ConditionPathExists=/var/log/node-pivot.stamp
-ConditionPathExists=!/var/log/join-cluster.stamp
+ConditionPathExists=!/var/log/join-worker.stamp
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=kubeadm join --config=/etc/nkd/join-config.yaml
-ExecStart=/bin/touch /var/log/join-cluster.stamp
+ExecStart=/bin/touch /var/log/join-worker.stamp
 
 [Install]
 WantedBy=multi-user.target
