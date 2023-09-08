@@ -110,6 +110,7 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 		External_network: nkd.Openstack_External_network,
 		Glance:           nkd.Openstack_Glance_Name,
 		Flavor:           nkd.Openstack_Flavor_Name,
+		Zone:             nkd.Availability_zone,
 	}
 
 	system1 := nkd.System{
@@ -202,6 +203,7 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		External_network: nkd.Openstack_External_network,
 		Glance:           nkd.Openstack_Glance_Name,
 		Flavor:           nkd.Openstack_Flavor_Name,
+		Zone:             nkd.Availability_zone,
 	}
 
 	vmsize := nkd.Size{

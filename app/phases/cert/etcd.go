@@ -15,17 +15,3 @@ limitations under the License.
 */
 
 package cert
-
-import (
-	"nestos-kubernetes-deployer/pkg/infra"
-)
-
-type EtcdCaGenerator struct {
-}
-
-func (e EtcdCaGenerator) GenerateAssets() infra.Assets {
-	return nil
-}
-
-func init() {
-}

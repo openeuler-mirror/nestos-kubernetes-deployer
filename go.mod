@@ -6,7 +6,6 @@ require (
 	github.com/clarketm/json v1.17.1
 	github.com/coreos/ignition/v2 v2.16.2
 	github.com/hashicorp/terraform-exec v0.18.1
-	github.com/lithammer/dedent v1.1.0
 	github.com/openshift/installer v0.16.1
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
