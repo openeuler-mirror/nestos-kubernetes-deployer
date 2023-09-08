@@ -128,6 +128,7 @@ func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string)
 		Hsip:            hsip,
 		ImageRegistry:   nkdConfig.Repo.Registry,
 		PauseImageTag:   nkdConfig.ContainerDaemon.PauseImageTag,
+		KubeVersion:     nkdConfig.Kubeadm.KubernetesVersion,
 		ServiceSubnet:   nkdConfig.Kubeadm.Networking.ServiceSubnet,
 		PodSubnet:       nkdConfig.Kubeadm.Networking.PodSubnet,
 		Token:           "abcdef.0123456789abcdef",
