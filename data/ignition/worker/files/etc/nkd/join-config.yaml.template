@@ -10,5 +10,4 @@ discovery:
 kind: JoinConfiguration
 nodeRegistration:
   criSocket: /var/run/isulad.sock
-  name: {{.NodeName}}
   taints: null
