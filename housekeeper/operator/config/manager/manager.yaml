@@ -24,6 +24,7 @@ spec:
       - command:
         - /housekeeper-operator-manager
         image: housekeeper-operator:latest
+        imagePullPolicy: Always
         name: housekeeper-operator-manager
         securityContext:
           allowPrivilegeEscalation: false
@@ -40,3 +41,39 @@ spec:
       tolerations:
         - key: "node-role.kubernetes.io/master"
           operator: "Exists"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: housekeeper-controller-manager
+  namespace: housekeeper-system
+  labels:
+    control-plane: housekeeper-controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: housekeeper-controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: housekeeper-controller-manager
+    spec:
+      containers:
+       - name: housekeeper-controller-manager
+         command:
+          - /housekeeper-controller-manager
+         image: housekeeper-controller:latest
+         imagePullPolicy: Always
+         volumeMounts:
+          - name: upgrade-daemon
+            mountPath: /var/run/housekeeper-daemon
+         env:
+          - name: NODE_NAME
+            valueFrom:
+             fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+      volumes:
+        - name: upgrade-daemon
+          hostPath:
+            path: /var/run/housekeeper-daemon
