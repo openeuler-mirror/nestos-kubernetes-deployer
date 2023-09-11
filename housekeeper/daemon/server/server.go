@@ -27,7 +27,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"housekeeper.io/pkg/common"
 	pb "housekeeper.io/pkg/connection/proto"
-	utilVersion "k8s.io/apimachinery/pkg/util/version"
 )
 
 const (
@@ -76,18 +75,16 @@ func (s *Server) Upgrade(_ context.Context, req *pb.UpgradeRequest) (*pb.Upgrade
 }
 
 func checkOsVersion(req *pb.UpgradeRequest) error {
-	args := []string{"-c", "cat /etc/os-release | grep 'VERSION=' | head -n 1 | awk -F 'VERSION=' '{print $2}'"}
+	cmd := "awk -F= '/PRETTY_NAME/ {gsub(/\"/, \"\", $2); print $2}' /etc/os-release"
+	args := []string{"-c", cmd}
 	osVersion, err := runCmd("/bin/sh", args...)
 	if err != nil {
 		logrus.Errorf("failed to get os version: %v", err)
 		return err
 	}
-	if cmp, err := utilVersion.MustParseSemantic(string(osVersion)).Compare(req.OsVersion); err != nil {
-		logrus.Errorf("failed to parse os version: %v", err)
-		return err
-	} else if cmp == 0 {
-		logrus.Infof("The current os version %s and the desired upgrade version %s are the same",
-			string(osVersion), req.OsVersion)
+
+	if string(osVersion) == req.OsVersion {
+		logrus.Infof("The current OS version %s and the desired upgrade version %s are the same", string(osVersion), req.OsVersion)
 		return nil
 	}
 	//Compare the current os version with the desired version.
@@ -106,16 +103,10 @@ func checkKubeVersion(req *pb.UpgradeRequest) error {
 		logrus.Errorf("kubeadm get version failed: %v", err)
 		return err
 	}
-	if cmp, err := utilVersion.MustParseSemantic(string(kubeadmVersion)).Compare(req.KubeVersion); err != nil {
-		logrus.Errorf("failed to parse kubeadm version: %v", err)
-		return err
-	} else if cmp == -1 {
-		logrus.Infof("the request upgraded version %s is larger than kubeadm's version %s",
-			req.KubeVersion, string(kubeadmVersion))
+	if string(kubeadmVersion) == req.KubeVersion {
+		logrus.Infof("The current k8s version %s and the desired upgrade version %s are the same", string(kubeadmVersion), req.KubeVersion)
 		return nil
 	}
-	//If the version of kubeadm is not less than the version requested for upgrade,
-	//the upgrade command is executed
 	if err := upgradeKubeVersion(req); err != nil {
 		logrus.Errorf("upgrade kubernetes version error: %v", err)
 		return err
