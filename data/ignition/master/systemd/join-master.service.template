@@ -8,9 +8,9 @@ ConditionPathExists=/var/log/node-pivot.stamp
 ConditionPathExists=!/var/log/join-master.stamp
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=kubeadm join kubeadm join {{.APIServerURL}}:6443 --token {{.Token}} --discovery-token-unsafe-skip-ca-verification --control-plane --certificate-key {{.CertificateKey}} --cri-socket=/var/run/isulad.sock
+ExecStart=/bin/bash -c "kubeadm join {{.APIServerURL}}:6443 --token {{.Token}} --discovery-token-unsafe-skip-ca-verification --control-plane --certificate-key {{.CertificateKey}} --cri-socket=/var/run/isulad.sock  && touch /var/log/join-master.stamp"
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target

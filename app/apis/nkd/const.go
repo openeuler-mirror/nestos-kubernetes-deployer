@@ -53,11 +53,10 @@ var (
 	Availability_zone          = ""
 
 	// bootstrapTokens
-	BootstrapTokensGroups = []string{"system:bootstrappers:kubeadm:default-node-token"}
-	BootstrapTokensToken  = "abcdef.0123456789abcdef"
+	// BootstrapTokensGroups = []string{"system:bootstrappers:kubeadm:default-node-token"}
 	// DefaultTokenDuration  = 24 * time.Hour
-	DefaultTokenDuration = "24h0m0s"
-	DefaultUsages        = []string{"signing", "authentication"}
+	// DefaultTokenDuration = "24h0m0s"
+	// DefaultUsages        = []string{"signing", "authentication"}
 
 	// TypeMeta
 	DefaultapiVersion = "kubeadm.k8s.io/v1beta3"
