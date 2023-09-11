@@ -13,6 +13,7 @@ nodeRegistration:
   name: {{.NodeName}}
   kubeletExtraArgs:
     volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
+certificateKey: {{.CertificateKey}}
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration

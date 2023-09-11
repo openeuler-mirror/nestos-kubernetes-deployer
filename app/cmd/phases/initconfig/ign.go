@@ -59,6 +59,7 @@ type commonTemplateData struct {
 	IpSegment       string
 	ReleaseImageURl string
 	PasswordHash    string
+	CertificateKey  string
 }
 
 var (
@@ -68,7 +69,8 @@ var (
 		"disable-selinux.service",
 		"init-cluster.service",
 		"install-cni-plugin.service",
-		"join-cluster.service",
+		"join-master.service",
+		"join-worker.service",
 	}
 )
 
@@ -99,7 +101,11 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 			temp := data.MasterCfg().System.Ips[i] + " " + oneNodeName + "\n"
 			hsip = hsip + temp
 		}
-		for j := 0; j < nodeCount; j++ {
+		ctd := getControlPlaneTmplData(data.MasterCfg(), 1, ipSegment.String(), hsip)
+		if err := generateConfig(ctd); err != nil {
+			return err
+		}
+		for j := 1; j < nodeCount; j++ {
 			ctd := getMasterTmplData(data.MasterCfg(), j+1, ipSegment.String(), hsip)
 			if err := generateConfig(ctd); err != nil {
 				return err
@@ -120,7 +126,7 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 	return nil
 }
 
-func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string) *commonTemplateData {
+func getControlPlaneTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string) *commonTemplateData {
 	oneNodeName := fmt.Sprintf("%s%02d", nkdConfig.System.MasterHostName, count)
 	return &commonTemplateData{
 		SSHKey:          nkdConfig.System.SSHKey,
@@ -138,6 +144,26 @@ func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string)
 		IpSegment:       ip,
 		ReleaseImageURl: nkdConfig.ContainerDaemon.ReleaseImageURl,
 		PasswordHash:    nkdConfig.System.Password,
+		CertificateKey:  nkdConfig.ContainerDaemon.CertificateKey,
+	}
+}
+
+func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string) *commonTemplateData {
+	oneNodeName := fmt.Sprintf("%s%02d", nkdConfig.System.MasterHostName, count)
+	return &commonTemplateData{
+		SSHKey:          nkdConfig.System.SSHKey,
+		APIServerURL:    nkdConfig.System.Ips[0],
+		Hsip:            hsip,
+		ImageRegistry:   nkdConfig.Repo.Registry,
+		PauseImageTag:   nkdConfig.ContainerDaemon.PauseImageTag,
+		Token:           "abcdef.0123456789abcdef",
+		NodeName:        oneNodeName,
+		NodeType:        "master",
+		CorednsImageTag: nkdConfig.ContainerDaemon.CorednsImageTag,
+		IpSegment:       ip,
+		ReleaseImageURl: nkdConfig.ContainerDaemon.ReleaseImageURl,
+		PasswordHash:    nkdConfig.System.Password,
+		CertificateKey:  nkdConfig.ContainerDaemon.CertificateKey,
 	}
 }
 
