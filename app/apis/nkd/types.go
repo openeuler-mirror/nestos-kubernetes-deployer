@@ -87,6 +87,7 @@ type BootstrapToken struct {
 	TTL    string
 	Usages []string
 }
+
 type TaintEffect string
 
 type PullPolicy string
@@ -330,7 +331,7 @@ type Patches struct {
 
 type Kubeadm struct {
 	ClusterConfiguration
-	BootstrapTokens  []BootstrapToken
+	BootstrapToken   string
 	LocalAPIEndpoint APIEndpoint
 	NodeRegistration NodeRegistrationOptions
 	CertificateKey   string

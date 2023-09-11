@@ -223,12 +223,12 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		TimeoutForControlPlane: nkd.TimeoutForControlPlane,
 	}
 
-	bootstrapToken := nkd.BootstrapToken{
-		Token:  nkd.BootstrapTokensToken,
-		Groups: nkd.BootstrapTokensGroups,
-		TTL:    nkd.DefaultTokenDuration,
-		Usages: nkd.DefaultUsages,
-	}
+	// bootstrapToken := nkd.BootstrapToken{
+	// 	Token:  nkd.BootstrapTokensToken,
+	// 	Groups: nkd.BootstrapTokensGroups,
+	// 	TTL:    nkd.DefaultTokenDuration,
+	// 	Usages: nkd.DefaultUsages,
+	// }
 
 	localAPIEndpoint := nkd.APIEndpoint{
 		AdvertiseAddress: nkd.AdvertiseAddress,
@@ -254,7 +254,7 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 
 	kubeadm := nkd.Kubeadm{
 		ClusterConfiguration: ClusterConfiguration,
-		BootstrapTokens:      []nkd.BootstrapToken{bootstrapToken},
+		BootstrapToken:       nkd.Token,
 		LocalAPIEndpoint:     localAPIEndpoint,
 		NodeRegistration:     NodeRegistrationOptions,
 	}
@@ -263,6 +263,7 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		PauseImageTag:   nkd.PauseImageTag,
 		CorednsImageTag: nkd.CorednsImageTag,
 		ReleaseImageURl: nkd.ReleaseImageURl,
+		CertificateKey:  nkd.CertificateKey,
 	}
 
 	internalconfig.Node = nkd.MasterNode
