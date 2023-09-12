@@ -56,24 +56,16 @@ func runGenerateTFConfig(r workflow.RunData, node string) error {
 
 	// 将填充后的数据写入文件
 	if node == "master" {
-		quotedStrs := make([]string, len(r.(InitData).MasterCfg().System.Ips))
-		for i, s := range r.(InitData).MasterCfg().System.Ips {
+		quotedStrs := make([]string, len(r.(InitData).MasterCfg().System.MasterIps))
+		for i, s := range r.(InitData).MasterCfg().System.MasterIps {
 			quotedStrs[i] = fmt.Sprintf(`"%s"`, s)
 		}
 		joinedStr := strings.Join(quotedStrs, ",")
 
-		r.(InitData).MasterCfg().System.Ips = []string{joinedStr}
+		r.(InitData).MasterCfg().System.MasterIps = []string{joinedStr}
 
 		err = tmpl.Execute(outputFile, r.(InitData).MasterCfg())
 	} else {
-		quotedStrs := make([]string, len(r.(InitData).WorkerCfg().System.Ips))
-		for i, s := range r.(InitData).WorkerCfg().System.Ips {
-			quotedStrs[i] = fmt.Sprintf(`"%s"`, s)
-		}
-		joinedStr := strings.Join(quotedStrs, ",")
-
-		r.(InitData).WorkerCfg().System.Ips = []string{joinedStr}
-
 		err = tmpl.Execute(outputFile, r.(InitData).WorkerCfg())
 	}
 

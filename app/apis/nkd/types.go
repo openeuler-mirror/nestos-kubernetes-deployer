@@ -24,7 +24,7 @@ type System struct {
 	Count          int
 	MasterHostName string
 	WorkerHostName string
-	Ips            []string
+	MasterIps      []string
 	Username       string `yaml:"username"`
 	Password       string `yaml:"password"`
 	SSHKey         string

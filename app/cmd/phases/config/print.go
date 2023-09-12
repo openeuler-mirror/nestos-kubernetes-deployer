@@ -115,7 +115,7 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 
 	system1 := nkd.System{
 		Count:          nkd.Worker_Count,
-		Ips:            nkd.Openstack_Master_ip,
+		MasterIps:      nkd.Openstack_Master_ip,
 		WorkerHostName: nkd.WorkerHostName,
 		MasterHostName: nkd.MasterHostName,
 		Username:       nkd.Username,
@@ -124,9 +124,9 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 	}
 
 	vmsize := nkd.Size{
-		Vcpus: nkd.Vcpus,
-		Ram:   nkd.Ram,
-		Disk:  nkd.Disk,
+		Vcpus: nkd.WorkerVcpus,
+		Ram:   nkd.WorkerRam,
+		Disk:  nkd.WorkerDisk,
 	}
 
 	infra := nkd.Infra{
@@ -182,7 +182,7 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 
 	system1 := nkd.System{
 		Count:          nkd.Master_Count,
-		Ips:            nkd.Openstack_Master_ip,
+		MasterIps:      nkd.Openstack_Master_ip,
 		MasterHostName: nkd.MasterHostName,
 		Username:       nkd.Username,
 		Password:       nkd.Password,
@@ -208,9 +208,9 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 	}
 
 	vmsize := nkd.Size{
-		Vcpus: nkd.Vcpus,
-		Ram:   nkd.Ram,
-		Disk:  nkd.Disk,
+		Vcpus: nkd.MasterVcpus,
+		Ram:   nkd.MasterRam,
+		Disk:  nkd.MasterDisk,
 	}
 
 	infra := nkd.Infra{
