@@ -37,7 +37,7 @@ resource "openstack_compute_flavor_v2" "flavor" {
 }
 
 resource "openstack_compute_secgroup_v2" "secgroup" {
-  name        = "k8s_worker_secgroup"
+  name        = "k8s_worker"
   description = "secgroup for k8s worker"
 
   rule {

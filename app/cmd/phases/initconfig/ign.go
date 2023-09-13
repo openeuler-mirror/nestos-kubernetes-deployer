@@ -88,7 +88,7 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 	if node == "master" {
 		nodeCount = data.MasterCfg().System.Count
 		hostName = data.MasterCfg().System.MasterHostName
-		ip := net.ParseIP(data.MasterCfg().System.Ips[0])
+		ip := net.ParseIP(data.MasterCfg().System.MasterIps[0])
 		if ip == nil {
 			logrus.Warning("Invalid ip address!")
 			return nil
@@ -98,7 +98,7 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 		ipSegment[3] = 0
 		for i := 0; i < nodeCount; i++ {
 			oneNodeName = fmt.Sprintf("%s%02d", hostName, i+1)
-			temp := data.MasterCfg().System.Ips[i] + " " + oneNodeName + "\n"
+			temp := data.MasterCfg().System.MasterIps[i] + " " + oneNodeName + "\n"
 			hsip = hsip + temp
 		}
 		ctd := getControlPlaneTmplData(data.MasterCfg(), 1, ipSegment.String(), hsip)
@@ -113,9 +113,9 @@ func runGenerateIgnConfig(r workflow.RunData, node string) error {
 		}
 	} else {
 		hostName = data.WorkerCfg().System.MasterHostName
-		for i := 0; i < len(data.WorkerCfg().System.Ips); i++ {
+		for i := 0; i < len(data.WorkerCfg().System.MasterIps); i++ {
 			oneNodeName = fmt.Sprintf("%s%02d", hostName, i+1)
-			temp := data.WorkerCfg().System.Ips[i] + " " + oneNodeName + "\n"
+			temp := data.WorkerCfg().System.MasterIps[i] + " " + oneNodeName + "\n"
 			hsip = hsip + temp
 		}
 		ctd := getWorkerTmplData(data.WorkerCfg(), hsip)
@@ -130,7 +130,7 @@ func getControlPlaneTmplData(nkdConfig *nkd.Master, count int, ip string, hsip s
 	oneNodeName := fmt.Sprintf("%s%02d", nkdConfig.System.MasterHostName, count)
 	return &commonTemplateData{
 		SSHKey:          nkdConfig.System.SSHKey,
-		APIServerURL:    nkdConfig.System.Ips[0],
+		APIServerURL:    nkdConfig.System.MasterIps[0],
 		Hsip:            hsip,
 		ImageRegistry:   nkdConfig.Repo.Registry,
 		PauseImageTag:   nkdConfig.ContainerDaemon.PauseImageTag,
@@ -152,7 +152,7 @@ func getMasterTmplData(nkdConfig *nkd.Master, count int, ip string, hsip string)
 	oneNodeName := fmt.Sprintf("%s%02d", nkdConfig.System.MasterHostName, count)
 	return &commonTemplateData{
 		SSHKey:          nkdConfig.System.SSHKey,
-		APIServerURL:    nkdConfig.System.Ips[0],
+		APIServerURL:    nkdConfig.System.MasterIps[0],
 		Hsip:            hsip,
 		ImageRegistry:   nkdConfig.Repo.Registry,
 		PauseImageTag:   nkdConfig.ContainerDaemon.PauseImageTag,

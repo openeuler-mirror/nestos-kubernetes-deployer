@@ -34,10 +34,15 @@ var (
 	// infra
 	Platform = "openstack"
 
-	// size
-	Vcpus = 4
-	Ram   = 8192
-	Disk  = 100
+	// master size
+	MasterVcpus = 4
+	MasterRam   = 8192
+	MasterDisk  = 100
+
+	// worker size
+	WorkerVcpus = 2
+	WorkerRam   = 4096
+	WorkerDisk  = 100
 
 	// openstack
 	Openstack_UserName         = ""

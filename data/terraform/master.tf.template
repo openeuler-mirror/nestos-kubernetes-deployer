@@ -37,7 +37,7 @@ resource "openstack_compute_flavor_v2" "flavor" {
 }
 
 resource "openstack_compute_secgroup_v2" "secgroup" {
-  name        = "k8s_master_secgroup"
+  name        = "k8s_master"
   description = "secgroup for k8s master"
 
   rule {
@@ -130,7 +130,7 @@ resource "openstack_compute_instance_v2" "instance" {
 
   network {
     name        = "{{.Infra.Openstack.Internal_network}}"
-    fixed_ip_v4 = element({{.System.Ips}}, count.index)
+    fixed_ip_v4 = element({{.System.MasterIps}}, count.index)
   }
 }
 

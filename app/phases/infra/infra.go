@@ -17,11 +17,11 @@ limitations under the License.
 package infra
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 type Cluster struct {
@@ -43,7 +43,7 @@ func (c *Cluster) Deploy() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform apply")
 	}
-	logrus.Info(string(outputs))
+	fmt.Println(string(outputs))
 
 	return nil
 }
@@ -62,7 +62,7 @@ func (c *Cluster) Extend() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform apply")
 	}
-	logrus.Info(string(outputs))
+	fmt.Println(string(outputs))
 
 	return nil
 }
