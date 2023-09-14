@@ -24,19 +24,22 @@ import (
 func NewExtendCommand() *cobra.Command {
 	var num int
 	cmd := &cobra.Command{
-		Use:   "extended",
-		Short: "Extended worker nodes of kubernetes cluster",
+		Use:   "extend",
+		Short: "Extend worker nodes of kubernetes cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if num == 0 {
+				return cmd.Help()
+			}
+
 			cluster := &infra.Cluster{
 				Node: "worker",
 				Num:  num,
 			}
-
 			return cluster.Extend()
 		},
 	}
 
-	cmd.PersistentFlags().IntVarP(&num, "num", "n", 3, "number of the extended nodes")
+	cmd.PersistentFlags().IntVarP(&num, "num", "n", 0, "extend to the number of the nodes")
 
 	return cmd
 }

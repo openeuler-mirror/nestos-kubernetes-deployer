@@ -28,11 +28,11 @@ func NewNkdCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	}
 
 	cmds.ResetFlags()
-	// TODO: 修改名称
 	cmds.AddCommand(NewConfigCommand())
 	cmds.AddCommand(NewDeployCommand())
 	cmds.AddCommand(NewDestroyCommand())
 	cmds.AddCommand(NewUpgradeCommand())
+	// TODO: 当前extend是指扩展到的worker节点个数，后续应改成想扩展的worker节点个数。
 	cmds.AddCommand(NewExtendCommand())
 
 	return cmds

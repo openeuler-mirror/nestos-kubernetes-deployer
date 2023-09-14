@@ -71,8 +71,16 @@ func TFInit(tfDir string, terraformDir string) (err error) {
 		return errors.Wrap(err, "failed to create a new tfexec")
 	}
 
-	// 使用本地terraform插件
-	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, ".terraform/providers")))
+	// 尝试使用本地插件目录执行初始化
+	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, "providers")))
+	if err == nil {
+		return nil
+	}
+
+	fmt.Print("Failed to initialize Terraform with existed plugin directory\nStart downloading plugins...\n")
+	// 设置插件下载的路径
+	os.Setenv("TF_DATA_DIR", terraformDir)
+	err = tf.Init(context.Background(), tfexec.Upgrade(false))
 	if err != nil {
 		return errors.Wrap(err, "failed to init terraform")
 	}

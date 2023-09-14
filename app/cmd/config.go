@@ -17,18 +17,16 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/app/cmd/phases/config"
-	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
 
 	"github.com/spf13/cobra"
 )
 
 func NewConfigCommand() *cobra.Command {
-	configRunner := workflow.NewRunner()
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage a k8s cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return configRunner.Run()
+			return cmd.Help()
 		},
 	}
 

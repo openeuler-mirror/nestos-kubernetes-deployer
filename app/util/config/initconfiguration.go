@@ -17,9 +17,9 @@ limitations under the License.
 package config
 
 import (
-	"os"
-
+	"fmt"
 	"nestos-kubernetes-deployer/app/apis/nkd"
+	"os"
 
 	"gopkg.in/yaml.v2"
 )
@@ -33,49 +33,39 @@ func LoadOrDefaultInitConfiguration(cfgPath string) (interface{}, string, error)
 
 		return cfg, nodetype, nil
 	}
-	cfg, err := DefaultinitConfiguration()
-	if err != nil {
-		return nil, "", err
-	}
-	return cfg, "", nil
 
+	return DefaultinitConfiguration()
 }
 
 func LoadInitConfigurationFromFile(cfg string) (interface{}, string, error) {
 	node := new(nkd.Node)
 	yamlFile, err := os.ReadFile(cfg)
-
 	if err != nil {
 		return nil, "", err
 	}
-
 	err = yaml.Unmarshal(yamlFile, node)
 	if err != nil {
 		return nil, "", err
 	}
 
-	nodetype := node.Node
-
-	if nodetype == "master" {
+	switch node.Node {
+	case "master":
 		master := new(nkd.Master)
-		masterinfo, err := Unmarshal(master, yamlFile)
+		masterInfo, err := Unmarshal(master, yamlFile)
 		if err != nil {
 			return nil, "", err
 		}
-		return masterinfo, nodetype, nil
-
-	} else if nodetype == "worker" {
+		return masterInfo, "master", nil
+	case "worker":
 		worker := new(nkd.Worker)
-		workerinfo, err := Unmarshal(worker, yamlFile)
+		workerInfo, err := Unmarshal(worker, yamlFile)
 		if err != nil {
 			return nil, "", err
 		}
-		return workerinfo, nodetype, nil
-
-	} else {
-		return nil, "", err
+		return workerInfo, "worker", nil
+	default:
+		return nil, "", fmt.Errorf("unsupported node type: %s", node.Node)
 	}
-
 }
 
 func Unmarshal(nodeinfo interface{}, cfg []byte) (interface{}, error) {
@@ -86,6 +76,6 @@ func Unmarshal(nodeinfo interface{}, cfg []byte) (interface{}, error) {
 	return nodeinfo, nil
 }
 
-func DefaultinitConfiguration() (*interface{}, error) {
-	return nil, nil
+func DefaultinitConfiguration() (*interface{}, string, error) {
+	return nil, "", nil
 }
