@@ -58,6 +58,13 @@ spec:
       labels:
         control-plane: housekeeper-controller-manager
     spec:
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/worker"
+          operator: "Exists"
+          effect: "NoSchedule"
       containers:
        - name: housekeeper-controller-manager
          command:

@@ -8,10 +8,9 @@ ConditionPathExists=/var/log/node-pivot.stamp
 ConditionPathExists=!/var/log/join-worker.stamp
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=kubeadm join --config=/etc/nkd/join-config.yaml
-ExecStart=/bin/touch /var/log/join-worker.stamp
+ExecStart=/bin/bash -c "kubeadm join --config=/etc/nkd/join-config.yaml && touch /var/log/join-worker.stamp"
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target

@@ -9,7 +9,7 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=bash -c "sed -i 's#usr/libexec/#opt/libexec/#g' /etc/nkd/calico.yaml"
 ExecStart=bash -c "sed -i 's/# - name: CALICO_IPV4POOL_CIDR/- name: CALICO_IPV4POOL_CIDR/g' /etc/nkd/calico.yaml"
-ExecStart=bash -c "sed -i 's?#   value: "{{.IpSegment}}/16"?  value: "10.100.0.0/16"?g' /etc/nkd/calico.yaml"
+ExecStart=bash -c "sed -i 's?#   value: "192.168.0.0/16"?  value: "{{.IpSegment}}/16"?g' /etc/nkd/calico.yaml"
 ExecStart=kubectl apply -f /etc/nkd/calico.yaml --kubeconfig=/etc/kubernetes/admin.conf
 
 [Install]

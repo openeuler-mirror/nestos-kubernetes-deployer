@@ -91,7 +91,7 @@ func (r *UpdateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return common.RequeueNow, err
 		}
 	} else {
-		r.refreshNodes(ctx, &upInstance, &nodeInstance)
+		r.refreshNodes(ctx, &nodeInstance)
 	}
 	return common.RequeueAfter, nil
 }
@@ -127,7 +127,7 @@ func (r *UpdateReconciler) upgradeNodes(ctx context.Context, upInstance *houseke
 	return nil
 }
 
-func (r *UpdateReconciler) refreshNodes(ctx context.Context, upInstance *housekeeperiov1alpha1.Update, node *corev1.Node) error {
+func (r *UpdateReconciler) refreshNodes(ctx context.Context, node *corev1.Node) error {
 	deleteLabel(ctx, r, node)
 	if node.Spec.Unschedulable {
 		drainer := &drain.Helper{
