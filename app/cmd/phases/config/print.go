@@ -32,8 +32,7 @@ func NewPrintDefaultNkdConfigCommand() *cobra.Command {
 		Use:   "print",
 		Short: "use this command to print nkd config",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
-			// return runPrintDefaultConfig()
+			return cmd.Help()
 		},
 	}
 	cmd.AddCommand(newPrintMasterDefaultConfigCommand())
@@ -51,7 +50,7 @@ func newPrintWorkerDefaultConfigCommand() *cobra.Command {
 
 func newCommandPrintDefaultNodeConfig(node string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s", node),
+		Use:   node,
 		Short: fmt.Sprintf("use this command to init %s default config", node),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runPrintDefaultConfig(node)
@@ -60,35 +59,34 @@ func newCommandPrintDefaultNodeConfig(node string) *cobra.Command {
 	return cmd
 }
 
+func createConfigFile(nodeType string, config interface{}, fileName string) error {
+	conf, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(nodeType, os.ModePerm); err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(filepath.Join(nodeType, fileName), conf, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func runPrintDefaultConfig(node string) error {
 	if node == "master" {
-		internalconfig := &nkd.Master{}
-		DefaultedStaticMasterConfiguration(internalconfig)
-		conf, err := yaml.Marshal(&internalconfig)
-		if err != nil {
-			return err
-		}
-
-		if err = os.MkdirAll(node, os.ModePerm); err != nil {
-			return err
-		}
-
-		if err = os.WriteFile(filepath.Join(node, "master.yaml"), conf, 0644); err != nil {
+		internalConfig := &nkd.Master{}
+		DefaultedStaticMasterConfiguration(internalConfig)
+		if err := createConfigFile(node, internalConfig, "master.yaml"); err != nil {
 			return err
 		}
 	} else if node == "worker" {
-		internalconfig := &nkd.Worker{}
-		DefaultedStaticWorkerConfiguration(internalconfig)
-		conf, err := yaml.Marshal(&internalconfig)
-		if err != nil {
-			return err
-		}
-
-		if err = os.MkdirAll(node, os.ModePerm); err != nil {
-			return err
-		}
-
-		if err = os.WriteFile(filepath.Join(node, "worker.yaml"), conf, 0644); err != nil {
+		internalConfig := &nkd.Worker{}
+		DefaultedStaticWorkerConfiguration(internalConfig)
+		if err := createConfigFile(node, internalConfig, "worker.yaml"); err != nil {
 			return err
 		}
 	}

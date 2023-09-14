@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"nestos-kubernetes-deployer/app/apis/nkd"
 	"nestos-kubernetes-deployer/app/cmd/phases/initconfig"
 	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
@@ -33,12 +34,13 @@ type initData struct {
 func NewInitDefaultNkdConfigCommand() *cobra.Command {
 	initRunner := workflow.NewRunner()
 	var config string
+
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Use this command to init ign, cert config",
+		Short: "Use this command to init cert, ign and tf config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initRunner.SetDataInitializer(func(cmd *cobra.Command, args []string) (workflow.RunData, string, error) {
-				data, nodetype, err := newInitData(cmd, args, config)
+				data, nodetype, err := newInitData(config)
 				if err != nil {
 					return nil, "", err
 				}
@@ -54,6 +56,7 @@ func NewInitDefaultNkdConfigCommand() *cobra.Command {
 	// initRunner.AppendPhase(initconfig.NewGenerateCertsCmd())
 	initRunner.AppendPhase(initconfig.NewGenerateIgnCmd())
 	initRunner.AppendPhase(initconfig.NewGenerateTFCmd())
+
 	cmd.PersistentFlags().StringVarP(&config, "config", "c", "", "config for init")
 	return cmd
 }
@@ -65,19 +68,22 @@ func (i *initData) MasterCfg() *nkd.Master {
 func (i *initData) WorkerCfg() *nkd.Worker {
 	return i.workercfg
 }
-func newInitData(cmd *cobra.Command, args []string, cfgPath string) (*initData, string, error) {
+
+func newInitData(cfgPath string) (*initData, string, error) {
 	cfg, nodetype, err := config.LoadOrDefaultInitConfiguration(cfgPath)
 	if err != nil {
 		return nil, "", err
 	}
-	_, ok := cfg.(*nkd.Master)
-	if ok {
-		return &initData{
-			mastercfg: cfg.(*nkd.Master),
-		}, nodetype, nil
-	} else {
-		return &initData{
-			workercfg: cfg.(*nkd.Worker),
-		}, nodetype, nil
+
+	initData := &initData{}
+	switch cfg := cfg.(type) {
+	case *nkd.Master:
+		initData.mastercfg = cfg
+	case *nkd.Worker:
+		initData.workercfg = cfg
+	default:
+		return nil, "", fmt.Errorf("please provide the path of the cluster node config, master or worker")
 	}
+
+	return initData, nodetype, nil
 }

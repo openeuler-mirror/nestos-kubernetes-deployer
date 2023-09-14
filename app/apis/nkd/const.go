@@ -22,10 +22,10 @@ var (
 	NkdClusterName = "example nkd cluster"
 
 	// system
-	MasterHostName = "master"
-	WorkerHostName = "worker"
+	MasterHostName = "k8s-master"
+	WorkerHostName = "k8s-worker"
 	Username       = "root"
-	Password       = ""
+	Password       = "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/"
 
 	// repo
 	Secret   = []map[string]string{{"repousre": ""}}
@@ -111,5 +111,5 @@ var (
 	PauseImageTag   = "3.6"
 	CorednsImageTag = "v1.8.6"
 	ReleaseImageURl = ""
-	CertificateKey  = ""
+	CertificateKey  = "40652d74835eceaa99be3a7c177c9f47b71a601924100dd67567fed9fa0bb6a4"
 )
