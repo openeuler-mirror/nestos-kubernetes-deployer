@@ -175,13 +175,13 @@ func cordonOrUncordonNode(desired bool, drainer *drain.Helper, node *corev1.Node
 }
 
 func drainNode(drainer *drain.Helper, node *corev1.Node) error {
-	logrus.Info(node.Name, "is cordoning")
+	logrus.Info(node.Name, " is cordoning")
 	// Perform cordon
 	if err := cordonOrUncordonNode(true, drainer, node); err != nil {
 		return fmt.Errorf("failed to cordon node %s: %v", node.Name, err)
 	}
 	// Attempt drain
-	logrus.Info(node.Name, "initiating drain")
+	logrus.Info(node.Name, " initiating drain")
 	if err := drain.RunNodeDrain(drainer, node.Name); err != nil {
 		return fmt.Errorf("unable to drain: %v", err)
 	}
@@ -204,7 +204,7 @@ func reqInstance(ctx context.Context, r common.ReadWriterClient, name types.Name
 // Check if the version is upgraded
 func checkUpgrade(osVersion string, osVersionSpec string, kubeVersionSpec string) bool {
 	if len(kubeVersionSpec) > 0 {
-		markFile := fmt.Sprintf("%s%s%s", "/var/housekeeper/", kubeVersionSpec, ".stamp")
+		markFile := fmt.Sprintf("%s%s%s", "/run/housekeeper-daemon/", kubeVersionSpec, ".stamp")
 		if common.IsFileExist(markFile) {
 			return false
 		}

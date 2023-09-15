@@ -19,7 +19,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -57,7 +56,7 @@ func (s *Server) Upgrade(_ context.Context, req *pb.UpgradeRequest) (*pb.Upgrade
 	}
 	// upgrade kubernetes
 	if len(req.KubeVersion) > 0 {
-		markFile := fmt.Sprintf("%s%s%s", "/var/housekeeper/", req.KubeVersion, ".stamp")
+		markFile := fmt.Sprintf("%s%s%s", "/run/housekeeper-daemon/", req.KubeVersion, ".stamp")
 		if common.IsFileExist(markFile) {
 			return &pb.UpgradeResponse{}, nil
 		}
@@ -75,16 +74,15 @@ func (s *Server) Upgrade(_ context.Context, req *pb.UpgradeRequest) (*pb.Upgrade
 }
 
 func checkOsVersion(req *pb.UpgradeRequest) error {
-	cmd := "awk -F= '/PRETTY_NAME/ {gsub(/\"/, \"\", $2); print $2}' /etc/os-release"
-	args := []string{"-c", cmd}
-	osVersion, err := runCmd("/bin/sh", args...)
+	osVersionBytes, err := runCmd("awk", "-F=", "/PRETTY_NAME/ {gsub(/\"/, \"\", $2); print $2}", "/etc/os-release")
 	if err != nil {
 		logrus.Errorf("failed to get os version: %v", err)
 		return err
 	}
-
-	if string(osVersion) == req.OsVersion {
-		logrus.Infof("The current OS version %s and the desired upgrade version %s are the same", string(osVersion), req.OsVersion)
+	osVersion := strings.TrimSpace(string(osVersionBytes))
+	reqOsVersion := strings.TrimSpace(req.OsVersion)
+	if osVersion == reqOsVersion {
+		logrus.Infof("The current OS version %s and the desired upgrade version %s are the same", osVersion, reqOsVersion)
 		return nil
 	}
 	//Compare the current os version with the desired version.
@@ -98,12 +96,14 @@ func checkOsVersion(req *pb.UpgradeRequest) error {
 
 func checkKubeVersion(req *pb.UpgradeRequest) error {
 	args := []string{"version", "-o", "short"}
-	kubeadmVersion, err := runCmd(kubeadmCmd, args...)
+	kubeadmVersionBytes, err := runCmd(kubeadmCmd, args...)
 	if err != nil {
 		logrus.Errorf("kubeadm get version failed: %v", err)
 		return err
 	}
-	if string(kubeadmVersion) == req.KubeVersion {
+	kubeadmVersion := strings.TrimSpace(string(kubeadmVersionBytes))
+	KubeVersion := strings.TrimSpace(req.KubeVersion)
+	if kubeadmVersion == KubeVersion {
 		logrus.Infof("The current k8s version %s and the desired upgrade version %s are the same", string(kubeadmVersion), req.KubeVersion)
 		return nil
 	}
@@ -175,14 +175,9 @@ func isMasterNode() bool {
 }
 
 func markNode(file string) error {
-	if !common.IsFileExist("/var/housekeeper") {
-		if err := os.MkdirAll("/var/housekeeper", 0644); err != nil {
-			return err
-		}
-	}
-	args := []string{"-c", "touch", file}
-	_, err := runCmd("/bin/sh", args...)
+	_, err := runCmd("touch", file)
 	if err != nil {
+		logrus.Errorf("failed to create mark file: %v", err)
 		return err
 	}
 	return nil
