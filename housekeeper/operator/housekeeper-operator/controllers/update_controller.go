@@ -100,7 +100,7 @@ func reconcile(ctx context.Context, r common.ReadWriterClient, req ctrl.Request)
 		return common.RequeueNow, err
 	}
 
-	return common.NoRequeue, nil
+	return common.RequeueNow, nil
 }
 
 func getMasterNodesItems(ctx context.Context, r common.ReadWriterClient) (
@@ -132,7 +132,7 @@ func getWorkerNodesItems(ctx context.Context, r common.ReadWriterClient) (
 	}
 	reqWorker, err := labels.NewRequirement(constants.LabelMaster, selection.DoesNotExist, nil)
 	if err != nil {
-		logrus.Errorf("unable to create requirement %s: %v"+constants.LabelMaster, err)
+		logrus.Errorf("unable to create requirement %s: %v", constants.LabelMaster, err)
 		return
 	}
 	nodesItems, err = getNodes(ctx, r, *reqUpgrade, *reqWorker)
@@ -155,20 +155,19 @@ func getNodes(ctx context.Context, r common.ReadWriterClient, reqs ...labels.Req
 
 // Add the label to nodes
 func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []corev1.Node,
-	maxUnavailable int, upInstance housekeeperiov1alpha1.Update) error {
+	max int, upInstance housekeeperiov1alpha1.Update) error {
 	var (
 		kubeVersionSpec = upInstance.Spec.KubeVersion
 		osVersionSpec   = upInstance.Spec.OSVersion
 		count           = 0
-		wg              sync.WaitGroup
 	)
 	// Create a channel to receive the task result
-	resultChan := make(chan error)
 	for _, node := range nodeList {
-		if count >= maxUnavailable {
+		if count >= max {
 			count = 0
-			// Wait for a timeout or update to complete after each maxUnavailable node upgrade
-			wg.Wait()
+			if err := waitForUpgradeComplete(node, kubeVersionSpec, osVersionSpec); err != nil {
+				return err
+			}
 		}
 		if conditionMet(node, kubeVersionSpec, osVersionSpec) {
 			node.Labels[constants.LabelUpgrading] = ""
@@ -177,33 +176,21 @@ func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []co
 				return err
 			}
 			count++
-			wg.Add(1) // Increase WaitGroup counter
-			go func(node corev1.Node) {
-				waitForUpgradeComplete(node, kubeVersionSpec, osVersionSpec, resultChan, &wg)
-			}(node)
-		}
-	}
-	close(resultChan)
-	// Iterate over the results channel and process the results of each task
-	for err := range resultChan {
-		if err != nil {
-			return err
 		}
 	}
 	return nil
 }
 
-func waitForUpgradeComplete(node corev1.Node, kubeVersionSpec string, osVersionSpec string,
-	resultChan chan<- error, wg *sync.WaitGroup) {
-	defer wg.Done() // Reduce the number of waitgroups when the execution is complete
-
+func waitForUpgradeComplete(node corev1.Node, kubeVersionSpec string, osVersionSpec string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), constants.NodeTimeout)
 	defer cancel()
 	done := make(chan struct{})
+	success := false
 
 	go func() {
 		wait.Until(func() {
 			if !conditionMet(node, kubeVersionSpec, osVersionSpec) {
+				success = true
 				close(done)
 			}
 		}, 10*time.Second, ctx.Done())
@@ -211,15 +198,18 @@ func waitForUpgradeComplete(node corev1.Node, kubeVersionSpec string, osVersionS
 
 	select {
 	case <-done:
-		logrus.Infof("successful upgrade node: %s", node.Name)
-		resultChan <- nil
+		if success {
+			logrus.Infof("successful upgrade node: %s", node.Name)
+		} else {
+			logrus.Infof("upgrade conditions not met for node: %s", node.Name)
+		}
+		return nil
 	case <-ctx.Done():
 		if ctx.Err() == context.DeadlineExceeded {
 			logrus.Errorf("failed to upgrade node: %s: %v", node.Name, ctx.Err())
-			resultChan <- ctx.Err()
 		}
+		return ctx.Err()
 	}
-	close(done)
 }
 
 func conditionMet(node corev1.Node, kubeVersionSpec string, osVersionSpec string) bool {
