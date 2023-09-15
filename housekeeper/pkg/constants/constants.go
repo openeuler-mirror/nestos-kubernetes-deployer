@@ -33,6 +33,4 @@ const (
 const (
 	// node upgrade timeout
 	NodeTimeout = 5 * time.Minute
-	// time to sleep after processing maxUnavailable nodes
-	NodeSleepTime = 2 * time.Minute
 )
