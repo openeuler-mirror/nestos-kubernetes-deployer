@@ -13,28 +13,32 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
-	"io"
+	"fmt"
+	"runtime"
 
 	"github.com/spf13/cobra"
 )
 
-func NewNkdCommand(in io.Reader, out, err io.Writer) *cobra.Command {
-	cmds := &cobra.Command{
-		Use:   "nkd",
-		Short: "nkd: easily bootstrap a secure Kubernetes cluster",
+func NewVersionCommand() *cobra.Command {
+	var (
+		version   = "0.1.0"
+		goVersion = runtime.Version()
+		arch      = fmt.Sprint(runtime.GOOS, "/", runtime.GOARCH)
+	)
+
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Display the NKD version information",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("Version:    %s\n", version)
+			fmt.Printf("Go Version: %s\n", goVersion)
+			fmt.Printf("OS/Arch:    %s\n", arch)
+		},
 	}
 
-	cmds.ResetFlags()
-	cmds.AddCommand(NewConfigCommand())
-	cmds.AddCommand(NewDeployCommand())
-	cmds.AddCommand(NewDestroyCommand())
-	cmds.AddCommand(NewUpgradeCommand())
-	// TODO: 当前extend是指扩展到的worker节点个数，后续应改成想扩展的worker节点个数。
-	cmds.AddCommand(NewExtendCommand())
-	cmds.AddCommand(NewVersionCommand())
-
-	return cmds
+	return cmd
 }
