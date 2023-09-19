@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"github.com/openshift/installer/pkg/lineprinter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -51,14 +50,9 @@ func newTFExec(tfDir string, terraformDir string) (*tfexec.Terraform, error) {
 		}
 	}
 
-	// Add terraform info logs to the installer log
-	lpDebug := &lineprinter.LinePrinter{Print: (&lineprinter.Trimmer{WrappedPrint: logrus.Debug}).Print}
-	lpError := &lineprinter.LinePrinter{Print: (&lineprinter.Trimmer{WrappedPrint: logrus.Error}).Print}
-	defer lpDebug.Close()
-	defer lpError.Close()
+	tf.SetStdout(os.Stdout)
+	tf.SetStderr(os.Stderr)
 
-	tf.SetStdout(lpDebug)
-	tf.SetStderr(lpError)
 	tf.SetLogger(newPrintfer())
 
 	return tf, nil
