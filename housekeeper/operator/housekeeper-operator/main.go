@@ -81,7 +81,7 @@ func main() {
 		logrus.Errorf("unable to set up ready check: %v", err)
 		os.Exit(1)
 	}
-	logrus.Infof("starting housekeeper-operator manager version:", version.Version)
+	logrus.Info("starting housekeeper-operator manager version:", version.Version)
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		logrus.Errorf("problem running housekeeper-operator manager: %v", err)
 		os.Exit(1)
