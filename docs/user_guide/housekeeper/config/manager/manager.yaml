@@ -23,7 +23,7 @@ spec:
       containers:
       - command:
         - /housekeeper-operator-manager
-        image: housekeeper-operator:latest
+        image: hub.oepkgs.net/nestos/nkd/amd64/housekeeper-operator-manager:0.1.0
         imagePullPolicy: Always
         name: housekeeper-operator-manager
         securityContext:
@@ -69,7 +69,7 @@ spec:
        - name: housekeeper-controller-manager
          command:
           - /housekeeper-controller-manager
-         image: housekeeper-controller:latest
+         image: hub.oepkgs.net/nestos/nkd/amd64/housekeeper-controller-manager:0.1.0
          imagePullPolicy: Always
          volumeMounts:
           - name: upgrade-daemon

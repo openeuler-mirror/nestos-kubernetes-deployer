@@ -95,7 +95,7 @@ func runPrintDefaultConfig(node string) error {
 
 func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker {
 	repo := nkd.Repo{
-		Secret:   nkd.Secret,
+		// Secret:   nkd.Secret,
 		Registry: nkd.Registry,
 	}
 	openstack := nkd.Openstack{
@@ -107,8 +107,8 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 		Internal_network: nkd.Openstack_Internal_network,
 		External_network: nkd.Openstack_External_network,
 		Glance:           nkd.Openstack_Glance_Name,
-		Flavor:           nkd.Openstack_Flavor_Name,
-		Zone:             nkd.Availability_zone,
+		// Flavor:           nkd.Openstack_Flavor_Name,
+		Zone: nkd.Availability_zone,
 	}
 
 	system1 := nkd.System{
@@ -134,28 +134,28 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 	}
 
 	bootstrapTokenDiscovery := nkd.BootstrapTokenDiscovery{
-		APIServerEndpoint:        nkd.APIServerEndpoint,
-		Token:                    nkd.Token,
-		UnsafeSkipCAVerification: nkd.UnsafeSkipCAVerification,
+		APIServerEndpoint: nkd.APIServerEndpoint,
+		Token:             nkd.Token,
+		// UnsafeSkipCAVerification: nkd.UnsafeSkipCAVerification,
 	}
 
 	discover := nkd.Discovery{
-		BootstrapToken:    &bootstrapTokenDiscovery,
-		Timeout:           nkd.WorkerDiscoverTimeout,
+		BootstrapToken: &bootstrapTokenDiscovery,
+		// Timeout:           nkd.WorkerDiscoverTimeout,
 		TlsBootstrapToken: nkd.TlsBootstrapToken,
 	}
 
-	nodeRegistrationOptions := nkd.NodeRegistrationOptions{
-		CRISocket:       nkd.CriSocket,
-		ImagePullPolicy: nkd.PullPolicy(nkd.ImagePullPolicy),
-		Name:            nkd.Name,
-		Taints:          nil,
-	}
+	// nodeRegistrationOptions := nkd.NodeRegistrationOptions{
+	// 	CRISocket: nkd.CriSocket,
+	// 	// ImagePullPolicy: nkd.PullPolicy(nkd.ImagePullPolicy),
+	// 	Name:   nkd.Name,
+	// 	Taints: nil,
+	// }
 
 	worker := nkd.WorkerK8s{
-		Discovery:        discover,
-		CaCertPath:       nkd.CaCertPath,
-		NodeRegistration: nodeRegistrationOptions,
+		Discovery: discover,
+		// CaCertPath: nkd.CaCertPath,
+		// NodeRegistration: nodeRegistrationOptions,
 	}
 
 	containerdaemon := nkd.ContainerDaemon{
@@ -176,7 +176,7 @@ func DefaultedStaticWorkerConfiguration(internalconfig *nkd.Worker) *nkd.Worker 
 
 // return internal Nkd with static defaults
 func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master {
-	cluster := nkd.Cluster{Name: nkd.NkdClusterName}
+	// cluster := nkd.Cluster{Name: nkd.NkdClusterName}
 
 	system1 := nkd.System{
 		Count:          nkd.Master_Count,
@@ -188,7 +188,7 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 	}
 
 	repo := nkd.Repo{
-		Secret:   nkd.Secret,
+		// Secret:   nkd.Secret,
 		Registry: nkd.Registry,
 	}
 
@@ -201,8 +201,8 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		Internal_network: nkd.Openstack_Internal_network,
 		External_network: nkd.Openstack_External_network,
 		Glance:           nkd.Openstack_Glance_Name,
-		Flavor:           nkd.Openstack_Flavor_Name,
-		Zone:             nkd.Availability_zone,
+		// Flavor:           nkd.Openstack_Flavor_Name,
+		Zone: nkd.Availability_zone,
 	}
 
 	vmsize := nkd.Size{
@@ -217,9 +217,9 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 		Vmsize:    vmsize,
 	}
 
-	apiServer := nkd.APIServer{
-		TimeoutForControlPlane: nkd.TimeoutForControlPlane,
-	}
+	// apiServer := nkd.APIServer{
+	// 	TimeoutForControlPlane: nkd.TimeoutForControlPlane,
+	// }
 
 	// bootstrapToken := nkd.BootstrapToken{
 	// 	Token:  nkd.BootstrapTokensToken,
@@ -228,33 +228,34 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 	// 	Usages: nkd.DefaultUsages,
 	// }
 
-	localAPIEndpoint := nkd.APIEndpoint{
-		AdvertiseAddress: nkd.AdvertiseAddress,
-		BindPort:         nkd.BindPort,
-	}
+	// localAPIEndpoint := nkd.APIEndpoint{
+	// 	AdvertiseAddress: nkd.AdvertiseAddress,
+	// 	BindPort:         nkd.BindPort,
+	// }
 
-	NodeRegistrationOptions := nkd.NodeRegistrationOptions{
-		CRISocket:       nkd.CriSocket,
-		ImagePullPolicy: nkd.PullPolicy(nkd.ImagePullPolicy),
-		Name:            nkd.Name,
-		Taints:          nil,
-	}
+	// NodeRegistrationOptions := nkd.NodeRegistrationOptions{
+	// 	CRISocket:       nkd.CriSocket,
+	// 	ImagePullPolicy: nkd.PullPolicy(nkd.ImagePullPolicy),
+	// 	Name:            nkd.Name,
+	// 	Taints:          nil,
+	// }
 
 	ClusterConfiguration := nkd.ClusterConfiguration{
-		CertificatesDir:   nkd.CertificatesDir,
-		ClusterName:       nkd.ClusterName,
-		Etcd:              nkd.Etcd{Local: &nkd.LocalEtcd{DataDir: nkd.LocalDir}},
-		ImageRepository:   nkd.ImagePullPolicy,
+		// CertificatesDir: nkd.CertificatesDir,
+		// ClusterName: nkd.ClusterName,
+		// Etcd:              nkd.Etcd{Local: &nkd.LocalEtcd{DataDir: nkd.LocalDir}},
+		// ImageRepository:   nkd.ImagePullPolicy,
 		KubernetesVersion: nkd.KubernetesVersion,
-		Networking:        nkd.Networking{DNSDomain: nkd.DnsDomain, ServiceSubnet: nkd.ServiceSubnet, PodSubnet: nkd.PodSubnet},
-		APIServer:         apiServer,
+		// Networking:        nkd.Networking{DNSDomain: nkd.DnsDomain, ServiceSubnet: nkd.ServiceSubnet, PodSubnet: nkd.PodSubnet},
+		Networking: nkd.Networking{ServiceSubnet: nkd.ServiceSubnet, PodSubnet: nkd.PodSubnet},
+		// APIServer:  apiServer,
 	}
 
 	kubeadm := nkd.Kubeadm{
 		ClusterConfiguration: ClusterConfiguration,
 		BootstrapToken:       nkd.Token,
-		LocalAPIEndpoint:     localAPIEndpoint,
-		NodeRegistration:     NodeRegistrationOptions,
+		// LocalAPIEndpoint:     localAPIEndpoint,
+		// NodeRegistration:     NodeRegistrationOptions,
 	}
 
 	containerdaemon := nkd.ContainerDaemon{
@@ -266,7 +267,7 @@ func DefaultedStaticMasterConfiguration(internalconfig *nkd.Master) *nkd.Master 
 
 	internalconfig.Node = nkd.MasterNode
 	internalconfig.Kubeadm = kubeadm
-	internalconfig.Cluster = cluster
+	// internalconfig.Cluster = cluster
 	internalconfig.Infra = infra
 	internalconfig.System = system1
 	internalconfig.Repo = repo

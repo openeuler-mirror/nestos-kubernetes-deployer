@@ -18,9 +18,6 @@ package nkd
 
 // define kubeadm default config
 var (
-	// cluster
-	NkdClusterName = "example nkd cluster"
-
 	// system
 	MasterHostName = "k8s-master"
 	WorkerHostName = "k8s-worker"
@@ -28,8 +25,7 @@ var (
 	Password       = "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/"
 
 	// repo
-	Secret   = []map[string]string{{"repousre": ""}}
-	Registry = "registry.cn-hangzhou.aliyuncs.com/google_containers"
+	Registry = "" //registry.cn-hangzhou.aliyuncs.com/google_containers
 
 	// infra
 	Platform = "openstack"
@@ -53,63 +49,27 @@ var (
 	Openstack_Internal_network = ""
 	Openstack_External_network = ""
 	Openstack_Master_ip        = []string{"10.1.10.51", "", ""}
-	Openstack_Flavor_Name      = ""
 	Openstack_Glance_Name      = ""
 	Availability_zone          = ""
 
-	// bootstrapTokens
-	// BootstrapTokensGroups = []string{"system:bootstrappers:kubeadm:default-node-token"}
-	// DefaultTokenDuration  = 24 * time.Hour
-	// DefaultTokenDuration = "24h0m0s"
-	// DefaultUsages        = []string{"signing", "authentication"}
-
-	// TypeMeta
-	DefaultapiVersion = "kubeadm.k8s.io/v1beta3"
-	Kind              = "InitConfiguration"
-
-	// localAPIEndpoint
-	AdvertiseAddress       = "1.2.3.4"
-	BindPort         int32 = 6643
-
-	// nodeRegistration
-	CriSocket       = "/var/run/isulad.sock"
-	ImagePullPolicy = "IfNotPresent"
-	Name            = "node"
-	Taints          = []Taint{}
-
-	// apiServer
-	TimeoutForControlPlane = "4m0s"
-
-	// ClusterConfiguration
-	CertificatesDir = "/etc/kubernetes/pki"
-	ClusterName     = "kubernetes"
-
-	// etcd
-	LocalDir          = "/var/lib/etcd"
-	ImageRepository   = "registry.cn-hangzhou.aliyuncs.com/google_containers"
-	KubernetesVersion = "1.23.10"
-	DnsDomain         = "cluster.local"
+	KubernetesVersion = "" //v1.23.10
 	ServiceSubnet     = "10.96.0.0/16"
 	PodSubnet         = "10.100.0.0/16"
 
 	// worker
-	APIServerEndpoint        = "10.1.10.51:6443"
-	Token                    = "abcdef.0123456789abcdef"
-	UnsafeSkipCAVerification = true
-	WorkerDiscoverTimeout    = "5m0s"
-	TlsBootstrapToken        = "abcdef.0123456789abcdef"
-	CaCertPath               = "/etc/kubernetes/pki/ca.crt"
+	APIServerEndpoint = ""
+	Token             = "" //abcdef.0123456789abcdef
+	TlsBootstrapToken = ""
 
 	MasterNode = "master"
 	WorkerNode = "worker"
 
 	Master_Count = 3
-	Worker_Count = 3
+	Worker_Count = 2
 	SSHKey       = ""
 
-	// containerdaemon
-	PauseImageTag   = "3.6"
-	CorednsImageTag = "v1.8.6"
+	PauseImageTag   = "" //3.6
+	CorednsImageTag = "" //v1.8.6
 	ReleaseImageURl = ""
-	CertificateKey  = "40652d74835eceaa99be3a7c177c9f47b71a601924100dd67567fed9fa0bb6a4"
+	CertificateKey  = ""
 )
