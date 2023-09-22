@@ -18,7 +18,9 @@ package initconfig
 
 import (
 	"fmt"
+	"io"
 	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
+	"nestos-kubernetes-deployer/data"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,14 +44,17 @@ func runGenerateTFConfig(r workflow.RunData, node string) error {
 	}
 	defer outputFile.Close()
 
-	// 从文件中读取 terraformConfig
-	terraformConfig, err := os.ReadFile(filepath.Join("data/terraform", fmt.Sprintf("%s.tf.template", node)))
+	tfFilePath := filepath.Join("terraform", fmt.Sprintf("%s.tf.template", node))
+	tfFile, err := data.Assets.Open(tfFilePath)
 	if err != nil {
-		return errors.Wrap(err, "failed to read terraform config template")
+		return err
 	}
-
-	// 使用模板填充数据
-	tmpl, err := template.New("terraform").Parse(string(terraformConfig))
+	defer tfFile.Close()
+	data, err := io.ReadAll(tfFile)
+	if err != nil {
+		return err
+	}
+	tmpl, err := template.New("terraform").Parse(string(data))
 	if err != nil {
 		return errors.Wrap(err, "failed to create terraform config template")
 	}

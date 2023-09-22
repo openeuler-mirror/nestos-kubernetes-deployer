@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# 管理服务的启动和开机自启动
+manage_service() {
+    service_name="$1"
+    if systemctl is-active --quiet $service_name ; then
+        echo "$service_name is already running"
+    else
+        echo "$service_name is not running, starting..."
+        systemctl start $service_name
+        systemctl enable $service_name
+        if [ $? -eq 0 ]; then
+            echo "$service_name starting success."
+        else
+            echo "unable to start $service_name."
+            exit 1
+        fi
+    fi
+}
+
+# 启用 isulad 服务，如果不存在则跳过
+if systemctl list-unit-files | grep -q "isulad.service" ; then
+    manage_service "isulad"
+else
+    echo "isulad service does not exist, skipping..."
+fi
+
+# 启用 housekeeper-daemon 服务，如果不存在则跳过
+if systemctl list-unit-files | grep -q "housekeeper-daemon.service" ; then
+    manage_service "housekeeper-daemon"
+else
+    echo "housekeeper-daemon service does not exist, skipping..."
+fi
+
+# 执行rebase
+rpm-ostree rebase --experimental ostree-unverified-image:docker://{{.ReleaseImageURl}} --bypass-driver

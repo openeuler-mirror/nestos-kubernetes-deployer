@@ -39,8 +39,8 @@ type Openstack struct {
 	Internal_network string
 	External_network string
 	Glance           string
-	Flavor           string
-	Zone             string
+	// Flavor           string
+	Zone string
 }
 
 type Libvirt struct {
@@ -58,13 +58,13 @@ type Infra struct {
 	Vmsize    Size
 }
 
-type Cluster struct {
-	Name string `yaml:"cluster-name"`
-}
+// type Cluster struct {
+// 	Name string `yaml:"cluster-name"`
+// }
 
 type Repo struct {
-	Secret   []map[string]string `yaml:"secret"`
-	Registry string              `yaml:"registry"`
+	// Secret   []map[string]string `yaml:"secret"`
+	Registry string `yaml:"registry"`
 }
 
 type BootstrapTokenString struct {
@@ -77,8 +77,8 @@ type Duration struct {
 }
 
 type APIEndpoint struct {
-	AdvertiseAddress string
-	BindPort         int32
+	// 	AdvertiseAddress string
+	// 	BindPort         int32
 }
 
 type BootstrapToken struct {
@@ -116,7 +116,7 @@ type NodeRegistrationOptions struct {
 	Taints                []Taint
 	KubeletExtraArgs      map[string]string
 	IgnorePreflightErrors []string
-	ImagePullPolicy       PullPolicy `json:"imagePullPolicy,omitempty"`
+	// ImagePullPolicy       PullPolicy `json:"imagePullPolicy,omitempty"`
 }
 
 type ComponentConfigMap map[string]ComponentConfig
@@ -213,7 +213,7 @@ type Networking struct {
 	// PodSubnet is the subnet used by pods.
 	PodSubnet string
 	// DNSDomain is the dns domain used by k8s services. Defaults to "cluster.local".
-	DNSDomain string
+	// DNSDomain string
 }
 type HostPathType string
 type HostPathMount struct {
@@ -240,26 +240,28 @@ type ControlPlaneComponent struct {
 	// ExtraVolumes is an extra set of host volumes, mounted to the control plane component.
 	ExtraVolumes []HostPathMount
 }
-type APIServer struct {
-	ControlPlaneComponent
 
-	// CertSANs sets extra Subject Alternative Names for the API Server signing cert.
-	CertSANs []string
+// type APIServer struct {
+// 	ControlPlaneComponent
 
-	// TimeoutForControlPlane controls the timeout that we use for API server to appear
-	TimeoutForControlPlane string
-}
-type DNS struct {
-	// ImageMeta allows to customize the image used for the DNS component
-	ImageMeta `json:",inline"`
-}
+// 	// CertSANs sets extra Subject Alternative Names for the API Server signing cert.
+// 	CertSANs []string
+
+// 	// TimeoutForControlPlane controls the timeout that we use for API server to appear
+// 	TimeoutForControlPlane string
+// }
+
+// type DNS struct {
+// 	// ImageMeta allows to customize the image used for the DNS component
+// 	ImageMeta `json:",inline"`
+// }
 type ClusterConfiguration struct {
 	// ComponentConfigs holds component configs known to kubeadm, should long-term only exist in the internal kubeadm API
 	// +k8s:conversion-gen=false
-	ComponentConfigs ComponentConfigMap
+	// ComponentConfigs ComponentConfigMap
 
 	// Etcd holds configuration for etcd.
-	Etcd Etcd
+	// Etcd Etcd
 
 	// Networking holds configuration for the networking topology of the cluster.
 	Networking Networking
@@ -270,7 +272,7 @@ type ClusterConfiguration struct {
 	// CIKubernetesVersion is the target CI version of the control plane.
 	// Useful for running kubeadm with CI Kubernetes version.
 	// +k8s:conversion-gen=false
-	CIKubernetesVersion string
+	// CIKubernetesVersion string
 
 	// ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
 	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
@@ -283,64 +285,64 @@ type ClusterConfiguration struct {
 	// control plane instances.
 	// e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
 	// could be used for assigning a stable DNS to the control plane.
-	ControlPlaneEndpoint string
+	// ControlPlaneEndpoint string
 
 	// APIServer contains extra settings for the API server control plane component
-	APIServer APIServer
+	// APIServer APIServer
 
 	// ControllerManager contains extra settings for the controller manager control plane component
-	ControllerManager ControlPlaneComponent
+	// ControllerManager ControlPlaneComponent
 
 	// Scheduler contains extra settings for the scheduler control plane component
-	Scheduler ControlPlaneComponent
+	// Scheduler ControlPlaneComponent
 
 	// DNS defines the options for the DNS add-on installed in the cluster.
-	DNS DNS
+	// DNS DNS
 
 	// CertificatesDir specifies where to store or look for all required certificates.
-	CertificatesDir string
+	// CertificatesDir string
 
 	// ImageRepository sets the container registry to pull images from.
 	// If empty, `registry.k8s.io` will be used by default; in case of kubernetes version is a CI build (kubernetes version starts with `ci/`)
 	// `gcr.io/k8s-staging-ci-images` will be used as a default for control plane components and for kube-proxy, while `registry.k8s.io`
 	// will be used for all the other images.
-	ImageRepository string
+	// ImageRepository string
 
 	// CIImageRepository is the container registry for core images generated by CI.
 	// Useful for running kubeadm with images from CI builds.
 	// +k8s:conversion-gen=false
-	CIImageRepository string
+	// CIImageRepository string
 
 	// FeatureGates enabled by the user.
-	FeatureGates map[string]bool
+	// FeatureGates map[string]bool
 
 	// The cluster name
-	ClusterName string
+	// ClusterName string
 }
 
-type Patches struct {
-	// Directory is a path to a directory that contains files named "target[suffix][+patchtype].extension".
-	// For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of
-	// "kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd", "kubeletconfiguration".
-	// "patchtype" can be one of "strategic" "merge" or "json" and they match the patch formats supported by kubectl.
-	// The default "patchtype" is "strategic". "extension" must be either "json" or "yaml".
-	// "suffix" is an optional string that can be used to determine which patches are applied
-	// first alpha-numerically.
-	Directory string
-}
+// type Patches struct {
+// 	// Directory is a path to a directory that contains files named "target[suffix][+patchtype].extension".
+// 	// For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of
+// 	// "kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd", "kubeletconfiguration".
+// 	// "patchtype" can be one of "strategic" "merge" or "json" and they match the patch formats supported by kubectl.
+// 	// The default "patchtype" is "strategic". "extension" must be either "json" or "yaml".
+// 	// "suffix" is an optional string that can be used to determine which patches are applied
+// 	// first alpha-numerically.
+// 	Directory string
+// }
 
 type Kubeadm struct {
 	ClusterConfiguration
-	BootstrapToken   string
-	LocalAPIEndpoint APIEndpoint
-	NodeRegistration NodeRegistrationOptions
-	CertificateKey   string
-	Patches          *Patches
+	BootstrapToken string
+	// LocalAPIEndpoint APIEndpoint
+	// NodeRegistration NodeRegistrationOptions
+	// CertificateKey string
+	// Patches *Patches
 }
 
-type Addon struct {
-	Addons []map[string]string
-}
+// type Addon struct {
+// 	Addons []map[string]string
+// }
 
 type ContainerDaemon struct {
 	PauseImageTag   string
@@ -352,29 +354,29 @@ type ContainerDaemon struct {
 type Master struct {
 	Node            string
 	ContainerDaemon ContainerDaemon
-	Cluster         Cluster
-	System          System
-	Repo            Repo
-	Kubeadm         Kubeadm
-	Addon           Addon
-	Infra           Infra
+	// Cluster         Cluster
+	System  System
+	Repo    Repo
+	Kubeadm Kubeadm
+	// Addon   Addon
+	Infra Infra
 }
 
 type WorkerK8s struct {
-	Discovery        Discovery
-	CaCertPath       string
-	NodeRegistration NodeRegistrationOptions
+	Discovery Discovery
+	// CaCertPath string
+	// NodeRegistration NodeRegistrationOptions
 }
 
 type BootstrapTokenDiscovery struct {
-	Token                    string
-	APIServerEndpoint        string
-	UnsafeSkipCAVerification bool
+	Token             string
+	APIServerEndpoint string
+	// UnsafeSkipCAVerification bool
 }
 
 type Discovery struct {
-	BootstrapToken    *BootstrapTokenDiscovery
-	Timeout           string
+	BootstrapToken *BootstrapTokenDiscovery
+	// Timeout           string
 	TlsBootstrapToken string
 }
 
@@ -384,8 +386,8 @@ type Worker struct {
 	Repo            Repo
 	System          System
 	Infra           Infra
-	Addon           Addon
-	Worker          WorkerK8s
+	// Addon           Addon
+	Worker WorkerK8s
 }
 
 type Node struct {

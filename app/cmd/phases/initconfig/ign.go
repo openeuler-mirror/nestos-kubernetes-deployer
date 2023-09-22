@@ -21,6 +21,7 @@ import (
 	"io"
 	"nestos-kubernetes-deployer/app/apis/nkd"
 	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
+	"nestos-kubernetes-deployer/data"
 	"net"
 	"os"
 	"path"
@@ -71,6 +72,7 @@ var (
 		"install-cni-plugin.service",
 		"join-master.service",
 		"join-worker.service",
+		"release-image-pivot.service",
 	}
 )
 
@@ -217,12 +219,12 @@ func generateConfig(ctd *commonTemplateData) error {
 			},
 		},
 	}
-	nodeFilesPath := fmt.Sprintf("data/ignition/%s/files", ctd.NodeType)
+	nodeFilesPath := fmt.Sprintf("ignition/%s/files", ctd.NodeType)
 	if err := AddStorageFiles(&config, "/", nodeFilesPath, ctd); err != nil {
 		logrus.Errorf("failed to add files to a ignition config: %v", err)
 		return err
 	}
-	nodeUnitPath := fmt.Sprintf("data/ignition/%s/systemd/", ctd.NodeType)
+	nodeUnitPath := fmt.Sprintf("ignition/%s/systemd/", ctd.NodeType)
 	if err := AddSystemdUnits(&config, nodeUnitPath, ctd, enabledServices); err != nil {
 		logrus.Errorf("failed to add systemd units to a ignition config: %v", err)
 		return err
@@ -246,7 +248,7 @@ config - the ignition config to be modified
 tmplData - struct to used to render templates
 */
 func AddStorageFiles(config *igntypes.Config, base string, uri string, tmplData interface{}) error {
-	file, err := os.Open(uri)
+	file, err := data.Assets.Open(uri)
 	if err != nil {
 		return err
 	}
@@ -297,7 +299,7 @@ func AddSystemdUnits(config *igntypes.Config, uri string, tmplData interface{}, 
 		enabled[s] = struct{}{}
 	}
 
-	dir, err := os.Open(uri)
+	dir, err := data.Assets.Open(uri)
 	if err != nil {
 		return err
 	}
@@ -309,7 +311,7 @@ func AddSystemdUnits(config *igntypes.Config, uri string, tmplData interface{}, 
 	}
 	for _, childInfo := range child {
 		dir := path.Join(uri, childInfo.Name())
-		file, err := os.Open(dir)
+		file, err := data.Assets.Open(dir)
 		if err != nil {
 			return err
 		}

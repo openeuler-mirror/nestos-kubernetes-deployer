@@ -1,6 +1,3 @@
-terraform
 providers
-master
-worker
 housekeeper/bin
 app/apis/nkd/_const.go
