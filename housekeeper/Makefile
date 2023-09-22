@@ -38,13 +38,13 @@ SHELL = /usr/bin/env bash -o pipefail
 all: housekeeper-operator-manager housekeeper-controller-manager
 # Build binary
 housekeeper-operator-manager:
-	go build -o bin/housekeeper-operator-manager operator/housekeeper-operator/main.go
+	go build --ldflags="-w -s" -o bin/housekeeper-operator-manager operator/housekeeper-operator/main.go
 housekeeper-controller-manager:
-	go build -o bin/housekeeper-controller-manager operator/housekeeper-controller/main.go
+	go build --ldflags="-w -s" -o bin/housekeeper-controller-manager operator/housekeeper-controller/main.go
 
 .PHONY: housekeeper-daemon
 housekeeper-daemon:
-	go build -o bin/housekeeper-daemon daemon/main.go
+	go build --ldflags="-w -s" -o bin/housekeeper-daemon daemon/main.go
 
 # Build the docker image
 .PHONY: docker-build

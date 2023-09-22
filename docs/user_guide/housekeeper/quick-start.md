@@ -48,7 +48,8 @@
 * 制作注意事项
     * 请确保已安装docker
     * 基础镜像需从NestOS官网下载最新版本容器镜像
-    * 制作kubernetes版本升级镜像，需提前下载相对应版本的kubeadm、kubelet二进制文件并复制到/usr/bin目录，以及将calico网络插件的yaml文件复制到/etc/nkd目录
+    * 制作kubernetes版本升级镜像，需提前下载相对应版本的kubeadm、kubelet、crictl二进制文件并复制到/usr/bin目录，以及将calico网络插件的yaml文件复制到/etc/nkd目录
+    * 
     * 软件包的安装需要使用rpm-ostree命令
  * Dockerfiles示例如下
       ``` dockerfile
