@@ -33,7 +33,6 @@ type Client struct {
 
 type PushInfo struct {
 	OSImageURL  string
-	OSVersion   string
 	KubeVersion string
 }
 
@@ -59,7 +58,6 @@ func (c *Client) UpgradeKubeSpec(pushInfo *PushInfo) error {
 		&pb.UpgradeRequest{
 			KubeVersion: pushInfo.KubeVersion,
 			OsImageUrl:  pushInfo.OSImageURL,
-			OsVersion:   pushInfo.OSVersion,
 		})
 	return err
 }

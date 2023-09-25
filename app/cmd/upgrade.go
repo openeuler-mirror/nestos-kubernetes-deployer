@@ -36,7 +36,6 @@ import (
 
 var (
 	ArgsData struct {
-		osVersion      string
 		kubeVersion    string
 		evictPodForce  bool
 		maxUnavailable int
@@ -55,7 +54,6 @@ func NewUpgradeCommand() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVarP(&ArgsData.osVersion, "nestos-version", "", "", "Choose a specific nestos version for upgrade or rollback")
 	cmd.PersistentFlags().StringVarP(&ArgsData.kubeVersion, "kubernetes-version", "", "", "Choose a specific kubernetes version for upgrading")
 	cmd.PersistentFlags().BoolVarP(&ArgsData.evictPodForce, "force", "f", false, "Force evict pod")
 	cmd.PersistentFlags().IntVarP(&ArgsData.maxUnavailable, "maxunavailable", "n", 2, "Number of nodes that are upgraded at the same time")
@@ -91,12 +89,11 @@ metadata:
 name: housekeeper-upgrade
 namespace: housekeeper-system
 spec:
-osVersion: %s
 osImageURL: %s
 kubeVersion: %s
 evictPodForce: %t
 maxUnavailable: %d
-`, ArgsData.osVersion, ArgsData.osImageURL, ArgsData.kubeVersion, ArgsData.evictPodForce, ArgsData.maxUnavailable)
+`, ArgsData.osImageURL, ArgsData.kubeVersion, ArgsData.evictPodForce, ArgsData.maxUnavailable)
 
 	var unstructuredObj unstructured.Unstructured
 	err = yaml.Unmarshal([]byte(yamlData), &unstructuredObj)

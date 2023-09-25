@@ -79,13 +79,14 @@ func (r *UpdateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	_ = log.FromContext(ctx)
 	ctx = context.Background()
 	upInstance, nodeInstance := reqInstance(ctx, r, req.NamespacedName, r.HostName)
-	var (
-		osVersionSpec   = upInstance.Spec.OSVersion
-		kubeVersionSpec = upInstance.Spec.KubeVersion
-		// osVersion reported by the node from /etc/os-release
-		osVersion = nodeInstance.Status.NodeInfo.OSImage
-	)
-	upgradeCluster := checkUpgrade(osVersion, osVersionSpec, kubeVersionSpec)
+	kubeVersionSpec := upInstance.Spec.KubeVersion
+	osImageUrlSpec := upInstance.Spec.OSImageURL
+	osImageTag, err := common.ExtractImageTag(osImageUrlSpec)
+	if err != nil {
+		logrus.Info("the mirror address url parameter is invalid")
+		return common.RequeueNow, err
+	}
+	upgradeCluster := checkUpgrade(osImageTag, kubeVersionSpec)
 	if upgradeCluster {
 		if err := r.upgradeNodes(ctx, &upInstance, &nodeInstance); err != nil {
 			return common.RequeueNow, err
@@ -117,18 +118,15 @@ func (r *UpdateReconciler) upgradeNodes(ctx context.Context, upInstance *houseke
 		pushInfo := &connection.PushInfo{
 			KubeVersion: upInstance.Spec.KubeVersion,
 			OSImageURL:  upInstance.Spec.OSImageURL,
-			OSVersion:   upInstance.Spec.OSVersion,
 		}
 		if err := r.Connection.UpgradeKubeSpec(pushInfo); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
 func (r *UpdateReconciler) refreshNodes(ctx context.Context, node *corev1.Node) error {
-	deleteLabel(ctx, r, node)
 	if node.Spec.Unschedulable {
 		drainer := &drain.Helper{
 			Ctx:                ctx,
@@ -143,16 +141,24 @@ func (r *UpdateReconciler) refreshNodes(ctx context.Context, node *corev1.Node) 
 		}
 		logrus.Infof("uncordon successfully %s node", node.Name)
 	}
+	if _, ok := node.Labels[constants.LabelUpgrading]; ok {
+		if err := addUpgradeCompletedLabel(ctx, r, node); err != nil {
+			return err
+		}
+		delete(node.Labels, constants.LabelUpgrading)
+		if err := r.Update(ctx, node); err != nil {
+			logrus.Errorf("unable to delete %s node label: %v", node.Name, err)
+			return err
+		}
+	}
 	return nil
 }
 
-func deleteLabel(ctx context.Context, r common.ReadWriterClient, node *corev1.Node) error {
-	if _, ok := node.Labels[constants.LabelUpgrading]; ok {
-		delete(node.Labels, constants.LabelUpgrading)
-		if err := r.Update(ctx, node); err != nil {
-			logrus.Errorf("unable to delete %s node label: %w", node.Name, err)
-			return err
-		}
+func addUpgradeCompletedLabel(ctx context.Context, r common.ReadWriterClient, node *corev1.Node) error {
+	node.Labels[constants.LabelUpgradeCompleted] = ""
+	if err := r.Update(ctx, node); err != nil {
+		logrus.Errorf("unable to add %s node label: %v", constants.LabelUpgradeCompleted, err)
+		return err
 	}
 	return nil
 }
@@ -163,7 +169,7 @@ func cordonOrUncordonNode(desired bool, drainer *drain.Helper, node *corev1.Node
 	if !desired {
 		carry = "uncordon"
 	}
-	logrus.Info(node.Name, "initiating %s", carry)
+	logrus.Infof(node.Name, "initiating %s", carry)
 	if node.Spec.Unschedulable == desired {
 		return nil
 	}
@@ -175,7 +181,6 @@ func cordonOrUncordonNode(desired bool, drainer *drain.Helper, node *corev1.Node
 }
 
 func drainNode(drainer *drain.Helper, node *corev1.Node) error {
-	logrus.Info(node.Name, " is cordoning")
 	// Perform cordon
 	if err := cordonOrUncordonNode(true, drainer, node); err != nil {
 		return fmt.Errorf("failed to cordon node %s: %v", node.Name, err)
@@ -202,16 +207,20 @@ func reqInstance(ctx context.Context, r common.ReadWriterClient, name types.Name
 }
 
 // Check if the version is upgraded
-func checkUpgrade(osVersion string, osVersionSpec string, kubeVersionSpec string) bool {
+func checkUpgrade(osImageUrlSpec string, kubeVersionSpec string) bool {
 	if len(kubeVersionSpec) > 0 {
-		markFile := fmt.Sprintf("%s%s%s", "/run/housekeeper-daemon/", kubeVersionSpec, ".stamp")
+		markFile := fmt.Sprintf("%s/%s/%s%s", constants.SockDir, "kube", kubeVersionSpec, ".stamp")
+		fmt.Printf("markkubeFile: %s\n", markFile)
 		if common.IsFileExist(markFile) {
 			return false
 		}
 	} else {
-		return osVersion != osVersionSpec
+		markFile := fmt.Sprintf("%s/%s/%s%s", constants.SockDir, "os", osImageUrlSpec, ".stamp")
+		fmt.Printf("markosFile: %s\n", markFile)
+		if common.IsFileExist(markFile) {
+			return false
+		}
 	}
-
 	return true
 }
 

@@ -41,9 +41,6 @@ spec:
               osImageURL:
                 description: 'The image url used to upgrade OS'
                 type: string
-              osVersion:
-                description: 'The version used to upgrade OS'
-                type: string
               evictPodForce:
                 description: 'If true, force evict the pod'
                 type: boolean
@@ -53,7 +50,6 @@ spec:
             required:
             - kubeVersion
             - osImageURL
-            - osVersion
             - evictPodForce
             - maxUnavailable
             type: object

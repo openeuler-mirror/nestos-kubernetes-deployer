@@ -16,7 +16,9 @@ limitations under the License.
 package common
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,4 +49,14 @@ func IsFileExist(path string) bool {
 		return false
 	}
 	return true
+}
+
+func ExtractImageTag(imageURL string) (string, error) {
+	parts := strings.Split(imageURL, "/")
+	lastPart := parts[len(parts)-1]
+	tagParts := strings.Split(lastPart, ":")
+	if len(tagParts) > 1 {
+		return tagParts[len(tagParts)-1], nil
+	}
+	return "", fmt.Errorf("unable to extract the mirror tag from image URL: %s", imageURL)
 }
