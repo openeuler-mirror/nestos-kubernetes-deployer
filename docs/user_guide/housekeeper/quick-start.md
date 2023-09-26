@@ -84,13 +84,13 @@
 
   * housekeeper不支持kubernetes跨大版本升级
   * 高可用集群Master节点为逐一节点进行升级
+  * 每次升级均需要制作不同版本的容器镜像
   
 ### 参数说明
 
 创建CRD对象的参数字段及说明如下：
   | 参数           |参数类型  | 参数说明                                                  | 使用说明 | 是否必选         |
   | -------------- | ------  | -----------------------------------------------------------| ----- | ---------------- |
-  | osVersion      | string  | 用于升级容器镜像的NestOS版本           | 需为NestOS version格式，例如NestOS 23.03.20230511.0 | 是         |
   | osImageURL      | string  | 用于升级容器镜像的地址           | 需要为容器镜像格式 REPOSITORY/NAME[:TAG@DIGEST] | 是         |
   | kubeVersion      | string  | 用于升级kubernetes的版本号           | 如果仅升级OS版本，此项需填空 | 是         |
   | evictPodForce      | bool  | 用于升级时是否强制驱逐pod           | 需为true或者false | 是         |
@@ -105,7 +105,6 @@
     metadata:
       name: housekeeper-upgrade
     spec:
-      osVersion: os.version
       osImageURL: image.url
       kubeVersion: kubernetes.version
       evictPodForce: false
@@ -123,4 +122,4 @@
     ``` shell
     kubectl get nodes
     ```
-* 如后续再次升级，需调整housekeeper.io_v1alpha1_update.yaml中osVersion、osImageURL、kubeVersion字段的相应信息，并且制作升级所需的容器镜像。
+* 如后续再次升级，需调整housekeeper.io_v1alpha1_update.yaml中osImageURL、kubeVersion字段的相应信息，并且制作升级所需的容器镜像。

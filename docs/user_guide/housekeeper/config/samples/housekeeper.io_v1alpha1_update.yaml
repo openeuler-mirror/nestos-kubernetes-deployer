@@ -3,7 +3,6 @@ kind: Update
 metadata:
   name: housekeeper-upgrade
 spec:
-  osVersion: os.version
   osImageURL: image.url
   kubeVersion: kubernetes.version
   evictPodForce: false

@@ -80,9 +80,31 @@ func reconcile(ctx context.Context, r common.ReadWriterClient, req ctrl.Request)
 		logrus.Errorf("unable to fetch update instance: %v", err)
 		return common.NoRequeue, err
 	}
-	if len(update.Spec.OSVersion) == 0 {
-		logrus.Warning("os version is required")
+	if len(update.Spec.OSImageURL) == 0 {
+		logrus.Warning("os upgrade image url is required")
 		return common.RequeueAfter, nil
+	}
+
+	allNodes, err := getAllNodes(ctx, r)
+	if err != nil {
+		return common.RequeueNow, err
+	}
+
+	allNodesUpgraded := true
+	for _, node := range allNodes {
+		if _, exists := node.Labels[constants.LabelUpgradeCompleted]; !exists {
+			allNodesUpgraded = false
+			break
+		}
+	}
+	if allNodesUpgraded {
+		for _, node := range allNodes {
+			delete(node.Labels, constants.LabelUpgradeCompleted)
+			if err := r.Update(ctx, &node); err != nil {
+				return common.RequeueNow, err
+			}
+		}
+		return common.NoRequeue, nil // 不重新触发 CR
 	}
 	masterNodesItems, err := getMasterNodesItems(ctx, r)
 	if err != nil {
@@ -110,12 +132,17 @@ func getMasterNodesItems(ctx context.Context, r common.ReadWriterClient) (
 		logrus.Errorf("unable to create requirement %s: %v", reqUpgrade, err)
 		return
 	}
+	reqUpgradeCompleted, err := labels.NewRequirement(constants.LabelUpgradeCompleted, selection.DoesNotExist, nil)
+	if err != nil {
+		logrus.Errorf("unable to create requirement %s: %v", reqUpgradeCompleted, err)
+		return
+	}
 	reqMaster, err := labels.NewRequirement(constants.LabelMaster, selection.Exists, nil)
 	if err != nil {
 		logrus.Errorf("unable to create requirement %s: %v", constants.LabelMaster, err)
 		return
 	}
-	nodesItems, err = getNodes(ctx, r, *reqUpgrade, *reqMaster)
+	nodesItems, err = getNodes(ctx, r, *reqUpgrade, *reqUpgradeCompleted, *reqMaster)
 	if err != nil {
 		logrus.Errorf("failed to get master nodes list: %v", err)
 		return
@@ -130,12 +157,17 @@ func getWorkerNodesItems(ctx context.Context, r common.ReadWriterClient) (
 		logrus.Errorf("unable to create requirement %s: %v", reqUpgrade, err)
 		return
 	}
+	reqUpgradeCompleted, err := labels.NewRequirement(constants.LabelUpgradeCompleted, selection.DoesNotExist, nil)
+	if err != nil {
+		logrus.Errorf("unable to create requirement %s: %v", reqUpgradeCompleted, err)
+		return
+	}
 	reqWorker, err := labels.NewRequirement(constants.LabelMaster, selection.DoesNotExist, nil)
 	if err != nil {
 		logrus.Errorf("unable to create requirement %s: %v", constants.LabelMaster, err)
 		return
 	}
-	nodesItems, err = getNodes(ctx, r, *reqUpgrade, *reqWorker)
+	nodesItems, err = getNodes(ctx, r, *reqUpgrade, *reqUpgradeCompleted, *reqWorker)
 	if err != nil {
 		logrus.Errorf("failed to get worker nodes list: %v", err)
 		return
@@ -153,48 +185,55 @@ func getNodes(ctx context.Context, r common.ReadWriterClient, reqs ...labels.Req
 	return nodeList.Items, nil
 }
 
+func getAllNodes(ctx context.Context, r common.ReadWriterClient) ([]corev1.Node, error) {
+	var nodeList corev1.NodeList
+	if err := r.List(ctx, &nodeList); err != nil {
+		logrus.Errorf("unable to list nodes: %v", err)
+		return nil, err
+	}
+	return nodeList.Items, nil
+}
+
 // Add the label to nodes
 func assignUpdated(ctx context.Context, r common.ReadWriterClient, nodeList []corev1.Node,
 	max int, upInstance housekeeperiov1alpha1.Update) error {
-	var (
-		kubeVersionSpec = upInstance.Spec.KubeVersion
-		osVersionSpec   = upInstance.Spec.OSVersion
-		count           = 0
-	)
-	// Create a channel to receive the task result
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, constants.NodeTimeout)
+	defer cancel()
 	for _, node := range nodeList {
-		if count >= max {
-			count = 0
-			if err := waitForUpgradeComplete(node, kubeVersionSpec, osVersionSpec); err != nil {
+		if hasUpgradeCompletedLabel(node) {
+			continue
+		}
+		if max <= 0 {
+			if err := waitForUpgradeComplete(timeoutCtx, node); err != nil {
 				return err
 			}
+			max = upInstance.Spec.MaxUnavailable
 		}
-		if conditionMet(node, kubeVersionSpec, osVersionSpec) {
-			node.Labels[constants.LabelUpgrading] = ""
-			if err := r.Update(ctx, &node); err != nil {
-				logrus.Errorf("unable to add %s label:%v", node.Name, err)
-				return err
-			}
-			count++
+		node.Labels[constants.LabelUpgrading] = ""
+		if err := r.Update(ctx, &node); err != nil {
+			return err
 		}
+		max--
 	}
 	return nil
 }
 
-func waitForUpgradeComplete(node corev1.Node, kubeVersionSpec string, osVersionSpec string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), constants.NodeTimeout)
+func waitForUpgradeComplete(ctx context.Context, node corev1.Node) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, constants.NodeTimeout)
 	defer cancel()
+
 	done := make(chan struct{})
 	success := false
 
-	go func() {
-		wait.Until(func() {
-			if !conditionMet(node, kubeVersionSpec, osVersionSpec) {
-				success = true
-				close(done)
-			}
-		}, 10*time.Second, ctx.Done())
-	}()
+	waitFunc := func() {
+		if hasUpgradeCompletedLabel(node) {
+			success = true
+			close(done)
+		}
+	}
+
+	go wait.Until(waitFunc, 10*time.Second, timeoutCtx.Done())
 
 	select {
 	case <-done:
@@ -204,20 +243,17 @@ func waitForUpgradeComplete(node corev1.Node, kubeVersionSpec string, osVersionS
 			logrus.Infof("upgrade conditions not met for node: %s", node.Name)
 		}
 		return nil
-	case <-ctx.Done():
-		if ctx.Err() == context.DeadlineExceeded {
-			logrus.Errorf("failed to upgrade node: %s: %v", node.Name, ctx.Err())
+	case <-timeoutCtx.Done():
+		if timeoutCtx.Err() == context.DeadlineExceeded {
+			logrus.Errorf("timeout to upgrade node: %s: %v", node.Name, timeoutCtx.Err())
 		}
-		return ctx.Err()
+		return timeoutCtx.Err()
 	}
 }
 
-func conditionMet(node corev1.Node, kubeVersionSpec string, osVersionSpec string) bool {
-	nodeInfo := node.Status.NodeInfo
-	if kubeVersionSpec != "" {
-		return kubeVersionSpec != nodeInfo.KubeProxyVersion && kubeVersionSpec != nodeInfo.KubeletVersion
-	}
-	return osVersionSpec != nodeInfo.OSImage
+func hasUpgradeCompletedLabel(node corev1.Node) bool {
+	_, exists := node.Labels[constants.LabelUpgradeCompleted]
+	return exists
 }
 
 func min(a, b int) int {

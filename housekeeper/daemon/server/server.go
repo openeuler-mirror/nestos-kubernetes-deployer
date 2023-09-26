@@ -19,6 +19,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -26,6 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"housekeeper.io/pkg/common"
 	pb "housekeeper.io/pkg/connection/proto"
+	"housekeeper.io/pkg/constants"
 )
 
 const (
@@ -48,50 +51,42 @@ func (s *Server) Upgrade(_ context.Context, req *pb.UpgradeRequest) (*pb.Upgrade
 	defer s.mu.Unlock()
 
 	// upgrade os
-	if len(req.OsVersion) > 0 {
-		//Checking for os version
-		if err := checkOsVersion(req); err != nil {
+	if len(req.OsImageUrl) > 0 {
+		osImageTag, err := common.ExtractImageTag(req.OsImageUrl)
+		if err != nil {
+			logrus.Info("the mirror address url parameter is invalid")
+			return &pb.UpgradeResponse{}, nil
+		}
+		markOsPath := fmt.Sprintf("%s/%s/", constants.SockDir, "os")
+		markOsStamp := fmt.Sprintf("%s%s%s", markOsPath, osImageTag, ".stamp")
+		if common.IsFileExist(markOsStamp) {
+			return &pb.UpgradeResponse{}, nil
+		}
+		if err := markNode(markOsPath, markOsStamp); err != nil {
+			logrus.Errorf("failed to mark node: %v", err)
+			return &pb.UpgradeResponse{}, err
+		}
+		if err := upgradeOSVersion(req); err != nil {
+			logrus.Errorf("upgrade os version error: %v", err)
 			return &pb.UpgradeResponse{}, err
 		}
 	}
 	// upgrade kubernetes
 	if len(req.KubeVersion) > 0 {
-		markFile := fmt.Sprintf("%s%s%s", "/run/housekeeper-daemon/", req.KubeVersion, ".stamp")
-		if common.IsFileExist(markFile) {
+		markKubePath := fmt.Sprintf("%s/%s/", constants.SockDir, "kube")
+		markKubeStamp := fmt.Sprintf("%s%s%s", markKubePath, req.KubeVersion, ".stamp")
+		if common.IsFileExist(markKubeStamp) {
 			return &pb.UpgradeResponse{}, nil
 		}
-		//Checking for kubernetes version
-		if err := checkKubeVersion(req); err != nil {
+		if err := markNode(markKubePath, markKubeStamp); err != nil {
+			logrus.Errorf("failed to mark node: %v", err)
 			return &pb.UpgradeResponse{}, err
 		}
-		// todo: check upgrade successfully
-		if err := markNode(markFile); err != nil {
-			logrus.Errorf("failed to mark node: %v", err)
+		if err := checkKubeVersion(req); err != nil {
 			return &pb.UpgradeResponse{}, err
 		}
 	}
 	return &pb.UpgradeResponse{}, nil
-}
-
-func checkOsVersion(req *pb.UpgradeRequest) error {
-	osVersionBytes, err := runCmd("awk", "-F=", "/PRETTY_NAME/ {gsub(/\"/, \"\", $2); print $2}", "/etc/os-release")
-	if err != nil {
-		logrus.Errorf("failed to get os version: %v", err)
-		return err
-	}
-	osVersion := strings.TrimSpace(string(osVersionBytes))
-	reqOsVersion := strings.TrimSpace(req.OsVersion)
-	if osVersion == reqOsVersion {
-		logrus.Infof("The current OS version %s and the desired upgrade version %s are the same", osVersion, reqOsVersion)
-		return nil
-	}
-	//Compare the current os version with the desired version.
-	//If different, the update command is executed
-	if err := upgradeOSVersion(req); err != nil {
-		logrus.Errorf("upgrade os version error: %v", err)
-		return err
-	}
-	return nil
 }
 
 func checkKubeVersion(req *pb.UpgradeRequest) error {
@@ -119,10 +114,9 @@ func upgradeOSVersion(req *pb.UpgradeRequest) error {
 	customImageURL := fmt.Sprintf("%s%s", ostreeImage, req.OsImageUrl)
 	args := []string{"rebase", "--experimental", customImageURL, "--bypass-driver"}
 	if _, err := runCmd("rpm-ostree", args...); err != nil {
-		logrus.Errorf("failed to upgrade os to %s : %w", req.OsVersion, err)
+		logrus.Errorf("failed to upgrade os: %v", err)
 		return err
 	}
-	// todo：skipping restart system
 	if err := exec.Command("/bin/sh", "-c", "systemctl reboot").Run(); err != nil {
 		logrus.Errorf("failed to run reboot: %v", err)
 		return err
@@ -147,12 +141,12 @@ func upgradeKubeVersion(req *pb.UpgradeRequest) error {
 
 func upgradeMasterNodes(version string) error {
 	if err := exec.Command("/bin/sh", "-c", kubeletUpdateCmd).Run(); err != nil {
-		logrus.Errorf("failed to restart kubelet: %w", err)
+		logrus.Errorf("failed to restart kubelet: %v", err)
 		return err
 	}
 	args := []string{"-c", upgradeMasterCmd, version}
 	if err := exec.Command("/bin/sh", args...).Run(); err != nil {
-		logrus.Errorf("failed to upgrade nodes: %w", err)
+		logrus.Errorf("failed to upgrade nodes: %v", err)
 		return err
 	}
 	return nil
@@ -160,11 +154,11 @@ func upgradeMasterNodes(version string) error {
 
 func upgradeWorkerNodes() error {
 	if err := exec.Command("/bin/sh", "-c", kubeletUpdateCmd).Run(); err != nil {
-		logrus.Errorf("failed to restart kubelet: %w", err)
+		logrus.Errorf("failed to restart kubelet: %v", err)
 		return err
 	}
 	if err := exec.Command("/bin/sh", "-c", upgradeWorkerCmd).Run(); err != nil {
-		logrus.Errorf("failed to upgrade nodes: %w", err)
+		logrus.Errorf("failed to upgrade nodes: %v", err)
 		return err
 	}
 	return nil
@@ -174,10 +168,13 @@ func isMasterNode() bool {
 	return common.IsFileExist(adminFile)
 }
 
-func markNode(file string) error {
-	_, err := runCmd("touch", file)
-	if err != nil {
-		logrus.Errorf("failed to create mark file: %v", err)
+func markNode(dir string, file string) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		logrus.Errorf("failed to create directory %s: %v", dir, err)
+		return err
+	}
+	if err := ioutil.WriteFile(file, []byte(""), 0644); err != nil {
+		logrus.Errorf("failed to create mark file %s: %v", file, err)
 		return err
 	}
 	return nil
@@ -187,7 +184,7 @@ func runCmd(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
 	output, err := cmd.Output()
 	if err != nil {
-		logrus.Errorf("error running  %s: %s: %w", name, strings.Join(args, " "), err)
+		logrus.Errorf("error running  %s: %s: %v", name, strings.Join(args, " "), err)
 		return nil, err
 	}
 	return output, nil

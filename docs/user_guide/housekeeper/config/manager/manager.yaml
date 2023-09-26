@@ -23,7 +23,7 @@ spec:
       containers:
       - command:
         - /housekeeper-operator-manager
-        image: hub.oepkgs.net/nestos/nkd/amd64/housekeeper-operator-manager:0.1.0
+        image: hub.oepkgs.net/nestos/nkd/{arch}/housekeeper-operator-manager:0.1.0
         imagePullPolicy: Always
         name: housekeeper-operator-manager
         securityContext:
@@ -69,11 +69,11 @@ spec:
        - name: housekeeper-controller-manager
          command:
           - /housekeeper-controller-manager
-         image: hub.oepkgs.net/nestos/nkd/amd64/housekeeper-controller-manager:0.1.0
+         image: hub.oepkgs.net/nestos/nkd/{arch}/housekeeper-controller-manager:0.1.0
          imagePullPolicy: Always
          volumeMounts:
           - name: upgrade-daemon
-            mountPath: /var/run/housekeeper-daemon
+            mountPath: /var/nkd
          env:
           - name: NODE_NAME
             valueFrom:
@@ -83,4 +83,4 @@ spec:
       volumes:
         - name: upgrade-daemon
           hostPath:
-            path: /var/run/housekeeper-daemon
+            path: /var/nkd

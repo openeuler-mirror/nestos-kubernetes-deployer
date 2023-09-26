@@ -21,16 +21,17 @@ const (
 	// LabelUpgrading is the key of the upgrading label for nodes
 	LabelUpgrading = "upgrade.housekeeper.io/upgrading"
 	// LabelMaster defines the label associated with master node.
-	LabelMaster = "node-role.kubernetes.io/master"
+	LabelMaster           = "node-role.kubernetes.io/master"
+	LabelUpgradeCompleted = "upgrade.housekeeper.io/upgradeCompleted"
 )
 
 // socket file
 const (
-	SockDir  = "/run/housekeeper-daemon"
+	SockDir  = "/var/nkd"
 	SockName = "housekeeper-daemon.sock"
 )
 
 const (
 	// node upgrade timeout
-	NodeTimeout = 5 * time.Minute
+	NodeTimeout = 3 * time.Minute
 )
