@@ -65,6 +65,11 @@ nkd项目在openEuler社区提供rpm软件包以供安装使用，同时也可�
     ``` shell
     nkd extend -n 10
     ```
+  * 销毁集群
+    ``` shell
+    nkd destroy worker
+    nkd destroy master
+    ```
 
 ## 使用指导
 
