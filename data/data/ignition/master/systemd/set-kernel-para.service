@@ -1,0 +1,15 @@
+[Unit]
+Description=set kernel para for Kubernetes
+ConditionPathExists=!/var/log/set-kernel-para.stamp
+ConditionPathExists=/var/log/node-pivot.stamp
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=modprobe br_netfilter
+ExecStart=sysctl -p /etc/sysctl.d/kubernetes.conf
+ExecStart=/bin/touch /var/log/set-kernel-para.stamp
+
+[Install]
+WantedBy=multi-user.target
+
