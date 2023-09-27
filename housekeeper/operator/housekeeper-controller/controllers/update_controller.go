@@ -210,13 +210,13 @@ func reqInstance(ctx context.Context, r common.ReadWriterClient, name types.Name
 func checkUpgrade(osImageUrlSpec string, kubeVersionSpec string) bool {
 	if len(kubeVersionSpec) > 0 {
 		markFile := fmt.Sprintf("%s/%s/%s%s", constants.SockDir, "kube", kubeVersionSpec, ".stamp")
-		fmt.Printf("markkubeFile: %s\n", markFile)
+		// fmt.Printf("markkubeFile: %s\n", markFile)
 		if common.IsFileExist(markFile) {
 			return false
 		}
 	} else {
 		markFile := fmt.Sprintf("%s/%s/%s%s", constants.SockDir, "os", osImageUrlSpec, ".stamp")
-		fmt.Printf("markosFile: %s\n", markFile)
+		// fmt.Printf("markosFile: %s\n", markFile)
 		if common.IsFileExist(markFile) {
 			return false
 		}

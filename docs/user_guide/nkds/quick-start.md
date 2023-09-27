@@ -1,12 +1,8 @@
 # 快速使用指导
 
-
 ## 编译及部署
 
-* nkd提供了spec文件支持用户构建rpm软件包进行安装，同时也可以自行编译构建
-  ``` shell
-  rpm -ivh nkd-0.1.0-1.*.rpm
-  ```
+nkd项目在openEuler社区提供rpm软件包以供安装使用，同时也可以自行编译构建
   
 ### 编译指导
 
@@ -34,6 +30,19 @@
   * Linux x86_64/aarch64
   * 已完成搭建OpenStack环境
 * 部署
+  * 创建工作目录
+    ```
+    mkdir nkd && cd nkd
+    ```
+  * 获取当前系统架构的[terraform二进制文件](https://developer.hashicorp.com/terraform/downloads)，保存在工作目录下
+  * 获取${terraform-provider-openstack}插件，保存在工作目录下
+    ```
+    # 本项目可在有网络环境中自动部署${terraform-provider-openstack}插件（该功能由terraform提供），若在离线环境中使用，请在工作目录自行构建如下目录：
+    # x86_64
+    ./providers/registry.terraform.io/terraform-provider-openstack/openstack/${version}/linux_amd64/${terraform-provider-openstack_${version}}
+    # aarch64
+    ./providers/registry.terraform.io/terraform-provider-openstack/openstack/${version}/linux_arm64/${terraform-provider-openstack_${version}}
+    ```
   * 分别打印master节点与worker节点的配置文件，根据用户配置需求自定义修改
     ``` shell
     nkd config print master
@@ -52,7 +61,7 @@
     ``` shell
     nkd deploy worker
     ```
-  * 扩展节点。参数为扩展后worker节点的数量，例如扩展后worker节点数量为10
+  * 扩展worker节点。参数为扩展后worker节点的数量，例如扩展后worker节点数量为10
     ``` shell
     nkd extend -n 10
     ```
