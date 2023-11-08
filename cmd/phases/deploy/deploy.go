@@ -17,7 +17,7 @@ limitations under the License.
 package deploy
 
 import (
-	"nestos-kubernetes-deployer/app/phases/infra"
+	"nestos-kubernetes-deployer/pkg/terraform"
 
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ func NewDeployMasterCommand() *cobra.Command {
 		Use:   "master",
 		Short: "deploy kubernetes master node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cluster := &infra.Cluster{
+			cluster := &terraform.Cluster{
 				Node: "master",
 			}
 
@@ -43,7 +43,7 @@ func NewDeployWorkerCommand() *cobra.Command {
 		Use:   "worker",
 		Short: "deploy kubernetes worker node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cluster := &infra.Cluster{
+			cluster := &terraform.Cluster{
 				Node: "worker",
 			}
 

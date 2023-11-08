@@ -13,16 +13,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package app
+package cmd
 
 import (
-	"os"
+	"nestos-kubernetes-deployer/cmd/phases/destroy"
 
-	"nestos-kubernetes-deployer/app/cmd"
+	"github.com/spf13/cobra"
 )
 
-func Run() error {
-	cmd := cmd.NewNkdCommand(os.Stdin, os.Stdout, os.Stderr)
-	// pflag.CommandLine.MarkHidden("version")
-	return cmd.Execute()
+func NewDestroyCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "destroy",
+		Short: "Destroy kubernetes cluster",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
+	}
+
+	cmd.AddCommand(destroy.NewDestroyMasterCommand())
+	cmd.AddCommand(destroy.NewDestroyWorkerCommand())
+
+	return cmd
 }

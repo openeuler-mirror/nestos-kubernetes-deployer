@@ -13,12 +13,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package cmd
 
-package initconfig
+import (
+	"nestos-kubernetes-deployer/cmd/phases/config"
 
-import "nestos-kubernetes-deployer/app/apis/nkd"
+	"github.com/spf13/cobra"
+)
 
-type InitData interface {
-	MasterCfg() *nkd.Master
-	WorkerCfg() *nkd.Worker
+func NewConfigCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "config",
+		Short: "Manage a k8s cluster",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
+	}
+
+	cmd.AddCommand(config.NewPrintDefaultNkdConfigCommand())
+	cmd.AddCommand(NewInitDefaultNkdConfigCommand())
+	return cmd
 }

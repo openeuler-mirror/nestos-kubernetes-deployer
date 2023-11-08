@@ -14,24 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package infra
+package terraform
 
 import (
-	"nestos-kubernetes-deployer/app/phases/infra/terraform"
+	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func executeDestroyTerraform(tfDir string, terraformDir string) error {
-	var destroyOpts []tfexec.DestroyOption
-	return destroyTerraform(tfDir, terraformDir, destroyOpts...)
+func executeApplyTerraform(tfDir string, terraformDir string) ([]byte, error) {
+	var applyOpts []tfexec.ApplyOption
+	return applyTerraform(tfDir, terraformDir, applyOpts...)
 }
 
-func destroyTerraform(tfDir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
-	destroyErr := terraform.TFDestroy(tfDir, terraformDir, destroyOpts...)
-	if destroyErr != nil {
-		return destroyErr
+func applyTerraform(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption) ([]byte, error) {
+	applyErr := TFApply(tfDir, terraformDir, applyOpts...)
+	if applyErr != nil {
+		return nil, applyErr
 	}
 
-	return nil
+	_, err := os.Stat(filepath.Join(tfDir, "terraform.tfstate"))
+	if os.IsNotExist(err) {
+		return nil, err
+	}
+
+	outputs, err := Outputs(tfDir, terraformDir)
+	if err != nil {
+		return nil, err
+	}
+
+	return outputs, nil
 }

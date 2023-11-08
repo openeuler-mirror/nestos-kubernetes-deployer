@@ -16,22 +16,22 @@ limitations under the License.
 package cmd
 
 import (
-	"nestos-kubernetes-deployer/app/cmd/phases/destroy"
+	"nestos-kubernetes-deployer/cmd/phases/deploy"
 
 	"github.com/spf13/cobra"
 )
 
-func NewDestroyCommand() *cobra.Command {
+func NewDeployCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "destroy",
-		Short: "Destroy kubernetes cluster",
+		Use:   "deploy",
+		Short: "Deploy kubernetes cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
 	}
 
-	cmd.AddCommand(destroy.NewDestroyMasterCommand())
-	cmd.AddCommand(destroy.NewDestroyWorkerCommand())
+	cmd.AddCommand(deploy.NewDeployMasterCommand())
+	cmd.AddCommand(deploy.NewDeployWorkerCommand())
 
 	return cmd
 }

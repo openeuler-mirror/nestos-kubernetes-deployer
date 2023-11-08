@@ -19,8 +19,8 @@ package initconfig
 import (
 	"fmt"
 	"io"
-	"nestos-kubernetes-deployer/app/cmd/phases/workflow"
 	"nestos-kubernetes-deployer/data"
+	"nestos-kubernetes-deployercmd/phases/workflow"
 	"os"
 	"path/filepath"
 	"strings"
