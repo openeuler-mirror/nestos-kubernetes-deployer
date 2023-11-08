@@ -16,22 +16,24 @@ limitations under the License.
 package cmd
 
 import (
-	"nestos-kubernetes-deployer/app/cmd/phases/deploy"
+	"io"
 
 	"github.com/spf13/cobra"
 )
 
-func NewDeployCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "deploy",
-		Short: "Deploy kubernetes cluster",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
-		},
+func NewNkdCommand(in io.Reader, out, err io.Writer) *cobra.Command {
+	cmds := &cobra.Command{
+		Use:   "nkd",
+		Short: "nkd: easily bootstrap a secure Kubernetes cluster",
 	}
 
-	cmd.AddCommand(deploy.NewDeployMasterCommand())
-	cmd.AddCommand(deploy.NewDeployWorkerCommand())
+	cmds.ResetFlags()
+	cmds.AddCommand(NewDeployCommand())
+	cmds.AddCommand(NewDestroyCommand())
+	cmds.AddCommand(NewUpgradeCommand())
+	// TODO: 当前extend是指扩展到的worker节点个数，后续应改成想扩展的worker节点个数。
+	cmds.AddCommand(NewExtendCommand())
+	cmds.AddCommand(NewVersionCommand())
 
-	return cmd
+	return cmds
 }

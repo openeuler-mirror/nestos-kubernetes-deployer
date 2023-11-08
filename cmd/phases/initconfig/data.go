@@ -13,10 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
 
-import "nestos-kubernetes-deployer/app"
+package initconfig
 
-func main() {
-	app.Run()
+import "nestos-kubernetes-deployerapis/nkd"
+
+type InitData interface {
+	MasterCfg() *nkd.Master
+	WorkerCfg() *nkd.Worker
 }

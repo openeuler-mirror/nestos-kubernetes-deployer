@@ -13,24 +13,29 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package initconfig
 
 import (
-	"nestos-kubernetes-deployer/app/cmd/phases/config"
-
-	"github.com/spf13/cobra"
+	"fmt"
+	"nestos-kubernetes-deployercmd/phases/workflow"
 )
 
-func NewConfigCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "config",
-		Short: "Manage a k8s cluster",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
-		},
+func NewGenerateCertsCmd() workflow.Phase {
+	return workflow.Phase{
+		Name:  "cert",
+		Short: "Run certs to generate certs",
+		Run:   runGenerateCertsConfig,
 	}
+}
 
-	cmd.AddCommand(config.NewPrintDefaultNkdConfigCommand())
-	cmd.AddCommand(NewInitDefaultNkdConfigCommand())
-	return cmd
+func runGenerateCertsConfig(r workflow.RunData, node string) error {
+	if node == "worker" {
+		fmt.Println(r.(InitData).WorkerCfg())
+	} else {
+		fmt.Println(node)
+		fmt.Println(r.(InitData).MasterCfg())
+	}
+	// data := r.(InitData)
+	// fmt.Println(data)
+	return nil
 }

@@ -14,23 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package infra
+package terraform
 
 import (
-	"nestos-kubernetes-deployer/app/phases/infra/terraform"
 	"os"
 	"path/filepath"
-
-	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func executeApplyTerraform(tfDir string, terraformDir string) ([]byte, error) {
-	var applyOpts []tfexec.ApplyOption
-	return applyTerraform(tfDir, terraformDir, applyOpts...)
-}
-
-func applyTerraform(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption) ([]byte, error) {
-	applyErr := terraform.TFApply(tfDir, terraformDir, applyOpts...)
+func extendTerraform(tfDir string, terraformDir string, num int) ([]byte, error) {
+	applyErr := TFExtend(tfDir, terraformDir, num)
 	if applyErr != nil {
 		return nil, applyErr
 	}
@@ -40,7 +32,7 @@ func applyTerraform(tfDir string, terraformDir string, applyOpts ...tfexec.Apply
 		return nil, err
 	}
 
-	outputs, err := terraform.Outputs(tfDir, terraformDir)
+	outputs, err := Outputs(tfDir, terraformDir)
 	if err != nil {
 		return nil, err
 	}

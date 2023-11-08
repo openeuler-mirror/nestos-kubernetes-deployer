@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"nestos-kubernetes-deployer/app/apis/nkd"
+	"nestos-kubernetes-deployer/apis/nkd"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
