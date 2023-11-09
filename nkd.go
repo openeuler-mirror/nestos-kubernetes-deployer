@@ -13,27 +13,38 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package main
 
 import (
-	"io"
+	"nestos-kubernetes-deployer/cmd"
 
 	"github.com/spf13/cobra"
 )
 
-func NewNkdCommand(in io.Reader, out, err io.Writer) *cobra.Command {
-	cmds := &cobra.Command{
+func main() {
+	rootCmd := newRootCmd()
+
+	for _, subCmd := range []*cobra.Command{
+		// cmd.ResetFlags(),
+		cmd.NewDeployCommand(),
+		cmd.NewDestroyCommand(),
+		cmd.NewUpgradeCommand(),
+		// TODO: 当前extend是指扩展到的worker节点个数，后续应改成想扩展的worker节点个数。
+		cmd.NewExtendCommand(),
+		cmd.NewVersionCommand(),
+	} {
+		rootCmd.AddCommand(subCmd)
+	}
+
+	if err := rootCmd.Execute(); err != nil {
+		return
+	}
+}
+
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "nkd",
 		Short: "nkd: easily bootstrap a secure Kubernetes cluster",
 	}
-
-	cmds.ResetFlags()
-	cmds.AddCommand(NewDeployCommand())
-	cmds.AddCommand(NewDestroyCommand())
-	cmds.AddCommand(NewUpgradeCommand())
-	// TODO: 当前extend是指扩展到的worker节点个数，后续应改成想扩展的worker节点个数。
-	cmds.AddCommand(NewExtendCommand())
-	cmds.AddCommand(NewVersionCommand())
-
-	return cmds
+	return cmd
 }
