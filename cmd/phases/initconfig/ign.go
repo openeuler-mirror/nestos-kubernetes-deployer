@@ -19,9 +19,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+
+	"nestos-kubernetes-deployer/cmd/phases/workflow"
 	"nestos-kubernetes-deployer/data"
-	"nestos-kubernetes-deployerapis/nkd"
-	"nestos-kubernetes-deployercmd/phases/workflow"
 	"net"
 	"os"
 	"path"
