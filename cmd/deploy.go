@@ -16,9 +16,17 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"nestos-kubernetes-deployer/cmd/command"
+	"path/filepath"
+	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	wait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 func NewDeployCommand() *cobra.Command {
@@ -40,6 +48,17 @@ func NewDeployCommand() *cobra.Command {
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
 
+	//todo：部署集群
+
+	configPath := filepath.Join(command.RootOptDir, "auth", "kubeconfig")
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		logrus.Errorf("error to load kubeconfig: %v", err)
+		return err
+	}
+	if err := waitForAPIReady(context.Background(), config); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -50,16 +69,38 @@ func runInstallconfig() error {
 }
 
 func runDeployCluster() error {
-	return nil
-}
-
-// 等待集群安装完成
-func waitForClusterComplete(config string) error {
 
 	return nil
 }
 
-// check 集群running状态
-func checkPod() error {
+func waitForAPIReady(ctx context.Context, config *rest.Config) error {
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		logrus.Errorf("failed to create a kubernetes client: %v", err)
+		return err
+	}
+
+	discovery := client.Discovery()
+
+	apiTimeout := 10 * time.Minute
+	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
+	logrus.Infof("Waiting up to %v for the Kubernetes API at %s...", apiTimeout, config.Host)
+	defer cancel()
+
+	wait.Until(func() {
+		version, err := discovery.ServerVersion()
+		if err == nil {
+			logrus.Infof("The Kubernetes API %s up", version)
+			cancel()
+		} else {
+			logrus.Debugf("Still waiting for Kubernetes API ready: %v", err)
+		}
+	}, 2*time.Second, apiContext.Done())
+
+	return waitForPodsRunning(ctx, client)
+}
+
+func waitForPodsRunning(ctx context.Context, client *kubernetes.Clientset) error {
+	//todo： 等待Pods Running
 	return nil
 }
