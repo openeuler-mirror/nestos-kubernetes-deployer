@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"nestos-kubernetes-deployer/cmd/phases/deploy"
+	"nestos-kubernetes-deployer/cmd/command"
 
 	"github.com/spf13/cobra"
 )
@@ -24,14 +24,42 @@ import (
 func NewDeployCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deploy",
-		Short: "Deploy kubernetes cluster",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
-		},
+		Short: "Deploy a kubernetes cluster",
+		RunE:  runDeployCmd,
 	}
 
-	cmd.AddCommand(deploy.NewDeployMasterCommand())
-	cmd.AddCommand(deploy.NewDeployWorkerCommand())
+	cmd.PersistentFlags().StringVar(&command.ClusterOpts.ClusterId, "cluster-id", "", "clusterID of kubernetes cluster")
+	cmd.PersistentFlags().StringVar(&command.ClusterOpts.GatherDeployOpts.SSHKey, "sshkey", "", "Path to SSH private keys that should be used for authentication.")
+	cmd.PersistentFlags().StringVar(&command.ClusterOpts.Platform, "platform", "", "Select the infrastructure platform to deploy the cluster")
+
+	// cmd.AddCommand(deploy.NewDeployMasterCommand())
+	// cmd.AddCommand(deploy.NewDeployWorkerCommand())
 
 	return cmd
+}
+
+func runDeployCmd(cmd *cobra.Command, args []string) error {
+
+	return nil
+}
+
+// 生成部署集群所需配置数据
+func runInstallconfig() error {
+
+	return nil
+}
+
+func runDeployCluster() error {
+	return nil
+}
+
+// 等待集群安装完成
+func waitForClusterComplete(config string) error {
+
+	return nil
+}
+
+// check 集群running状态
+func checkPod() error {
+	return nil
 }

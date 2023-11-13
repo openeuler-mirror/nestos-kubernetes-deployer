@@ -25,7 +25,6 @@ func main() {
 	rootCmd := newRootCmd()
 
 	for _, subCmd := range []*cobra.Command{
-		// cmd.ResetFlags(),
 		cmd.NewDeployCommand(),
 		cmd.NewDestroyCommand(),
 		cmd.NewUpgradeCommand(),
@@ -44,7 +43,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "nkd",
-		Short: "nkd: easily bootstrap a secure Kubernetes cluster",
+		Short: "Creates Kubernetes Clusters",
 	}
 	return cmd
 }
