@@ -4,21 +4,8 @@ type IgnAsset struct {
 }
 
 // TODO: Init inits the ign asset.
-func (ia *IgnAsset) Init() ([]byte, error) {
-	err := ia.validateAsset()
-	if err != nil {
-		return nil, err
-	}
-	ia.setAssetDefault()
-
+func (ia *IgnAsset) Initial() ([]byte, error) {
 	return nil, nil
-}
-
-func (ia *IgnAsset) validateAsset() error {
-	return nil
-}
-
-func (ia *IgnAsset) setAssetDefault() {
 }
 
 // TODO: Delete deletes the ign asset.

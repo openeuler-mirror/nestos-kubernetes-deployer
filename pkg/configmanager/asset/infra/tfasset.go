@@ -4,21 +4,8 @@ type TFAsset struct {
 }
 
 // TODO: Init inits the tf asset.
-func (tf *TFAsset) Init() ([]byte, error) {
-	err := tf.validateAsset()
-	if err != nil {
-		return nil, err
-	}
-	tf.setAssetDefault()
-
+func (tf *TFAsset) Initial() ([]byte, error) {
 	return nil, nil
-}
-
-func (tf *TFAsset) validateAsset() error {
-	return nil
-}
-
-func (tf *TFAsset) setAssetDefault() {
 }
 
 // TODO: Delete deletes the tf asset.
