@@ -3,9 +3,16 @@ package global
 type GlobalAsset struct {
 }
 
+var (
+	GlobalConfig GlobalAsset
+	IsInitial    = false
+)
+
 // TODO: Init inits the global asset.
-func (ga *GlobalAsset) Initial() ([]byte, error) {
-	return nil, nil
+func (ga *GlobalAsset) Initial() error {
+	// TODO: 将初始化的结果传给GlobalConfig
+	IsInitial = true
+	return nil
 }
 
 // TODO: Delete deletes the global asset.
