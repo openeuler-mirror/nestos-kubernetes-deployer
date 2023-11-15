@@ -15,3 +15,7 @@ type GatherDeployOpts struct {
 	Platform string
 	//
 }
+
+var HousekeeperOpts struct {
+	//todo: 可选配置参数项
+}
