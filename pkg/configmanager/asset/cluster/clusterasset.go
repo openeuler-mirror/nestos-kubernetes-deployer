@@ -4,8 +4,8 @@ type ClusterAsset struct {
 }
 
 // TODO: Init inits the cluster asset.
-func (ca *ClusterAsset) Initial() ([]byte, error) {
-	return nil, nil
+func (ca *ClusterAsset) Initial() error {
+	return nil
 }
 
 // TODO: Delete deletes the cluster asset.

@@ -10,7 +10,6 @@ import (
 )
 
 func Init(cmd *cobra.Command) error {
-	globalAsset := &global.GlobalAsset{}
 	clusterAsset := &cluster.ClusterAsset{}
 
 	// Parse command line arguments.
@@ -32,10 +31,19 @@ func Init(cmd *cobra.Command) error {
 	// TODO: 设置优先级 & 参数解析
 
 	// Initialize global assets.
-	globalAsset.Initial()
+	if !global.IsInitial {
+		globalAsset := &global.GlobalAsset{}
+		err := globalAsset.Initial()
+		if err != nil {
+			return nil
+		}
+	}
 
 	// Initialize cluster assets.
-	clusterAsset.Initial()
+	err := clusterAsset.Initial()
+	if err != nil {
+		return nil
+	}
 
 	return nil
 }
