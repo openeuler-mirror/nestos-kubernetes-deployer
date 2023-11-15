@@ -33,5 +33,6 @@ type GatherDeployOpts struct {
 }
 
 var HousekeeperOpts struct {
-	//todo: 可选配置参数项
+	OperatorImageUrl   string
+	ControllerImageUrl string
 }
