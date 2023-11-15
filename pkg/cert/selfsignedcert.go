@@ -83,6 +83,7 @@ type SelfSignedCertKey struct {
 //自签名证书生成器，封装后该方法用于所有自签名的证书,并将证书和私钥转换格式后保存
 func (c *SelfSignedCertKey) Generate(cfg *CertConfig, filename string) error {
 
+	c.CertKey.SavePath = "/tmp"
 	key, crt, err := GenerateSelfSignedCertificate(cfg)
 	if err != nil {
 		return errors.Wrap(err, "Failed to generate self-signed cert/key pair")

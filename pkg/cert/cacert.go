@@ -33,5 +33,5 @@ func (c *RootCA) Generate() error {
 		IsCA:      true,
 	}
 
-	return c.SelfSignedCertKey.Generate(cfg, "rootca")
+	return c.SelfSignedCertKey.Generate(cfg, "rootca.crt")
 }
