@@ -20,37 +20,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Set global data
 var GlobalConfig *GlobalAsset
-
-// ========== Package method ==========
-
-func GetGlobalConfig() (*GlobalAsset, error) {
-	return GlobalConfig, nil
-}
 
 // ========== Structure method ==========
 
 type GlobalAsset struct {
-	// Having previously set IsInitial as a global variable, it cannot be fixed to true after
-	// GlobalAsset executes Initial for the first time, so it is placed in the struct first.
-	IsInitial   bool
-	NKD_Version string
-	Log_Level   string
+	Log_Level string
 }
 
 // TODO: Initial inits the global asset.
 func (ga *GlobalAsset) Initial(cmd *cobra.Command) error {
-	if ga.IsInitial {
-		return nil
+	if err := ga.setGlobalAsset(cmd); err != nil {
+		return err
 	}
+	GlobalConfig = ga
 
-	nkd_version, _ := cmd.Flags().GetString("version")
-	if nkd_version != "" {
-		ga.NKD_Version = nkd_version
-	} else {
-		ga.NKD_Version = "default nkd version"
-	}
+	return nil
+}
 
+func (ga *GlobalAsset) setGlobalAsset(cmd *cobra.Command) error {
 	log_level, _ := cmd.Flags().GetString("log-level")
 	if log_level != "" {
 		ga.Log_Level = log_level
@@ -58,9 +47,6 @@ func (ga *GlobalAsset) Initial(cmd *cobra.Command) error {
 		ga.Log_Level = "default log level"
 	}
 
-	GlobalConfig = ga
-
-	ga.IsInitial = true
 	return nil
 }
 
@@ -71,6 +57,6 @@ func (ga *GlobalAsset) Delete() error {
 
 // TODO: Persist persists the global asset.
 func (ga *GlobalAsset) Persist() error {
-	// TODO: Serialize the global asset to json or yaml.
+	// TODO
 	return nil
 }
