@@ -16,29 +16,51 @@ limitations under the License.
 
 package global
 
-var (
-	GlobalConfig *GlobalAsset
-	IsInitial    = false
+import (
+	"github.com/spf13/cobra"
 )
 
-// ========== 包方法 ==========
+var GlobalConfig *GlobalAsset
+
+// ========== Package method ==========
 
 func GetGlobalConfig() (*GlobalAsset, error) {
 	return GlobalConfig, nil
 }
 
-// ========== 模块方法 ==========
+// ========== Structure method ==========
 
 type GlobalAsset struct {
+	// Having previously set IsInitial as a global variable, it cannot be fixed to true after
+	// GlobalAsset executes Initial for the first time, so it is placed in the struct first.
+	IsInitial   bool
 	NKD_Version string
+	Log_Level   string
 }
 
-// TODO: Init inits the global asset.
-func (ga *GlobalAsset) Initial() error {
-	ga.NKD_Version = "0.2.0"
+// TODO: Initial inits the global asset.
+func (ga *GlobalAsset) Initial(cmd *cobra.Command) error {
+	if ga.IsInitial {
+		return nil
+	}
+
+	nkd_version, _ := cmd.Flags().GetString("version")
+	if nkd_version != "" {
+		ga.NKD_Version = nkd_version
+	} else {
+		ga.NKD_Version = "default nkd version"
+	}
+
+	log_level, _ := cmd.Flags().GetString("log-level")
+	if log_level != "" {
+		ga.Log_Level = log_level
+	} else {
+		ga.Log_Level = "default log level"
+	}
 
 	GlobalConfig = ga
-	IsInitial = true
+
+	ga.IsInitial = true
 	return nil
 }
 
