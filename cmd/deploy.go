@@ -18,6 +18,9 @@ package cmd
 import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/pkg/kubeclient"
+	"nestos-kubernetes-deployer/pkg/utils"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -27,8 +30,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	wait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
+
+type crdTmplData struct {
+	operatorImageUrl   string
+	controllerImageUrl string
+}
 
 func NewDeployCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -71,24 +78,43 @@ func runDeployCluster() error {
 }
 
 func checkClusterState(kubeconfigPath string) error {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	client, err := kubeclient.CreateClient(kubeconfigPath)
 	if err != nil {
-		logrus.Errorf("error to load kubeconfig: %v", err)
+		logrus.Errorf("failed to create kubernetes client %v", err)
 		return err
 	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		logrus.Errorf("failed to create a kubernetes client: %v", err)
-		return err
-	}
-
 	if err := waitForAPIReady(client); err != nil {
+		logrus.Errorf("failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
+	}
+	if err := waitForPodsRunning(client); err != nil {
+		logrus.Errorf("failed while waiting for pods to be in 'Running' state: %v", err)
+		return err
+	}
+	return nil
+}
+
+func deployOperator(folderPath string, client *kubernetes.Clientset) error {
+	files, err := os.ReadDir(folderPath)
+	if err != nil {
+		logrus.Errorf("Error reading folder: %v", err)
+		return err
+	}
+	// 实例化crdTmplData
+	for _, file := range files {
+		filePath := filepath.Join(folderPath, file.Name())
+		data, err := utils.FetchAndUnmarshalUrl(filePath, "" /*获取crdTmplData数据*/)
+		if err != nil {
+			logrus.Errorf("Error to get file content: %v", err)
+			return err
+		}
+		if err := kubeclient.ApplyResource(client, "", string(data)); err != nil {
+			logrus.Errorf("Error to apply crd resource: %v", err)
+			return err
+		}
 	}
 
-	if err := waitForPodsRunning(client); err != nil {
-		return err
-	}
+	return nil
 }
 
 func waitForAPIReady(client *kubernetes.Clientset) error {
@@ -109,7 +135,7 @@ func waitForAPIReady(client *kubernetes.Clientset) error {
 		}
 	}, 2*time.Second, apiContext.Done())
 
-	err = apiContext.Err()
+	err := apiContext.Err()
 	if err != nil && err != context.Canceled {
 		logrus.Errorf("Failed to waiting for kubernetes API: %v", err)
 		return err
@@ -120,8 +146,8 @@ func waitForAPIReady(client *kubernetes.Clientset) error {
 
 func waitForPodsRunning(client *kubernetes.Clientset) error {
 	waitDuration := 10 * time.Minute
-	waitCtx, cancel := context.WithTimeout(context.Background(), waitkDuration)
-	logrus.Infof("Waiting up to %v for the Kubernetes Pods running ...", waitkDuration)
+	waitCtx, cancel := context.WithTimeout(context.Background(), waitDuration)
+	logrus.Infof("Waiting up to %v for the Kubernetes Pods running ...", waitDuration)
 	defer cancel()
 
 	wait.Until(func() {

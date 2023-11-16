@@ -27,7 +27,7 @@ import (
 )
 
 // FetchAndUnmarshalURL fetches content from a specified URL, unmarshals it into the provided structure,
-func FetchAndUnmarshalUrl(url string, targetStruct interface{}) ([]byte, error) {
+func FetchAndUnmarshalUrl(url string, tmplData interface{}) ([]byte, error) {
 	file, err := data.Assets.Open(url)
 	if err != nil {
 		logrus.Errorf("Error opening file %s: %v\n", url, err)
@@ -39,16 +39,14 @@ func FetchAndUnmarshalUrl(url string, targetStruct interface{}) ([]byte, error) 
 		logrus.Errorf("Error getting file info for %s: %v\n", url, err)
 		return nil, err
 	}
-	_, data, err := ReadFile(info.Name(), file, targetStruct)
+	_, data, err := GetCompleteFile(info.Name(), file, tmplData)
 	if err != nil {
-
 		return nil, err
 	}
 	return data, nil
 }
 
-// Read data from the file
-func ReadFile(name string, file io.Reader, tmplData interface{}) (realName string, data []byte, err error) {
+func GetCompleteFile(name string, file io.Reader, tmplData interface{}) (realName string, data []byte, err error) {
 	data, err = io.ReadAll(file)
 	if err != nil {
 		logrus.Errorf("Error reading file %s: %v\n", name, err)
