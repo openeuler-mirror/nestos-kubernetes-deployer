@@ -17,6 +17,7 @@ limitations under the License.
 package manager
 
 import (
+	"errors"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/global"
 
@@ -24,16 +25,15 @@ import (
 )
 
 func Initial(cmd *cobra.Command) error {
-	var globalAsset *global.GlobalAsset
-	var clusterAsset *cluster.ClusterAsset
-
-	err := globalAsset.Initial(cmd)
-	if err != nil {
+	// Init global asset.
+	globalAsset := &global.GlobalAsset{}
+	if err := globalAsset.Initial(cmd); err != nil {
 		return err
 	}
 
-	err = clusterAsset.Initial(cmd)
-	if err != nil {
+	// Init cluster asset.
+	clusterAsset := &cluster.ClusterAsset{}
+	if err := clusterAsset.Initial(cmd); err != nil {
 		return err
 	}
 
@@ -44,7 +44,36 @@ func Search() error {
 	return nil
 }
 
+func GetGlobalConfig() (*global.GlobalAsset, error) {
+	return global.GlobalConfig, nil
+}
+
+func GetClusterConfig(clusterID string) (*cluster.ClusterAsset, error) {
+	clusterConfig, ok := cluster.ClusterConfig[clusterID]
+	if !ok {
+		return nil, errors.New("ClusterID not found")
+	}
+
+	return clusterConfig, nil
+}
+
 func Persist() error {
+	// Persist global asset.
+	globalConfig, err := GetGlobalConfig()
+	if err != nil {
+		return err
+	}
+	if err := globalConfig.Persist(); err != nil {
+		return err
+	}
+
+	// Persist cluster asset.
+	for _, clusterConfig := range cluster.ClusterConfig {
+		if err := clusterConfig.Persist(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

@@ -23,18 +23,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var ClusterConfig *ClusterAsset
-
-// ========== Package method ==========
-
-func GetClusterConfig() (*ClusterAsset, error) {
-	return ClusterConfig, nil
-}
+// Set global data
+var ClusterConfig map[string]*ClusterAsset
 
 // ========== Structure method ==========
 
 type ClusterAsset struct {
 	Node
+	ClusterID         string
 	KubernetesVersion string
 }
 
@@ -44,6 +40,15 @@ type Node struct {
 
 // TODO: Initial inits the cluster asset.
 func (ca *ClusterAsset) Initial(cmd *cobra.Command) error {
+	if err := ca.setClusterAsset(cmd); err != nil {
+		return err
+	}
+	ClusterConfig[ca.ClusterID] = ca
+
+	return nil
+}
+
+func (ca *ClusterAsset) setClusterAsset(cmd *cobra.Command) error {
 	configFile, _ := cmd.Flags().GetString("cluster-config-file")
 
 	if configFile != "" {
@@ -53,8 +58,7 @@ func (ca *ClusterAsset) Initial(cmd *cobra.Command) error {
 			return err
 		}
 
-		err = yaml.Unmarshal(configData, ca)
-		if err != nil {
+		if err := yaml.Unmarshal(configData, ca); err != nil {
 			return err
 		}
 	}
@@ -66,8 +70,6 @@ func (ca *ClusterAsset) Initial(cmd *cobra.Command) error {
 		ca.KubernetesVersion = "default k8s version"
 	}
 
-	ClusterConfig = ca
-
 	return nil
 }
 
@@ -78,13 +80,13 @@ func (ca *ClusterAsset) Delete() error {
 
 // TODO: Persist persists the cluster asset.
 func (ca *ClusterAsset) Persist() error {
-	// TODO: Serialize the cluster asset to json or yaml.
-	clusterConfig, err := yaml.Marshal(ca)
+	// Serialize the cluster asset to yaml.
+	clusterData, err := yaml.Marshal(ca)
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile("cluster_config.yaml", clusterConfig, 0644)
+	err = os.WriteFile("cluster_config.yaml", clusterData, 0644)
 	if err != nil {
 		return err
 	}
