@@ -43,6 +43,8 @@ func (ca *ClusterAsset) Initial(cmd *cobra.Command) error {
 	if err := ca.setClusterAsset(cmd); err != nil {
 		return err
 	}
+
+	ClusterConfig = make(map[string]*ClusterAsset)
 	ClusterConfig[ca.ClusterID] = ca
 
 	return nil
@@ -63,10 +65,12 @@ func (ca *ClusterAsset) setClusterAsset(cmd *cobra.Command) error {
 		}
 	}
 
+	ca.ClusterID = "default cluster id"
+
 	kubernetes_version, _ := cmd.Flags().GetString("kubernetes-version")
 	if kubernetes_version != "" {
 		ca.KubernetesVersion = kubernetes_version
-	} else {
+	} else if ca.KubernetesVersion == "" {
 		ca.KubernetesVersion = "default k8s version"
 	}
 
