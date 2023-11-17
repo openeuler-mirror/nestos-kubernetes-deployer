@@ -14,17 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package infraplatform
+package asset
 
 var OpenStackConfig *OpenStackAsset
 
-// ========== 包方法 ==========
+// ========== Package method ==========
 
 func GetOpenStackConfig() (*OpenStackAsset, error) {
 	return OpenStackConfig, nil
 }
 
-// ========== 模块方法 ==========
+// ========== Structure method ==========
 
 type OpenStackAsset struct {
 	Auth_Url string

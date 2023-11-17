@@ -14,42 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package manager
+package configmanager
 
 import (
 	"errors"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/global"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 
 	"github.com/spf13/cobra"
 )
 
+// Set global data
+var GlobalConfig *globalconfig.GlobalAsset
+var ClusterConfig = map[string]*asset.ClusterAsset{}
+
 func Initial(cmd *cobra.Command) error {
-	// Init global asset.
-	globalAsset := &global.GlobalAsset{}
-	if err := globalAsset.Initial(cmd); err != nil {
+	// Init global
+	globalConfig, err := globalconfig.InitGlobalConfig(cmd)
+	if err != nil {
 		return err
 	}
 
-	// Init cluster asset.
-	clusterAsset := &cluster.ClusterAsset{}
-	if err := clusterAsset.Initial(cmd); err != nil {
+	// Init cluster
+	clusterAsset, err := asset.InitClusterAsset(globalConfig, cmd)
+	if err != nil {
 		return err
 	}
+	ClusterConfig[clusterAsset.ClusterID] = clusterAsset
 
 	return nil
 }
 
-func Search() error {
-	return nil
+func GetGlobalConfig() (*globalconfig.GlobalAsset, error) {
+	return GlobalConfig, nil
 }
 
-func GetGlobalConfig() (*global.GlobalAsset, error) {
-	return global.GlobalConfig, nil
-}
-
-func GetClusterConfig(clusterID string) (*cluster.ClusterAsset, error) {
-	clusterConfig, ok := cluster.ClusterConfig[clusterID]
+func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {
+	clusterConfig, ok := ClusterConfig[clusterID]
 	if !ok {
 		return nil, errors.New("ClusterID not found")
 	}
@@ -58,7 +59,7 @@ func GetClusterConfig(clusterID string) (*cluster.ClusterAsset, error) {
 }
 
 func Persist() error {
-	// Persist global asset.
+	// Persist global
 	globalConfig, err := GetGlobalConfig()
 	if err != nil {
 		return err
@@ -67,8 +68,8 @@ func Persist() error {
 		return err
 	}
 
-	// Persist cluster asset.
-	for _, clusterConfig := range cluster.ClusterConfig {
+	// Persist cluster
+	for _, clusterConfig := range ClusterConfig {
 		if err := clusterConfig.Persist(); err != nil {
 			return err
 		}

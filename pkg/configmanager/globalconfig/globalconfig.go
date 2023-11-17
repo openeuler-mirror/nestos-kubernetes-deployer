@@ -14,14 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package global
+package globalconfig
 
 import (
 	"github.com/spf13/cobra"
 )
-
-// Set global data
-var GlobalConfig *GlobalAsset
 
 // ========== Structure method ==========
 
@@ -29,25 +26,17 @@ type GlobalAsset struct {
 	Log_Level string
 }
 
-// TODO: Initial inits the global asset.
-func (ga *GlobalAsset) Initial(cmd *cobra.Command) error {
-	if err := ga.setGlobalAsset(cmd); err != nil {
-		return err
-	}
-	GlobalConfig = ga
+func InitGlobalConfig(cmd *cobra.Command) (*GlobalAsset, error) {
+	globalAsset := &GlobalAsset{}
 
-	return nil
-}
-
-func (ga *GlobalAsset) setGlobalAsset(cmd *cobra.Command) error {
 	log_level, _ := cmd.Flags().GetString("log-level")
 	if log_level != "" {
-		ga.Log_Level = log_level
+		globalAsset.Log_Level = log_level
 	} else {
-		ga.Log_Level = "default log level"
+		globalAsset.Log_Level = "default log level"
 	}
 
-	return nil
+	return globalAsset, nil
 }
 
 // TODO: Delete deletes the global asset.
