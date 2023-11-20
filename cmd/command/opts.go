@@ -16,23 +16,33 @@ limitations under the License.
 
 package command
 
+import "github.com/spf13/cobra"
+
 var (
 	RootOptDir string
 )
 
-// 部署集群可选配置参数集合
-var ClusterOpts struct {
-	ClusterId string
-	GatherDeployOpts
+var clusterOpts struct {
+	clusterId string
+	gatherDeployOpts
 }
 
-type GatherDeployOpts struct {
-	SSHKey   string
-	Platform string
+type gatherDeployOpts struct {
+	sshkey       string
+	platform     string
+	deployConfig string
 	//
 }
 
 var HousekeeperOpts struct {
 	OperatorImageUrl   string
 	ControllerImageUrl string
+}
+
+func SetupDeployCmdOpts(deployCmd *cobra.Command) {
+	flags := deployCmd.Flags()
+	flags.StringVarP(&clusterOpts.deployConfig, "file", "f", "./deploy-config.yaml", "location of cluster deploy config file, default ./deploy-config.yaml")
+	flags.StringVarP(&clusterOpts.clusterId, "cluster-id", "", "", "ClusterID of kubernetes cluster")
+	flags.StringVarP(&clusterOpts.sshkey, "sshkey", "", "", "Path to SSH private keys that should be used for authentication.")
+	flags.StringVarP(&clusterOpts.platform, "platform", "", "", "Select the infrastructure platform to deploy the cluster")
 }

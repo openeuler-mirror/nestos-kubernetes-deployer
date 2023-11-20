@@ -38,20 +38,16 @@ type crdTmplData struct {
 }
 
 func NewDeployCommand() *cobra.Command {
-	cmd := &cobra.Command{
+	deployCmd := &cobra.Command{
 		Use:   "deploy",
 		Short: "Deploy a kubernetes cluster",
 		RunE:  runDeployCmd,
 	}
-
-	cmd.PersistentFlags().StringVar(&command.ClusterOpts.ClusterId, "cluster-id", "", "clusterID of kubernetes cluster")
-	cmd.PersistentFlags().StringVar(&command.ClusterOpts.GatherDeployOpts.SSHKey, "sshkey", "", "Path to SSH private keys that should be used for authentication.")
-	cmd.PersistentFlags().StringVar(&command.ClusterOpts.Platform, "platform", "", "Select the infrastructure platform to deploy the cluster")
-
+	command.SetupDeployCmdOpts(deployCmd)
 	// cmd.AddCommand(deploy.NewDeployMasterCommand())
 	// cmd.AddCommand(deploy.NewDeployWorkerCommand())
 
-	return cmd
+	return deployCmd
 }
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
