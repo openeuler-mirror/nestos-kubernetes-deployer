@@ -45,7 +45,7 @@ spec:
                 description: 'If true, force evict the pod'
                 type: boolean
               maxUnavailable:
-                description: 'If true, force evict the pod'
+                description: 'Number of nodes that are being upgraded at the same time'
                 type: integer             
             required:
             - kubeVersion
