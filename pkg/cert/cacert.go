@@ -19,6 +19,8 @@ package cert
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
+	"os"
 )
 
 type RootCA struct {
@@ -26,6 +28,19 @@ type RootCA struct {
 }
 
 func (c *RootCA) Generate() error {
+	// 检查用户是否提供了自定义的 CA 证书路径
+	userCAPath := "/tmp/ca.crt" // 默认路径
+	if userProvidedCAPath := GetCustomCAPathFromConfig(); userProvidedCAPath != "" {
+		userCAPath = userProvidedCAPath
+	}
+
+	// 检查 CA 证书文件是否已存在
+	if _, err := os.Stat(userCAPath); err == nil {
+		fmt.Printf("CA 证书已存在于路径：%s。跳过生成过程。\n", userCAPath)
+		return nil
+	}
+
+	// 如果 CA 证书不存在，则继续生成
 	cfg := &CertConfig{
 		Subject:   pkix.Name{CommonName: "rootca", OrganizationalUnit: []string{"NestOS"}},
 		KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -33,5 +48,12 @@ func (c *RootCA) Generate() error {
 		IsCA:      true,
 	}
 
-	return c.SelfSignedCertKey.Generate(cfg, "rootca.crt")
+	return c.SelfSignedCertKey.Generate(cfg, userCAPath)
+}
+
+// GetCustomCAPathFromConfig 实现从配置文件中获取用户提供的自定义 CA 证书路径的逻辑
+func GetCustomCAPathFromConfig() string {
+	// TODO: 从配置文件中获取用户提供的自定义 CA 证书路径
+	// 如果用户没有提供路径，返回空字符串
+	return ""
 }
