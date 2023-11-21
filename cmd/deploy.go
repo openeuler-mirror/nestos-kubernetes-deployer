@@ -18,6 +18,8 @@ package cmd
 import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
+	"nestos-kubernetes-deployer/pkg/configmanager/manager"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
@@ -51,25 +53,79 @@ func NewDeployCommand() *cobra.Command {
 }
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
+	if err := manager.Initial(cmd); err != nil {
+		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		return err
+	}
+	config, err := manager.GetClusterConfig("clusterId")
+	if err != nil {
+		return err
+	}
 
-	//todo：部署集群
+	if err := deployCluster(config); err != nil {
+		return err
+	}
+	err = manager.Persist()
+
+	return nil
+}
+
+func deployCluster(conf *cluster.ClusterAsset) error {
+	if err := getClusterDeployConfig(conf); err != nil {
+		return err
+	}
+	if err := createCluster(conf); err != nil {
+		return err
+	}
 
 	configPath := filepath.Join(command.RootOptDir, "auth", "kubeconfig")
 	if err := checkClusterState(configPath); err != nil {
 		logrus.Error("Cluster deploy timeout!")
 		return err
 	}
+
+	/*调用配置管理模块接口，获取crdTmplData数据*/
+
+	if err := deployOperator( /**/ ); err != nil {
+		logrus.Errorf("Failed to deploy operator: %v", err)
+		return err
+	}
+
 	return nil
 }
 
-// 生成部署集群所需配置数据
-func runInstallconfig() error {
+func getClusterDeployConfig(conf *cluster.ClusterAsset) error {
+	// if conf.cert is empty
+	generateCerts(conf)
+
+	generateIgnition(conf)
+
+	generateTF(conf)
 
 	return nil
 }
 
-func runDeployCluster() error {
+func generateCerts(conf *cluster.ClusterAsset) error {
 
+	/*调用证书生成接口*/
+	return nil
+}
+
+func generateIgnition(conf *cluster.ClusterAsset) error {
+
+	/*调用Ignition生成接口*/
+	return nil
+}
+
+func generateTF(conf *cluster.ClusterAsset) error {
+
+	/*调用TF生成接口*/
+	return nil
+}
+
+func createCluster(conf *cluster.ClusterAsset) error {
+
+	/*应用集群配置文件部署集群*/
 	return nil
 }
 
