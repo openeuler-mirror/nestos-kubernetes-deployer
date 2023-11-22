@@ -17,12 +17,15 @@ package ignition
 
 import (
 	"nestos-kubernetes-deployer/data"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
 	"nestos-kubernetes-deployer/pkg/utils"
+	"os"
 	"path"
 	"strings"
 
 	ignutil "github.com/coreos/ignition/v2/config/util"
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -55,6 +58,74 @@ type tmplData struct {
 	ReleaseImageURl string
 	PasswordHash    string
 	CertificateKey  string
+}
+
+type Common struct {
+	Config       *igntypes.Config
+	ClusterAsset cluster.ClusterAsset
+}
+
+func (c *Common) GenerateFile() error {
+	c.Config = &igntypes.Config{
+		Ignition: igntypes.Ignition{
+			Version: igntypes.MaxVersion.String(),
+		},
+		Passwd: igntypes.Passwd{
+			Users: []igntypes.PasswdUser{
+				{
+					Name: "root",
+					SSHAuthorizedKeys: []igntypes.SSHAuthorizedKey{
+						igntypes.SSHAuthorizedKey("/*SSHKEY*/"),
+					},
+					PasswordHash: nil, /*PasswordHasH*/
+				},
+			},
+		},
+		Storage: igntypes.Storage{
+			Links: []igntypes.Link{
+				{
+					Node: igntypes.Node{Path: "/etc/local/time"},
+					LinkEmbedded1: igntypes.LinkEmbedded1{
+						Target: "/usr/share/zoneinfo/Asia/Shanghai",
+					},
+				},
+			},
+		},
+	}
+	//get template data
+	td := GetTmplData(c.ClusterAsset)
+
+	//todo：对配置项参数解析，生成不同的Ignition文件
+
+	if err := AppendStorageFiles(c.Config, "/", "", td); err != nil {
+		logrus.Errorf("failed to add files to a ignition config: %v", err)
+		return err
+	}
+	if err := AppendSystemdUnits(c.Config, "", td, enabledServices); err != nil {
+		logrus.Errorf("failed to add systemd units to a ignition config: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (c *Common) SaveFile(filename string) error {
+	data, err := Marshal(c.Config)
+	if err != nil {
+		logrus.Errorf("failed to Marshal ignition config: %v", err)
+		return err
+	}
+	if err := os.WriteFile(filename, data, 0640); err != nil {
+		logrus.Errorf("failed to save ignition file: %v", err)
+		return err
+	}
+	return nil
+}
+
+func GetTmplData(c cluster.ClusterAsset) *tmplData {
+	return &tmplData{
+		KubeVersion: c.KubernetesVersion,
+	}
 }
 
 /*
@@ -96,8 +167,8 @@ func AppendStorageFiles(config *igntypes.Config, base string, uri string, tmplDa
 	if err != nil {
 		return err
 	}
-	ign := FileWithContents(strings.TrimSuffix(base, ".template"), 0755, data)
-	config.Storage.Files = appendFiles(config.Storage.Files, ign)
+	ignFile := FileWithContents(strings.TrimSuffix(base, ".template"), 0755, data)
+	config.Storage.Files = appendFiles(config.Storage.Files, ignFile)
 	return nil
 }
 
