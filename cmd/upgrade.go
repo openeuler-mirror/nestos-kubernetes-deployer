@@ -18,6 +18,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -34,38 +36,22 @@ import (
 	wait "k8s.io/apimachinery/pkg/util/wait"
 )
 
-var (
-	ArgsData struct {
-		kubeVersion    string
-		evictPodForce  bool
-		maxUnavailable int
-		kubeconfig     string
-		osImageURL     string
-	}
-)
-
 func NewUpgradeCommand() *cobra.Command {
-	cmd := &cobra.Command{
+	upgradeCmd := &cobra.Command{
 		Use:   "upgrade",
 		Short: "Upgrade your cluster to a newer version",
 		Long:  "",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUpgradeCmd()
-		},
+		RunE:  runUpgradeCmd,
 	}
+	command.SetupUpgradeCmdOpts(upgradeCmd)
 
-	cmd.PersistentFlags().StringVarP(&ArgsData.kubeVersion, "kubernetes-version", "", "", "Choose a specific kubernetes version for upgrading")
-	cmd.PersistentFlags().BoolVarP(&ArgsData.evictPodForce, "force", "f", false, "Force evict pod")
-	cmd.PersistentFlags().IntVarP(&ArgsData.maxUnavailable, "maxunavailable", "n", 2, "Number of nodes that are upgraded at the same time")
-	cmd.PersistentFlags().StringVarP(&ArgsData.kubeconfig, "kubeconfig", "", "./auth/config", "kubeconfig file access path")
-	cmd.PersistentFlags().StringVarP(&ArgsData.osImageURL, "imageurl", "", "", "The address of the container image to use for upgrading")
-	return cmd
+	return upgradeCmd
 }
 
-func runUpgradeCmd() error {
+func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 	loopTimeout := 2 * time.Minute
 	// Get the kubeconfig configuration
-	config, err := clientcmd.BuildConfigFromFlags("", ArgsData.kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", opts.Upgrade.KubeConfigFile)
 	if err != nil {
 		config, err = rest.InClusterConfig()
 		if err != nil {
@@ -93,7 +79,7 @@ osImageURL: %s
 kubeVersion: %s
 evictPodForce: %t
 maxUnavailable: %d
-`, ArgsData.osImageURL, ArgsData.kubeVersion, ArgsData.evictPodForce, ArgsData.maxUnavailable)
+`, opts.Upgrade.OSImageURL, opts.Upgrade.KubeVersion, opts.Upgrade.EvictPodForce, opts.Upgrade.MaxUnavailable)
 
 	var unstructuredObj unstructured.Unstructured
 	err = yaml.Unmarshal([]byte(yamlData), &unstructuredObj)
