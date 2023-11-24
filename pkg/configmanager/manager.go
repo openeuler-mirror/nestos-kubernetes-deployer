@@ -18,39 +18,47 @@ package configmanager
 
 import (
 	"errors"
+	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
-
-	"github.com/spf13/cobra"
 )
 
 // Set global data
-var GlobalConfig *globalconfig.GlobalAsset
-var ClusterConfig = map[string]*asset.ClusterAsset{}
+var GlobalConfig *globalconfig.GlobalConfig
+var ClusterAsset = map[string]*asset.ClusterAsset{}
 
-func Initial(cmd *cobra.Command) error {
-	// Init global
-	globalConfig, err := globalconfig.InitGlobalConfig(cmd)
+// var InfraAsset = map[string]*asset.InfraAsset{}
+
+func Initial(opts *opts.OptionsList) error {
+	// Init global asset
+	globalConfig, err := globalconfig.InitGlobalConfig(opts)
+	if err != nil {
+		return err
+	}
+	GlobalConfig = globalConfig
+
+	// Init infra asset
+	infraAsset, err := asset.InitInfraAsset(opts)
 	if err != nil {
 		return err
 	}
 
-	// Init cluster
-	clusterAsset, err := asset.InitClusterAsset(globalConfig, cmd)
+	// Init cluster asset
+	clusterAsset, err := asset.InitClusterAsset(globalConfig, infraAsset, opts)
 	if err != nil {
 		return err
 	}
-	ClusterConfig[clusterAsset.ClusterID] = clusterAsset
+	ClusterAsset[clusterAsset.Cluster_ID] = clusterAsset
 
 	return nil
 }
 
-func GetGlobalConfig() (*globalconfig.GlobalAsset, error) {
+func GetGlobalConfig() (*globalconfig.GlobalConfig, error) {
 	return GlobalConfig, nil
 }
 
 func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {
-	clusterConfig, ok := ClusterConfig[clusterID]
+	clusterConfig, ok := ClusterAsset[clusterID]
 	if !ok {
 		return nil, errors.New("ClusterID not found")
 	}
@@ -69,7 +77,7 @@ func Persist() error {
 	}
 
 	// Persist cluster
-	for _, clusterConfig := range ClusterConfig {
+	for _, clusterConfig := range ClusterAsset {
 		if err := clusterConfig.Persist(); err != nil {
 			return err
 		}

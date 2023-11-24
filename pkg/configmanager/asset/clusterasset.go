@@ -17,37 +17,20 @@ limitations under the License.
 package asset
 
 import (
+	"errors"
+	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
 
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
-// ========== Structure method ==========
-
-type ClusterAsset struct {
-	// cluster info
-	ClusterID         string
-	KubernetesVersion string
-
-	// bind info
-	OpenStackAsset
-
-	// subordinate info
-	Master_Count int
-	Worker_Count int
-	Master_Node  []NodeAsset
-	Worker_Node  []NodeAsset
-}
-
-func InitClusterAsset(globalAsset *globalconfig.GlobalAsset, cmd *cobra.Command) (*ClusterAsset, error) {
+func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
 	clusterAsset := &ClusterAsset{}
 
-	configFile, _ := cmd.Flags().GetString("cluster-config-file")
-	if configFile != "" {
+	if opts.File != "" {
 		// Parse configuration file.
-		configData, err := os.ReadFile(configFile)
+		configData, err := os.ReadFile(opts.File)
 		if err != nil {
 			return nil, err
 		}
@@ -58,30 +41,39 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalAsset, cmd *cobra.Command)
 	}
 
 	// cluster info
-	setStringValue(&clusterAsset.ClusterID, cmd, "clusterid", "default cluster id")
-	setStringValue(&clusterAsset.KubernetesVersion, cmd, "kubernetes-version", "default k8s version")
+	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, "default cluster id")
+	setStringValue(&clusterAsset.Kubernetes_Version, opts.KubeVersion, "default k8s version")
+
+	// bind info
+	// infra platform
+	switch opts.Platform {
+	case "openstack", "Openstack", "OpenStack":
+		openstackAsset, ok := infraAsset.(*OpenStackAsset)
+		if !ok {
+			return nil, errors.New("unsupported platform")
+		}
+		setStringValue(&clusterAsset.OpenStack_Auth_URL, openstackAsset.Auth_URL, "default openstack auth url")
+	}
 
 	// subordinate info
 	// master node
-	master_count, _ := cmd.Flags().GetInt("master-count")
-	if master_count != 0 {
-		clusterAsset.Master_Count = master_count
+	if opts.MasterCount != 0 {
+		clusterAsset.Master_Count = opts.MasterCount
 	} else if clusterAsset.Master_Count == 0 {
 		clusterAsset.Master_Count = 3
 	}
-	for i := 0; i < master_count; i++ {
-		master_node := InitNodeAsset(cmd, "master")
+	for i := 0; i < opts.MasterCount; i++ {
+		master_node := InitNodeAsset(opts)
 		clusterAsset.Master_Node = append(clusterAsset.Master_Node, master_node)
 	}
 	// worker node
-	worker_count, _ := cmd.Flags().GetInt("worker-count")
-	if worker_count != 0 {
-		clusterAsset.Worker_Count = worker_count
+	if opts.WorkerCount != 0 {
+		clusterAsset.Worker_Count = opts.WorkerCount
 	} else if clusterAsset.Worker_Count == 0 {
 		clusterAsset.Worker_Count = 3
 	}
-	for i := 0; i < worker_count; i++ {
-		worker_node := InitNodeAsset(cmd, "worker")
+	for i := 0; i < opts.WorkerCount; i++ {
+		worker_node := InitNodeAsset(opts)
 		clusterAsset.Worker_Node = append(clusterAsset.Worker_Node, worker_node)
 	}
 
@@ -90,8 +82,7 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalAsset, cmd *cobra.Command)
 
 // Sets a value of the string type, using the parameter value if the command line argument exists,
 // otherwise using the default value.
-func setStringValue(target *string, cmd *cobra.Command, flagName string, defaultValue string) {
-	value, _ := cmd.Flags().GetString(flagName)
+func setStringValue(target *string, value string, defaultValue string) {
 	if value != "" {
 		*target = value
 	} else if *target == "" {
@@ -101,12 +92,60 @@ func setStringValue(target *string, cmd *cobra.Command, flagName string, default
 
 // Sets a value of type integer, using the parameter value if the command line argument exists,
 // otherwise using the default value.
-func setIntValue(target *int, cmdValue int, defaultValue int) {
-	if cmdValue != 0 {
-		*target = cmdValue
+func setIntValue(target *int, value int, defaultValue int) {
+	if value != 0 {
+		*target = value
 	} else if *target == 0 {
 		*target = defaultValue
 	}
+}
+
+// ========== Structure method ==========
+
+type ClusterAsset struct {
+	Cluster_ID string
+
+	OpenStack_UserName          string
+	OpenStack_Password          string
+	OpenStack_Tenant_Name       string
+	OpenStack_Auth_URL          string
+	OpenStack_Region            string
+	OpenStack_Internal_Network  string
+	OpenStack_External_Network  string
+	OpenStack_Master_IP         []string
+	OpenStack_Glance_Name       string
+	OpenStack_Availability_Zone string
+	OpenStack_UserData          string
+	OpenStack_Volume            string
+
+	Master_Count int
+	Worker_Count int
+	Master_Node  []NodeAsset
+	Worker_Node  []NodeAsset
+
+	Kubernetes
+	Housekeeper
+}
+
+type Kubernetes struct {
+	Kubernetes_Version string
+	ApiServer_Endpoint string
+	Insecure_Registry  string
+	Pause_Image        string
+	Release_Image_URL  string
+
+	Network
+}
+
+type Network struct {
+	Service_Subnet        string
+	Pod_Subnet            string
+	CoreDNS_Image_Version string
+}
+
+type Housekeeper struct {
+	Operator_Image_URL   string
+	Controller_Image_URL string
 }
 
 // TODO: Delete deletes the cluster asset.
