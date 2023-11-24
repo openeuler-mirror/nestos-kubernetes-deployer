@@ -16,11 +16,18 @@ limitations under the License.
 
 package asset
 
-import "github.com/spf13/cobra"
+import (
+	"nestos-kubernetes-deployer/cmd/command/opts"
+)
 
 type NodeAsset struct {
 	HardwareInfo
-	OSImage string
+
+	Hostname string
+	UserName string
+	Password string
+	SSHKey   string
+	IP       string
 }
 
 type HardwareInfo struct {
@@ -30,16 +37,12 @@ type HardwareInfo struct {
 }
 
 // Initializes the node properties.
-func InitNodeAsset(cmd *cobra.Command, nodeType string) NodeAsset {
+func InitNodeAsset(opts *opts.OptionsList) NodeAsset {
 	node := NodeAsset{}
 
-	cpu, _ := cmd.Flags().GetInt(nodeType + "-cpu")
-	ram, _ := cmd.Flags().GetInt(nodeType + "-ram")
-	disk, _ := cmd.Flags().GetInt(nodeType + "-disk")
-
-	setIntValue(&node.HardwareInfo.CPU, cpu, 4)
-	setIntValue(&node.HardwareInfo.RAM, ram, 8)
-	setIntValue(&node.HardwareInfo.Disk, disk, 50)
+	setIntValue(&node.HardwareInfo.CPU, opts.NodeConfig.CPU, 4)
+	setIntValue(&node.HardwareInfo.RAM, opts.NodeConfig.RAM, 8)
+	setIntValue(&node.HardwareInfo.Disk, opts.NodeConfig.Disk, 50)
 
 	return node
 }
