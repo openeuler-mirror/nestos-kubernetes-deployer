@@ -63,6 +63,13 @@ type tmplData struct {
 type Common struct {
 	Config       *igntypes.Config
 	ClusterAsset cluster.ClusterAsset
+	Files        []File
+}
+
+type File struct {
+	Path    string
+	Mode    int
+	Content []byte
 }
 
 func (c *Common) GenerateFile() error {
@@ -106,6 +113,10 @@ func (c *Common) GenerateFile() error {
 		return err
 	}
 
+	for _, file := range c.Files {
+		ignFile := FileWithContents(file.Path, file.Mode, file.Content)
+		c.Config.Storage.Files = appendFiles(c.Config.Storage.Files, ignFile)
+	}
 	return nil
 }
 
