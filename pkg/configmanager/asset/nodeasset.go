@@ -16,33 +16,18 @@ limitations under the License.
 
 package asset
 
-import (
-	"nestos-kubernetes-deployer/cmd/command/opts"
-)
-
 type NodeAsset struct {
-	HardwareInfo
-
 	Hostname string
+	HardwareInfo
 	UserName string
 	Password string
 	SSHKey   string
 	IP       string
+	Ign_Data string
 }
 
 type HardwareInfo struct {
 	CPU  int
 	RAM  int
 	Disk int
-}
-
-// Initializes the node properties.
-func InitNodeAsset(opts *opts.OptionsList) NodeAsset {
-	node := NodeAsset{}
-
-	setIntValue(&node.HardwareInfo.CPU, opts.NodeConfig.CPU, 4)
-	setIntValue(&node.HardwareInfo.RAM, opts.NodeConfig.RAM, 8)
-	setIntValue(&node.HardwareInfo.Disk, opts.NodeConfig.Disk, 50)
-
-	return node
 }

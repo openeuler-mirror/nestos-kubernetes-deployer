@@ -42,7 +42,7 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 
 	// cluster info
 	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, "default cluster id")
-	setStringValue(&clusterAsset.Kubernetes_Version, opts.KubeVersion, "default k8s version")
+	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "default k8s version")
 
 	// bind info
 	// infra platform
@@ -52,29 +52,57 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 		if !ok {
 			return nil, errors.New("unsupported platform")
 		}
-		setStringValue(&clusterAsset.OpenStack_Auth_URL, openstackAsset.Auth_URL, "default openstack auth url")
+		setStringValue(&clusterAsset.OpenStack.Auth_URL, openstackAsset.Auth_URL, "default openstack auth url")
 	}
 
 	// subordinate info
 	// master node
 	if opts.MasterCount != 0 {
-		clusterAsset.Master_Count = opts.MasterCount
-	} else if clusterAsset.Master_Count == 0 {
-		clusterAsset.Master_Count = 3
+		clusterAsset.Master.Count = opts.MasterCount
+	} else if clusterAsset.Master.Count == 0 {
+		clusterAsset.Master.Count = 3
 	}
 	for i := 0; i < opts.MasterCount; i++ {
-		master_node := InitNodeAsset(opts)
-		clusterAsset.Master_Node = append(clusterAsset.Master_Node, master_node)
+		master_node := &NodeAsset{
+			Hostname: opts.MasterConfig[i].Hostname,
+			HardwareInfo: HardwareInfo{
+				CPU:  opts.MasterConfig[i].CPU,
+				RAM:  opts.MasterConfig[i].RAM,
+				Disk: opts.MasterConfig[i].Disk,
+			},
+			UserName: opts.MasterConfig[i].UserName,
+			Password: opts.MasterConfig[i].Password,
+			SSHKey:   opts.MasterConfig[i].SSHKey,
+			IP:       opts.MasterConfig[i].IP,
+			Ign_Data: opts.MasterConfig[i].Ign_Data,
+		}
+		if len(clusterAsset.Master.NodeAsset) == 0 {
+			clusterAsset.Master.NodeAsset = append(clusterAsset.Master.NodeAsset, *master_node)
+		}
 	}
 	// worker node
 	if opts.WorkerCount != 0 {
-		clusterAsset.Worker_Count = opts.WorkerCount
-	} else if clusterAsset.Worker_Count == 0 {
-		clusterAsset.Worker_Count = 3
+		clusterAsset.Worker.Count = opts.WorkerCount
+	} else if clusterAsset.Worker.Count == 0 {
+		clusterAsset.Worker.Count = 3
 	}
 	for i := 0; i < opts.WorkerCount; i++ {
-		worker_node := InitNodeAsset(opts)
-		clusterAsset.Worker_Node = append(clusterAsset.Worker_Node, worker_node)
+		worker_node := &NodeAsset{
+			Hostname: opts.WorkerConfig[i].Hostname,
+			HardwareInfo: HardwareInfo{
+				CPU:  opts.WorkerConfig[i].CPU,
+				RAM:  opts.WorkerConfig[i].RAM,
+				Disk: opts.WorkerConfig[i].Disk,
+			},
+			UserName: opts.WorkerConfig[i].UserName,
+			Password: opts.WorkerConfig[i].Password,
+			SSHKey:   opts.WorkerConfig[i].SSHKey,
+			IP:       opts.WorkerConfig[i].IP,
+			Ign_Data: opts.WorkerConfig[i].Ign_Data,
+		}
+		if len(clusterAsset.Worker.NodeAsset) == 0 {
+			clusterAsset.Worker.NodeAsset = append(clusterAsset.Worker.NodeAsset, *worker_node)
+		}
 	}
 
 	return clusterAsset, nil
@@ -105,26 +133,41 @@ func setIntValue(target *int, value int, defaultValue int) {
 type ClusterAsset struct {
 	Cluster_ID string
 
-	OpenStack_UserName          string
-	OpenStack_Password          string
-	OpenStack_Tenant_Name       string
-	OpenStack_Auth_URL          string
-	OpenStack_Region            string
-	OpenStack_Internal_Network  string
-	OpenStack_External_Network  string
-	OpenStack_Master_IP         []string
-	OpenStack_Glance_Name       string
-	OpenStack_Availability_Zone string
-	OpenStack_UserData          string
-	OpenStack_Volume            string
-
-	Master_Count int
-	Worker_Count int
-	Master_Node  []NodeAsset
-	Worker_Node  []NodeAsset
-
+	Platform
+	Master
+	Worker
 	Kubernetes
 	Housekeeper
+}
+
+type Platform struct {
+	OpenStack
+	Libvirt
+}
+
+type OpenStack struct {
+	UserName          string
+	Password          string
+	Tenant_Name       string
+	Auth_URL          string
+	Region            string
+	Internal_Network  string
+	External_Network  string
+	Glance_Name       string
+	Availability_Zone string
+}
+
+type Libvirt struct {
+}
+
+type Master struct {
+	Count     int
+	NodeAsset []NodeAsset
+}
+
+type Worker struct {
+	Count     int
+	NodeAsset []NodeAsset
 }
 
 type Kubernetes struct {
@@ -133,6 +176,7 @@ type Kubernetes struct {
 	Insecure_Registry  string
 	Pause_Image        string
 	Release_Image_URL  string
+	Token              string
 
 	Network
 }
