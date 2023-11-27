@@ -18,6 +18,7 @@ package cmd
 import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
 	"nestos-kubernetes-deployer/pkg/configmanager/manager"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
@@ -53,12 +54,13 @@ func NewDeployCommand() *cobra.Command {
 }
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
-	if err := manager.Initial(cmd); err != nil {
+	if err := manager.Initial(opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
 	config, err := manager.GetClusterConfig("clusterId")
 	if err != nil {
+		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
@@ -78,7 +80,7 @@ func deployCluster(conf *cluster.ClusterAsset) error {
 		return err
 	}
 
-	configPath := filepath.Join(command.RootOptDir, "auth", "kubeconfig")
+	configPath := filepath.Join(opts.RootOptDir, "auth", "kubeconfig")
 	if err := checkClusterState(configPath); err != nil {
 		logrus.Error("Cluster deploy timeout!")
 		return err
