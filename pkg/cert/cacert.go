@@ -23,7 +23,7 @@ import (
 )
 
 // SetUserCA 读取用户提供的证书和密钥路径
-func SetUserCA(a *SelfSignedCertKey, certPath, keyPath string) error {
+func setUserCA(a *SelfSignedCertKey, certPath, keyPath string) error {
 	cacert, err := ioutil.ReadFile(certPath)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func GenerateRootCA() (*SelfSignedCertKey, error) {
 
 	// 如果用户提供了路径，则设置证书和密钥
 	if userCACertPath != "" && userCAKeyPath != "" {
-		err := SetUserCA(&a, userCACertPath, userCAKeyPath)
+		err := setUserCA(&a, userCACertPath, userCAKeyPath)
 		if err != nil {
 			return nil, err
 		}

@@ -35,7 +35,7 @@ func GenerateApiServer() error {
 		Validity:     3650,
 	}
 
-	return a.Generate(cfg, ca, "apiserver.crt") //这里的ca会报错，因为类型不符合原先定义的接口，需搭配资产管理修改
+	return a.Generate(cfg, ca) //这里的ca会报错，因为类型不符合原先定义的接口，需搭配资产管理修改
 }
 
 //用于创建apiserver-kubelet-client.crt，是kube-apiserver 访问 kubelet 所需的客户端证书及私钥。
@@ -52,7 +52,7 @@ func GenerateApiServerToKubeletclient() error {
 		Validity:     3650,
 	}
 
-	return a.Generate(cfg, ca, "apiserver-kubelet-client.crt")
+	return a.Generate(cfg, ca)
 }
 
 //用于创建apiserver-Etcd-client.crt，是kube-apiserver 访问 Etcd 所需的客户端证书及私钥
@@ -69,5 +69,5 @@ func GenerateApiServerToEtcdclient() error {
 		Validity:     3650,
 	}
 
-	return a.Generate(cfg, ca, "apiserver-etcd-client.crt")
+	return a.Generate(cfg, ca)
 }
