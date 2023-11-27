@@ -94,7 +94,6 @@ type SignedCertKey struct {
 func (c *SignedCertKey) Generate(
 	cfg *CertConfig,
 	parentCA CertKeyInterface,
-	filename string,
 ) error {
 	var key *rsa.PrivateKey
 	var crt *x509.Certificate
@@ -120,11 +119,6 @@ func (c *SignedCertKey) Generate(
 
 	c.KeyRaw = PrivateKeyToPem(key)
 	c.CertRaw = CertToPem(crt)
-
-	err = c.SaveCertificateToFile(filename)
-	if err != nil {
-		logrus.Errorf("Faile to save %s: %v", filename, err)
-	}
 
 	return nil
 }

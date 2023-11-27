@@ -77,8 +77,8 @@ func PemToCertificate(data []byte) (*x509.Certificate, error) {
 }
 
 // SaveCertificateToFile 将证书保存到文件
-func (c *CertKey) SaveCertificateToFile(filename string) error {
-	err := os.WriteFile(c.SavePath+"/"+filename, c.CertRaw, 0644)
+func SaveCertificateToFile(savepath, filename string, cert []byte) error {
+	err := os.WriteFile(savepath+filename, cert, 0644)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", filename, err)
 		return err
@@ -90,8 +90,8 @@ func (c *CertKey) SaveCertificateToFile(filename string) error {
 }
 
 // SavePrivateKeyToFile 将私钥保存到文件
-func (c *CertKey) SavePrivateKeyToFile(filename string) error {
-	err := os.WriteFile(c.SavePath+"/"+filename, c.KeyRaw, 0600)
+func SavePrivateKeyToFile(savepath, filename string, Key []byte) error {
+	err := os.WriteFile(savepath+filename, Key, 0600)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", filename, err)
 		return err

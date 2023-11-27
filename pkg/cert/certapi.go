@@ -42,9 +42,8 @@ type CertificateGenerator interface {
 
 //  CertKey 包含证书和私钥
 type CertKey struct {
-	CertRaw  []byte
-	KeyRaw   []byte
-	SavePath string
+	CertRaw []byte
+	KeyRaw  []byte
 }
 
 type CertConfig struct {
