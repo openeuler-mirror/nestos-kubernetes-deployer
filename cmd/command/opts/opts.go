@@ -20,7 +20,9 @@ var (
 	RootOptDir string
 )
 
-var OptionsList struct {
+var Opts OptionsList
+
+type OptionsList struct {
 	ClusterID         string
 	Password          string
 	SSHKey            string
@@ -35,6 +37,7 @@ var OptionsList struct {
 	Worker            []*HostConfig
 	NetWork           NetworkConfig
 	Housekeeper       HousekeeperConfig
+	Upgrade           UpgradeOpts
 }
 
 type HostConfig struct {
@@ -64,5 +67,3 @@ type UpgradeOpts struct {
 	KubeConfigFile string
 	OSImageURL     string
 }
-
-var Upgrade UpgradeOpts
