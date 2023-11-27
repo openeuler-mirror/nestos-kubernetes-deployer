@@ -51,3 +51,14 @@ func FileWithContents(path string, mode int, contents []byte) igntypes.File {
 		},
 	}
 }
+
+func AppendFiles(files []igntypes.File, file igntypes.File) []igntypes.File {
+	for i, f := range files {
+		if f.Node.Path == file.Node.Path {
+			files[i] = file
+			return files
+		}
+	}
+	files = append(files, file)
+	return files
+}

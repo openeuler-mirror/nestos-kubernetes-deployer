@@ -16,10 +16,9 @@ limitations under the License.
 package ignition
 
 import (
+	"fmt"
 	"nestos-kubernetes-deployer/data"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
 	"nestos-kubernetes-deployer/pkg/utils"
-	"os"
 	"path"
 	"strings"
 
@@ -28,48 +27,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	enabledServices = []string{
-		"kubelet.service",
-		"set-kernel-para.service",
-		"disable-selinux.service",
-		"init-cluster.service",
-		"install-cni-plugin.service",
-		"join-master.service",
-		"join-worker.service",
-		"release-image-pivot.service",
-	}
-)
-
-type tmplData struct {
-	SSHKey          string
-	APIServerURL    string
-	Hsip            string //HostName + IP
-	ImageRegistry   string
-	PauseImageTag   string
-	KubeVersion     string
-	ServiceSubnet   string
-	PodSubnet       string
-	Token           string
-	NodeType        string
-	NodeName        string
-	CorednsImageTag string
-	IpSegment       string
-	ReleaseImageURl string
-	PasswordHash    string
-	CertificateKey  string
-}
-
 type Common struct {
-	Config       *igntypes.Config
-	ClusterAsset cluster.ClusterAsset
-	Files        []File
-}
-
-type File struct {
-	Path    string
-	Mode    int
-	Content []byte
+	UserName        string
+	SSHKey          string
+	PassWord        string
+	NodeType        string
+	TmplData        interface{}
+	EnabledServices []string
+	Config          *igntypes.Config
 }
 
 func (c *Common) GenerateFile() error {
@@ -80,11 +45,11 @@ func (c *Common) GenerateFile() error {
 		Passwd: igntypes.Passwd{
 			Users: []igntypes.PasswdUser{
 				{
-					Name: "root",
+					Name: c.UserName,
 					SSHAuthorizedKeys: []igntypes.SSHAuthorizedKey{
-						igntypes.SSHAuthorizedKey("/*SSHKEY*/"),
+						igntypes.SSHAuthorizedKey(c.SSHKey),
 					},
-					PasswordHash: nil, /*PasswordHasH*/
+					PasswordHash: &c.PassWord,
 				},
 			},
 		},
@@ -99,44 +64,18 @@ func (c *Common) GenerateFile() error {
 			},
 		},
 	}
-	//get template data
-	td := GetTmplData(c.ClusterAsset)
-
-	//todo：对配置项参数解析，生成不同的Ignition文件
-
-	if err := AppendStorageFiles(c.Config, "/", "", td); err != nil {
+	nodeFilesPath := fmt.Sprintf("ignition/%s/files", c.NodeType)
+	if err := appendStorageFiles(c.Config, "/", nodeFilesPath, c.TmplData); err != nil {
 		logrus.Errorf("failed to add files to a ignition config: %v", err)
 		return err
 	}
-	if err := AppendSystemdUnits(c.Config, "", td, enabledServices); err != nil {
+	nodeUnitPath := fmt.Sprintf("ignition/%s/systemd/", c.NodeType)
+	if err := appendSystemdUnits(c.Config, nodeUnitPath, c.TmplData, c.EnabledServices); err != nil {
 		logrus.Errorf("failed to add systemd units to a ignition config: %v", err)
 		return err
 	}
 
-	for _, file := range c.Files {
-		ignFile := FileWithContents(file.Path, file.Mode, file.Content)
-		c.Config.Storage.Files = appendFiles(c.Config.Storage.Files, ignFile)
-	}
 	return nil
-}
-
-func (c *Common) SaveFile(filename string) error {
-	data, err := Marshal(c.Config)
-	if err != nil {
-		logrus.Errorf("failed to Marshal ignition config: %v", err)
-		return err
-	}
-	if err := os.WriteFile(filename, data, 0640); err != nil {
-		logrus.Errorf("failed to save ignition file: %v", err)
-		return err
-	}
-	return nil
-}
-
-func GetTmplData(c cluster.ClusterAsset) *tmplData {
-	return &tmplData{
-		KubeVersion: c.KubernetesVersion,
-	}
 }
 
 /*
@@ -145,7 +84,7 @@ Parameters:
   - config: the ignition config to be modified
   - tmplData: struct to used to render templates
 */
-func AppendStorageFiles(config *igntypes.Config, base string, uri string, tmplData interface{}) error {
+func appendStorageFiles(config *igntypes.Config, base string, uri string, tmplData interface{}) error {
 	file, err := data.Assets.Open(uri)
 	if err != nil {
 		return err
@@ -167,7 +106,7 @@ func AppendStorageFiles(config *igntypes.Config, base string, uri string, tmplDa
 
 		for _, childInfo := range children {
 			name := childInfo.Name()
-			err = AppendStorageFiles(config, path.Join(base, name), path.Join(uri, name), tmplData)
+			err = appendStorageFiles(config, path.Join(base, name), path.Join(uri, name), tmplData)
 			if err != nil {
 				return err
 			}
@@ -179,19 +118,8 @@ func AppendStorageFiles(config *igntypes.Config, base string, uri string, tmplDa
 		return err
 	}
 	ignFile := FileWithContents(strings.TrimSuffix(base, ".template"), 0755, data)
-	config.Storage.Files = appendFiles(config.Storage.Files, ignFile)
+	config.Storage.Files = AppendFiles(config.Storage.Files, ignFile)
 	return nil
-}
-
-func appendFiles(files []igntypes.File, file igntypes.File) []igntypes.File {
-	for i, f := range files {
-		if f.Node.Path == file.Node.Path {
-			files[i] = file
-			return files
-		}
-	}
-	files = append(files, file)
-	return files
 }
 
 /*
@@ -202,7 +130,7 @@ Parameters:
   - tmplData: struct to used to render templates
   - enabledServices: a list of systemd units to be enabled by default
 */
-func AppendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{}, enabledServices []string) error {
+func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{}, enabledServices []string) error {
 	enabled := make(map[string]struct{}, len(enabledServices))
 	for _, s := range enabledServices {
 		enabled[s] = struct{}{}
