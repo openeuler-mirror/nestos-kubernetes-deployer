@@ -17,7 +17,7 @@ package main
 
 import (
 	"nestos-kubernetes-deployer/cmd"
-	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
 
 	"github.com/spf13/cobra"
 )
@@ -46,7 +46,7 @@ func newRootCmd() *cobra.Command {
 		Use:   "nkd",
 		Short: "Creates Kubernetes Clusters",
 	}
-	cmd.PersistentFlags().StringVar(&command.RootOptDir, "dir", ".", "assets directory")
+	cmd.PersistentFlags().StringVar(&opts.RootOptDir, "dir", ".", "assets directory")
 
 	return cmd
 }

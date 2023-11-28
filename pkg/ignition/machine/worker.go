@@ -23,12 +23,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type worker struct {
+type Worker struct {
 	ClusterAsset cluster.ClusterAsset
 	IgnFiles     []ignition.IgnFile
 }
 
-func (w *worker) GenerateFiles() error {
+func (w *Worker) GenerateFiles() error {
 	wtd := ignition.GetTmplData(w.ClusterAsset)
 	generateFile := ignition.Common{
 		NodeType:        "worker",
@@ -37,7 +37,7 @@ func (w *worker) GenerateFiles() error {
 		Config:          &igntypes.Config{},
 	}
 
-	for i := 1; i < w.ClusterAsset.Worker.Count; i++ {
+	for i := 0; i < w.ClusterAsset.Worker.Count; i++ {
 		generateFile.UserName = w.ClusterAsset.NodeAsset[i].UserName
 		generateFile.SSHKey = w.ClusterAsset.NodeAsset[i].SSHKey
 		generateFile.PassWord = w.ClusterAsset.NodeAsset[i].PassWord
@@ -56,7 +56,7 @@ func (w *worker) GenerateFiles() error {
 	return nil
 }
 
-func appendWorkerData(worker *worker, data []byte) {
+func appendWorkerData(worker *Worker, data []byte) {
 	ignFile := ignition.IgnFile{
 		Data: data,
 	}
