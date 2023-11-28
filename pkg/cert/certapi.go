@@ -23,15 +23,17 @@ import (
 	"time"
 )
 
+//保存所有生成的证书、key和kubeconfig
+type StorageContent struct {
+	Path    string
+	Mode    int
+	Content []byte
+}
+
 // KeyPairPEM{}仅供生成密钥对使用，证书的私钥使用CertKey{}
 type KeyPairPEM struct {
 	PrivateKeyPEM []byte
 	PublicKeyPEM  []byte
-}
-
-type CertificateGenerator interface {
-	GenerateCACertificate() error
-	GenerateSignedCertificate(commonName string) error
 }
 
 //  CertKey 包含证书和私钥

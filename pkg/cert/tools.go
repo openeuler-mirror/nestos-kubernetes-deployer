@@ -93,27 +93,27 @@ func PemToCertificate(data []byte) (*x509.Certificate, error) {
 }
 
 // SaveCertificateToFile 将证书保存到文件
-func SaveCertificateToFile(savepath, filename string, cert []byte) error {
-	err := os.WriteFile(savepath+filename, cert, 0644)
+func SaveCertificateToFile(savepath string, cert []byte) error {
+	err := os.WriteFile(savepath, cert, 0644)
 	if err != nil {
-		logrus.Errorf("Faile to save %s: %v", filename, err)
+		logrus.Errorf("Faile to save %s: %v", savepath, err)
 		return err
 	}
 
-	logrus.Infof("Successfully saved %s", filename)
+	logrus.Infof("Successfully saved %s", savepath)
 
 	return nil
 }
 
 // SavePrivateKeyToFile 将私钥保存到文件
-func SavePrivateKeyToFile(savepath, filename string, Key []byte) error {
-	err := os.WriteFile(savepath+filename, Key, 0600)
+func SavePrivateKeyToFile(savepath string, Key []byte) error {
+	err := os.WriteFile(savepath, Key, 0600)
 	if err != nil {
-		logrus.Errorf("Faile to save %s: %v", filename, err)
+		logrus.Errorf("Faile to save %s: %v", savepath, err)
 		return err
 	}
 
-	logrus.Infof("Successfully saved %s", filename)
+	logrus.Infof("Successfully saved %s", savepath)
 
 	return nil
 }

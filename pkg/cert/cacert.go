@@ -160,7 +160,7 @@ func GetCustomFrontProxyCAPathFromConfig() (string, string) {
 }
 
 /* GenerateKeyPair()用于生成/etc/kubernetes/pki/sa.pub和/etc/kubernetes/pki/sa.key ，
-通常创建自定义证书时说生成四组 CA-Key与CA-Cert，其中一组就是指这个密钥对*/
+通常创建自定义证书时说生成四组 CA-Key与CA-Cert其中一组就是指这个密钥对*/
 func GenerateKeyPair() (*KeyPairPEM, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
