@@ -19,6 +19,7 @@ import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
 	"nestos-kubernetes-deployer/pkg/configmanager/manager"
 	"nestos-kubernetes-deployer/pkg/ignition"
@@ -109,10 +110,18 @@ func getClusterDeployConfig(conf *cluster.ClusterAsset) error {
 	return nil
 }
 
-func generateCerts(conf *cluster.ClusterAsset) error {
+func generateCerts(conf *cluster.ClusterAsset) ([]ignition.CertFile, error) {
 
-	/*调用证书生成接口*/
-	return nil
+	rootCA, err := cert.GenerateRootCA()
+	if err != nil {
+		logrus.Errorf("Error generating root CA:%v", err)
+		return nil, err
+	}
+	// todo:用CA实例生成其它证书
+
+	certFiles := []ignition.CertFile{}
+
+	return certFiles, nil
 }
 
 func generateIgnition(conf *cluster.ClusterAsset, certFiles []ignition.CertFile) ([][]byte, error) {
