@@ -24,7 +24,7 @@ import (
 )
 
 type Worker struct {
-	ClusterAsset asset.ClusterAsset
+	ClusterAsset *asset.ClusterAsset
 	IgnFiles     []ignition.IgnFile
 }
 

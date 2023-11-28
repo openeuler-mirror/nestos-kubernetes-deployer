@@ -20,6 +20,7 @@ import (
 	"nestos-kubernetes-deployer/data"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/utils"
+	"net"
 	"path"
 	"strings"
 
@@ -41,12 +42,6 @@ var (
 	}
 )
 
-type CertFile struct {
-	Path    string
-	Mode    int
-	Content []byte
-}
-
 type IgnFile struct {
 	Data []byte
 }
@@ -63,6 +58,7 @@ type TmplData struct {
 	IpSegment       string
 	ReleaseImageURl string
 	CertificateKey  string
+	Hsip            string //HostName + IP
 }
 
 type Common struct {
@@ -207,7 +203,16 @@ func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{
 	return nil
 }
 
-func GetTmplData(c asset.ClusterAsset) *TmplData {
+func GetTmplData(c *asset.ClusterAsset) *TmplData {
+	var hsip string
+	ip := net.ParseIP(c.Master.NodeAsset[0].IP)
+	ipSegment := ip.To4()
+	ipSegment[2] = 0
+	ipSegment[3] = 0
+	for i := 0; i < c.Master.Count; i++ {
+		temp := c.Master.NodeAsset[i].IP + " " + c.Master.NodeAsset[i].Hostname + "\n"
+		hsip = hsip + temp
+	}
 	return &TmplData{
 		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
 		ImageRegistry:   c.Kubernetes.Insecure_Registry,
@@ -218,5 +223,6 @@ func GetTmplData(c asset.ClusterAsset) *TmplData {
 		Token:           c.Kubernetes.Token,
 		CorednsImageTag: c.Network.CoreDNS_Image_Version,
 		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
+		Hsip:            hsip,
 	}
 }

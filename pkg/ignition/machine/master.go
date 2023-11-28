@@ -24,9 +24,9 @@ import (
 )
 
 type Master struct {
-	ClusterAsset asset.ClusterAsset
-	CertFiles    []ignition.CertFile
-	IgnFiles     []ignition.IgnFile
+	ClusterAsset   *asset.ClusterAsset
+	StorageContent []ignition.StorageContent
+	IgnFiles       []ignition.IgnFile
 }
 
 func (m *Master) GenerateFiles() error {
@@ -44,7 +44,7 @@ func (m *Master) GenerateFiles() error {
 		logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master.NodeAsset[0].UserName, err)
 		return err
 	}
-	for _, file := range m.CertFiles {
+	for _, file := range m.StorageContent {
 		ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
 		generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
 	}
