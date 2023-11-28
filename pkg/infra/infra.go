@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package terraform
+package infra
 
 import (
 	"fmt"
+	"nestos-kubernetes-deployer/pkg/infra/terraform"
 	"os"
 	"path/filepath"
 
@@ -39,7 +40,7 @@ func (c *Cluster) Deploy() error {
 	// tf配置文件所在目录
 	tfDir := filepath.Join(workDir, c.Node)
 
-	outputs, err := executeApplyTerraform(tfDir, workDir)
+	outputs, err := terraform.ExecuteApplyTerraform(tfDir, workDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform apply")
 	}
@@ -58,7 +59,7 @@ func (c *Cluster) Extend() error {
 	// tf配置文件所在目录
 	tfDir := filepath.Join(workDir, c.Node)
 
-	outputs, err := extendTerraform(tfDir, workDir, c.Num)
+	outputs, err := terraform.ExtendTerraform(tfDir, workDir, c.Num)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform apply")
 	}
@@ -77,7 +78,7 @@ func (c *Cluster) Destroy() error {
 	// tf配置文件所在目录
 	tfDir := filepath.Join(workDir, c.Node)
 
-	err = executeDestroyTerraform(tfDir, workDir)
+	err = terraform.ExecuteDestroyTerraform(tfDir, workDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform destroy")
 	}

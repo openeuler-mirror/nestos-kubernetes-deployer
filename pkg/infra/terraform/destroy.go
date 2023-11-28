@@ -17,25 +17,19 @@ limitations under the License.
 package terraform
 
 import (
-	"os"
-	"path/filepath"
+	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func extendTerraform(tfDir string, terraformDir string, num int) ([]byte, error) {
-	applyErr := TFExtend(tfDir, terraformDir, num)
-	if applyErr != nil {
-		return nil, applyErr
+func ExecuteDestroyTerraform(tfDir string, terraformDir string) error {
+	var destroyOpts []tfexec.DestroyOption
+	return destroyTerraform(tfDir, terraformDir, destroyOpts...)
+}
+
+func destroyTerraform(tfDir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
+	destroyErr := TFDestroy(tfDir, terraformDir, destroyOpts...)
+	if destroyErr != nil {
+		return destroyErr
 	}
 
-	_, err := os.Stat(filepath.Join(tfDir, "terraform.tfstate"))
-	if os.IsNotExist(err) {
-		return nil, err
-	}
-
-	outputs, err := Outputs(tfDir, terraformDir)
-	if err != nil {
-		return nil, err
-	}
-
-	return outputs, nil
+	return nil
 }
