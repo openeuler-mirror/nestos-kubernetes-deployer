@@ -28,14 +28,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Infra struct {
-	Platform
-	Master
-	Worker
-}
-
-type Platform struct {
-	OpenStack
+type Platform interface {
+	SetPlatform(asset.InfraAsset)
 }
 
 type OpenStack struct {
@@ -50,46 +44,84 @@ type OpenStack struct {
 	Availability_Zone string
 }
 
+func (openstack *OpenStack) SetPlatform(infraAsset asset.InfraAsset) {
+	if openstackAsset, ok := infraAsset.(*asset.OpenStackAsset); ok {
+		openstack = &OpenStack{
+			Username:          openstackAsset.UserName,
+			Password:          openstackAsset.Password,
+			Tenant_Name:       openstackAsset.Tenant_Name,
+			Auth_URL:          openstackAsset.Auth_URL,
+			Region:            openstackAsset.Region,
+			Internal_Network:  openstackAsset.Internal_Network,
+			External_Network:  openstackAsset.External_Network,
+			Glance_Name:       openstackAsset.Glance_Name,
+			Availability_Zone: openstackAsset.Availability_Zone,
+		}
+	}
+}
+
+type Libvirt struct {
+}
+
+func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
+}
+
+type Infra struct {
+	Platform
+	Master
+	Worker
+}
+
 type Master struct {
-	Count int
-	CPU   []int
-	RAM   []int
-	Disk  []int
+	Count    int
+	CPU      []int
+	RAM      []int
+	Disk     []int
+	Hostname []string
+	IP       []string
+	Ign_Data []string
 }
 
 type Worker struct {
-	Count int
-	CPU   []int
-	RAM   []int
-	Disk  []int
+	Count    int
+	CPU      []int
+	RAM      []int
+	Disk     []int
+	Hostname []string
+	IP       []string
+	Ign_Data []string
 }
 
 func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
-	openstackAsset, ok := conf.InfraPlatform.(*asset.OpenStackAsset)
-	if !ok {
+	switch conf.Platform {
+	case "openstack", "Openstack", "OpenStack":
+		infra.Platform = &OpenStack{}
+	case "libvirt", "Libvirt":
+		infra.Platform = &Libvirt{}
+	default:
 		return errors.New("unsupported platform")
 	}
 
-	infra.Platform.OpenStack = OpenStack{
-		Username:    openstackAsset.UserName,
-		Password:    openstackAsset.Password,
-		Tenant_Name: openstackAsset.Tenant_Name,
-		Auth_URL:    openstackAsset.Auth_URL,
-		Region:      openstackAsset.Region,
-	}
+	infra.Platform.SetPlatform(conf.InfraPlatform)
 
 	infra.Master.Count = conf.Master.Count
-	for i := 0; i < infra.Master.Count; i++ {
-		infra.Master.CPU = append(infra.Master.CPU, conf.Master.NodeAsset[i].CPU)
-		infra.Master.RAM = append(infra.Master.RAM, conf.Master.NodeAsset[i].RAM)
-		infra.Master.Disk = append(infra.Master.Disk, conf.Master.NodeAsset[i].Disk)
+	for _, nodeAsset := range conf.Master.NodeAsset {
+		infra.Master.CPU = append(infra.Master.CPU, nodeAsset.CPU)
+		infra.Master.RAM = append(infra.Master.RAM, nodeAsset.RAM)
+		infra.Master.Disk = append(infra.Master.Disk, nodeAsset.Disk)
+		infra.Master.Hostname = append(infra.Master.Hostname, nodeAsset.Hostname)
+		infra.Master.IP = append(infra.Master.IP, nodeAsset.IP)
+		infra.Master.Ign_Data = append(infra.Master.Ign_Data, nodeAsset.Ign_Data)
 	}
 
 	infra.Worker.Count = conf.Worker.Count
-	for i := 0; i < infra.Worker.Count; i++ {
-		infra.Worker.CPU = append(infra.Worker.CPU, conf.Worker.NodeAsset[i].CPU)
-		infra.Worker.RAM = append(infra.Worker.RAM, conf.Worker.NodeAsset[i].RAM)
-		infra.Worker.Disk = append(infra.Worker.Disk, conf.Worker.NodeAsset[i].Disk)
+	for _, nodeAsset := range conf.Worker.NodeAsset {
+		infra.Worker.CPU = append(infra.Worker.CPU, nodeAsset.CPU)
+		infra.Worker.RAM = append(infra.Worker.RAM, nodeAsset.RAM)
+		infra.Worker.Disk = append(infra.Worker.Disk, nodeAsset.Disk)
+		infra.Worker.Hostname = append(infra.Worker.Hostname, nodeAsset.Hostname)
+		infra.Worker.IP = append(infra.Worker.IP, nodeAsset.IP)
+		infra.Worker.Ign_Data = append(infra.Worker.Ign_Data, nodeAsset.Ign_Data)
 	}
 
 	outputFile, err := os.Create(filepath.Join(node, fmt.Sprintf("%s.tf", node)))
@@ -98,6 +130,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
 	}
 	defer outputFile.Close()
 
+	// Read template.
 	tfFilePath := filepath.Join("terraform", conf.Platform, fmt.Sprintf("%s.tf.template", node))
 	tfFile, err := data.Assets.Open(tfFilePath)
 	if err != nil {
@@ -109,12 +142,13 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
 	if err != nil {
 		return err
 	}
+
 	tmpl, err := template.New("terraform").Parse(string(tfData))
 	if err != nil {
 		return errors.Wrap(err, "failed to create terraform config template")
 	}
 
-	// 将填充后的数据写入文件
+	// Writes the data to the file.
 	if err = tmpl.Execute(outputFile, infra); err != nil {
 		return errors.Wrap(err, "failed to write terraform config")
 	}
