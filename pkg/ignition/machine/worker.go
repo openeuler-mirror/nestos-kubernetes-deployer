@@ -15,6 +15,50 @@ limitations under the License.
 */
 package machine
 
-const (
-	workerIgnFileName = "worker.ign"
+import (
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
+	"nestos-kubernetes-deployer/pkg/ignition"
+
+	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
+	"github.com/sirupsen/logrus"
 )
+
+type worker struct {
+	ClusterAsset cluster.ClusterAsset
+	IgnFiles     []ignition.IgnFile
+}
+
+func (w *worker) GenerateFiles() error {
+	wtd := ignition.GetTmplData(w.ClusterAsset)
+	generateFile := ignition.Common{
+		NodeType:        "worker",
+		TmplData:        wtd,
+		EnabledServices: ignition.EnabledServices,
+		Config:          &igntypes.Config{},
+	}
+
+	for i := 1; i < w.ClusterAsset.Worker.Count; i++ {
+		generateFile.UserName = w.ClusterAsset.NodeAsset[i].UserName
+		generateFile.SSHKey = w.ClusterAsset.NodeAsset[i].SSHKey
+		generateFile.PassWord = w.ClusterAsset.NodeAsset[i].PassWord
+		if err := generateFile.Generate(); err != nil {
+			logrus.Errorf("failed to generate %s ignition file: %v", w.ClusterAsset.NodeAsset[i].UserName, err)
+			return err
+		}
+		data, err := ignition.Marshal(generateFile.Config)
+		if err != nil {
+			logrus.Errorf("failed to Marshal ignition config: %v", err)
+			return err
+		}
+		appendWorkerData(w, data)
+	}
+
+	return nil
+}
+
+func appendWorkerData(worker *worker, data []byte) {
+	ignFile := ignition.IgnFile{
+		Data: data,
+	}
+	worker.IgnFiles = append(worker.IgnFiles, ignFile)
+}
