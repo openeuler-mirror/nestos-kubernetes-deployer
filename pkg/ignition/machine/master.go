@@ -16,7 +16,7 @@ limitations under the License.
 package machine
 
 import (
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -24,7 +24,7 @@ import (
 )
 
 type Master struct {
-	ClusterAsset cluster.ClusterAsset
+	ClusterAsset asset.ClusterAsset
 	CertFiles    []ignition.CertFile
 	IgnFiles     []ignition.IgnFile
 }
@@ -32,16 +32,16 @@ type Master struct {
 func (m *Master) GenerateFiles() error {
 	mtd := ignition.GetTmplData(m.ClusterAsset)
 	generateFile := ignition.Common{
-		UserName:        m.ClusterAsset.NodeAsset[0].UserName,
-		SSHKey:          m.ClusterAsset.NodeAsset[0].SSHKey,
-		PassWord:        m.ClusterAsset.NodeAsset[0].PassWord,
+		UserName:        m.ClusterAsset.Master.NodeAsset[0].UserName,
+		SSHKey:          m.ClusterAsset.Master.NodeAsset[0].SSHKey,
+		PassWord:        m.ClusterAsset.Master.NodeAsset[0].Password,
 		NodeType:        "controlplane",
 		TmplData:        mtd,
 		EnabledServices: ignition.EnabledServices,
 		Config:          &igntypes.Config{},
 	}
 	if err := generateFile.Generate(); err != nil {
-		logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.NodeAsset[0].UserName, err)
+		logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master.NodeAsset[0].UserName, err)
 		return err
 	}
 	for _, file := range m.CertFiles {
@@ -55,12 +55,12 @@ func (m *Master) GenerateFiles() error {
 	}
 	appendMasterData(m, data)
 	for i := 1; i < m.ClusterAsset.Master.Count; i++ {
-		generateFile.UserName = m.ClusterAsset.NodeAsset[i].UserName
-		generateFile.SSHKey = m.ClusterAsset.NodeAsset[i].SSHKey
-		generateFile.PassWord = m.ClusterAsset.NodeAsset[i].PassWord
+		generateFile.UserName = m.ClusterAsset.Master.NodeAsset[i].UserName
+		generateFile.SSHKey = m.ClusterAsset.Master.NodeAsset[i].SSHKey
+		generateFile.PassWord = m.ClusterAsset.Master.NodeAsset[i].Password
 		generateFile.NodeType = "master"
 		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.NodeAsset[i].UserName, err)
+			logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master.NodeAsset[i].UserName, err)
 			return err
 		}
 		data, err := ignition.Marshal(generateFile.Config)

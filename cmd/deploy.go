@@ -20,8 +20,9 @@ import (
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/cert"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
-	"nestos-kubernetes-deployer/pkg/configmanager/manager"
+	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/ignition"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
@@ -50,18 +51,16 @@ func NewDeployCommand() *cobra.Command {
 		RunE:  runDeployCmd,
 	}
 	command.SetupDeployCmdOpts(deployCmd)
-	// cmd.AddCommand(deploy.NewDeployMasterCommand())
-	// cmd.AddCommand(deploy.NewDeployWorkerCommand())
 
 	return deployCmd
 }
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
-	if err := manager.Initial(opts.Opts); err != nil {
+	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
-	config, err := manager.GetClusterConfig("clusterId")
+	config, err := configmanager.GetClusterConfig("clusterId")
 	if err != nil {
 		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
 		return err
@@ -70,12 +69,12 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	if err := deployCluster(config); err != nil {
 		return err
 	}
-	err = manager.Persist()
+	err = configmanager.Persist()
 
 	return nil
 }
 
-func deployCluster(conf *cluster.ClusterAsset) error {
+func deployCluster(conf *asset.ClusterAsset) error {
 	if err := getClusterDeployConfig(conf); err != nil {
 		return err
 	}
@@ -99,7 +98,7 @@ func deployCluster(conf *cluster.ClusterAsset) error {
 	return nil
 }
 
-func getClusterDeployConfig(conf *cluster.ClusterAsset) error {
+func getClusterDeployConfig(conf *asset.ClusterAsset) error {
 	// if conf.cert is empty
 	generateCerts(conf)
 
@@ -110,8 +109,7 @@ func getClusterDeployConfig(conf *cluster.ClusterAsset) error {
 	return nil
 }
 
-func generateCerts(conf *cluster.ClusterAsset) ([]ignition.CertFile, error) {
-
+func generateCerts(conf *asset.ClusterAsset) ([]ignition.CertFile, error) {
 	rootCA, err := cert.GenerateRootCA()
 	if err != nil {
 		logrus.Errorf("Error generating root CA:%v", err)
@@ -119,12 +117,23 @@ func generateCerts(conf *cluster.ClusterAsset) ([]ignition.CertFile, error) {
 	}
 	// todo:用CA实例生成其它证书
 
-	certFiles := []ignition.CertFile{}
+	certFiles := []ignition.CertFile{
+		{
+			Path:    constants.CaCrt,
+			Mode:    int(constants.CertFileMode),
+			Content: rootCA.CertRaw,
+		},
+		{
+			Path:    constants.CaKey,
+			Mode:    int(constants.CertFileMode),
+			Content: rootCA.KeyRaw,
+		},
+	}
 
 	return certFiles, nil
 }
 
-func generateIgnition(conf *cluster.ClusterAsset, certFiles []ignition.CertFile) ([][]byte, error) {
+func generateIgnition(conf asset.ClusterAsset, certFiles []ignition.CertFile) ([][]byte, error) {
 	master := &machine.Master{
 		ClusterAsset: conf,
 		CertFiles:    certFiles,
@@ -157,13 +166,13 @@ func generateIgnition(conf *cluster.ClusterAsset, certFiles []ignition.CertFile)
 	return result, nil
 }
 
-func generateTF(conf *cluster.ClusterAsset) error {
+func generateTF(conf *asset.ClusterAsset) error {
 
 	/*调用TF生成接口*/
 	return nil
 }
 
-func createCluster(conf *cluster.ClusterAsset) error {
+func createCluster(conf *asset.ClusterAsset) error {
 
 	/*应用集群配置文件部署集群*/
 	return nil

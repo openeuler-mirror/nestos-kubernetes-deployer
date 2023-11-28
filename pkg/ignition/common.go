@@ -18,7 +18,7 @@ package ignition
 import (
 	"fmt"
 	"nestos-kubernetes-deployer/data"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"path"
 	"strings"
@@ -207,7 +207,7 @@ func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{
 	return nil
 }
 
-func GetTmplData(c cluster.ClusterAsset) *TmplData {
+func GetTmplData(c asset.ClusterAsset) *TmplData {
 	return &TmplData{
 		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
 		ImageRegistry:   c.Kubernetes.Insecure_Registry,

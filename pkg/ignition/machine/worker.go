@@ -16,7 +16,7 @@ limitations under the License.
 package machine
 
 import (
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -24,7 +24,7 @@ import (
 )
 
 type Worker struct {
-	ClusterAsset cluster.ClusterAsset
+	ClusterAsset asset.ClusterAsset
 	IgnFiles     []ignition.IgnFile
 }
 
@@ -38,11 +38,11 @@ func (w *Worker) GenerateFiles() error {
 	}
 
 	for i := 0; i < w.ClusterAsset.Worker.Count; i++ {
-		generateFile.UserName = w.ClusterAsset.NodeAsset[i].UserName
-		generateFile.SSHKey = w.ClusterAsset.NodeAsset[i].SSHKey
-		generateFile.PassWord = w.ClusterAsset.NodeAsset[i].PassWord
+		generateFile.UserName = w.ClusterAsset.Worker.NodeAsset[i].UserName
+		generateFile.SSHKey = w.ClusterAsset.Worker.NodeAsset[i].SSHKey
+		generateFile.PassWord = w.ClusterAsset.Worker.NodeAsset[i].Password
 		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", w.ClusterAsset.NodeAsset[i].UserName, err)
+			logrus.Errorf("failed to generate %s ignition file: %v", w.ClusterAsset.Worker.NodeAsset[i].UserName, err)
 			return err
 		}
 		data, err := ignition.Marshal(generateFile.Config)
