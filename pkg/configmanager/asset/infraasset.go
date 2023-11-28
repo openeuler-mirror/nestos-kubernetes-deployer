@@ -44,11 +44,15 @@ func InitInfraAsset(opts *opts.OptionsList) (InfraAsset, error) {
 }
 
 type OpenStackAsset struct {
-	UserName    string
-	Password    string
-	Tenant_Name string
-	Auth_URL    string
-	Region      string
+	UserName          string
+	Password          string
+	Tenant_Name       string
+	Auth_URL          string
+	Region            string
+	Internal_Network  string
+	External_Network  string
+	Glance_Name       string
+	Availability_Zone string
 }
 
 func initOpenStackAsset(opts *opts.OptionsList) (*OpenStackAsset, error) {

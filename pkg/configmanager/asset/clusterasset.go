@@ -42,7 +42,6 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 
 	// cluster info
 	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, "default cluster id")
-	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "default k8s version")
 
 	// bind info
 	// infra platform
@@ -103,6 +102,15 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 		}
 	}
 
+	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")
+	setStringValue(&clusterAsset.Kubernetes.ApiServer_Endpoint, opts.ApiServerEndpoint, "")
+	setStringValue(&clusterAsset.Kubernetes.Insecure_Registry, opts.InsecureRegistry, "")
+	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, "")
+	setStringValue(&clusterAsset.Kubernetes.Release_Image_URL, opts.ReleaseImageUrl, "")
+	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, "")
+	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, "")
+	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, "")
+
 	return clusterAsset, nil
 }
 
@@ -130,6 +138,7 @@ func setIntValue(target *int, value int, defaultValue int) {
 
 type ClusterAsset struct {
 	Cluster_ID string
+	Platform   string
 
 	InfraPlatform
 	Master
