@@ -18,6 +18,7 @@ package ignition
 import (
 	"fmt"
 	"nestos-kubernetes-deployer/data"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"path"
 	"strings"
@@ -26,6 +27,43 @@ import (
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/sirupsen/logrus"
 )
+
+var (
+	EnabledServices = []string{
+		"kubelet.service",
+		"set-kernel-para.service",
+		"disable-selinux.service",
+		"init-cluster.service",
+		"install-cni-plugin.service",
+		"join-master.service",
+		"release-image-pivot.service",
+		"join-worker.service",
+	}
+)
+
+type CertFile struct {
+	Path    string
+	Mode    int
+	Content []byte
+}
+
+type IgnFile struct {
+	Data []byte
+}
+
+type TmplData struct {
+	APIServerURL    string
+	ImageRegistry   string
+	PauseImage      string
+	KubeVersion     string
+	ServiceSubnet   string
+	PodSubnet       string
+	Token           string
+	CorednsImageTag string
+	IpSegment       string
+	ReleaseImageURl string
+	CertificateKey  string
+}
 
 type Common struct {
 	UserName        string
@@ -167,4 +205,18 @@ func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{
 		config.Systemd.Units = append(config.Systemd.Units, unit)
 	}
 	return nil
+}
+
+func GetTmplData(c cluster.ClusterAsset) *TmplData {
+	return &TmplData{
+		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
+		ImageRegistry:   c.Kubernetes.Insecure_Registry,
+		PauseImage:      c.Kubernetes.Pause_Image,
+		KubeVersion:     c.Kubernetes.Kubernetes_Version,
+		ServiceSubnet:   c.Network.Service_Subnet,
+		PodSubnet:       c.Network.Pod_Subnet,
+		Token:           c.Kubernetes.Token,
+		CorednsImageTag: c.Network.CoreDNS_Image_Version,
+		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
+	}
 }
