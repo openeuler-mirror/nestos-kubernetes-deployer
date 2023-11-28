@@ -27,13 +27,11 @@ type masterTmplData struct {
 	APIServerURL    string
 	Hsip            string //HostName + IP
 	ImageRegistry   string
-	PauseImageTag   string
+	PauseImage      string
 	KubeVersion     string
 	ServiceSubnet   string
 	PodSubnet       string
 	Token           string
-	NodeType        string
-	NodeName        string
 	CorednsImageTag string
 	IpSegment       string
 	ReleaseImageURl string
@@ -68,9 +66,8 @@ type IgnFile struct {
 	Data []byte
 }
 
-func (m *Master) GenerateMasterIgnFiles() error {
+func (m *Master) GenerateFiles() error {
 	mtd := getTmplData(m.ClusterAsset)
-
 	generateFile := ignition.Common{
 		UserName:        m.ClusterAsset.NodeAsset[0].UserName,
 		SSHKey:          m.ClusterAsset.NodeAsset[0].SSHKey,
@@ -80,18 +77,57 @@ func (m *Master) GenerateMasterIgnFiles() error {
 		EnabledServices: enabledServices,
 		Config:          &igntypes.Config{},
 	}
-	if err := generateFile.GenerateFile(); err != nil {
-		logrus.Errorf("failed to generate controlplane ignition file: %v", err)
+	if err := generateFile.Generate(); err != nil {
+		logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.NodeAsset[0].UserName, err)
 		return err
 	}
 	for _, file := range m.CertFiles {
 		ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
 		generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
 	}
-	//todo:generate master Ignition
+	data, err := ignition.Marshal(generateFile.Config)
+	if err != nil {
+		logrus.Errorf("failed to Marshal ignition config: %v", err)
+		return err
+	}
+	appendData(m, data)
+	for i := 1; i < m.ClusterAsset.Master.Count; i++ {
+		generateFile.UserName = m.ClusterAsset.NodeAsset[i].UserName
+		generateFile.SSHKey = m.ClusterAsset.NodeAsset[i].SSHKey
+		generateFile.PassWord = m.ClusterAsset.NodeAsset[i].PassWord
+		generateFile.NodeType = "master"
+		if err := generateFile.Generate(); err != nil {
+			logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.NodeAsset[i].UserName, err)
+			return err
+		}
+		data, err := ignition.Marshal(generateFile.Config)
+		if err != nil {
+			logrus.Errorf("failed to Marshal ignition config: %v", err)
+			return err
+		}
+		appendData(m, data)
+	}
+
 	return nil
 }
 
 func getTmplData(c cluster.ClusterAsset) *masterTmplData {
-	return &masterTmplData{ /**/ }
+	return &masterTmplData{
+		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
+		ImageRegistry:   c.Kubernetes.Insecure_Registry,
+		PauseImage:      c.Kubernetes.Pause_Image,
+		KubeVersion:     c.Kubernetes.Kubernetes_Version,
+		ServiceSubnet:   c.Network.Service_Subnet,
+		PodSubnet:       c.Network.Pod_Subnet,
+		Token:           c.Kubernetes.Token,
+		CorednsImageTag: c.Network.CoreDNS_Image_Version,
+		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
+	}
+}
+
+func appendData(master *Master, data []byte) {
+	ignFile := IgnFile{
+		Data: data,
+	}
+	master.IgnFiles = append(master.IgnFiles, ignFile)
 }

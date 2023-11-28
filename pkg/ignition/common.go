@@ -37,7 +37,7 @@ type Common struct {
 	Config          *igntypes.Config
 }
 
-func (c *Common) GenerateFile() error {
+func (c *Common) Generate() error {
 	c.Config = &igntypes.Config{
 		Ignition: igntypes.Ignition{
 			Version: igntypes.MaxVersion.String(),
