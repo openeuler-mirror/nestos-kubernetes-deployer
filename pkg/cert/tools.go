@@ -57,6 +57,22 @@ func PemToPrivateKey(data []byte) (*rsa.PrivateKey, error) {
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
+// PublicKeyToPem 返回公钥的PEM格式字节切片
+func PublicKeyToPem(key *rsa.PublicKey) ([]byte, error) {
+	keyInBytes, err := x509.MarshalPKIXPublicKey(key)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to marshal public key")
+	}
+
+	keyinPem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: keyInBytes,
+		},
+	)
+	return keyinPem, nil
+}
+
 // CACertPEM 返回证书的PEM格式字节切片
 func CertToPem(cert *x509.Certificate) []byte {
 	certInPem := pem.EncodeToMemory(

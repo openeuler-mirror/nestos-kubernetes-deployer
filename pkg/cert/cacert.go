@@ -17,9 +17,13 @@ limitations under the License.
 package cert
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"io/ioutil"
+
+	"github.com/pkg/errors"
 )
 
 // SetUserCA 读取用户提供的ca证书和密钥路径
@@ -153,4 +157,24 @@ func GetCustomFrontProxyCAPathFromConfig() (string, string) {
 	// TODO: 从配置文件中获取用户提供的自定义 CA 证书路径和对应密钥路径
 	// 如果用户没有提供路径，返回空字符串
 	return "", ""
+}
+
+/* GenerateKeyPair()用于生成/etc/kubernetes/pki/sa.pub和/etc/kubernetes/pki/sa.key ，
+通常创建自定义证书时说生成四组 CA-Key与CA-Cert，其中一组就是指这个密钥对*/
+func GenerateKeyPair() (*KeyPairPEM, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to generate RSA private key")
+	}
+
+	privateKeyPEM := PrivateKeyToPem(privateKey)
+	publicKeyPEM, err := PublicKeyToPem(&privateKey.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KeyPairPEM{
+		PrivateKeyPEM: privateKeyPEM,
+		PublicKeyPEM:  publicKeyPEM,
+	}, nil
 }
