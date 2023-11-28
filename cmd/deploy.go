@@ -25,6 +25,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/ignition"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
+	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
@@ -43,6 +44,8 @@ type crdTmplData struct {
 	operatorImageUrl   string
 	controllerImageUrl string
 }
+
+type Certificates []ignition.StorageContent
 
 func NewDeployCommand() *cobra.Command {
 	deployCmd := &cobra.Command{
@@ -99,49 +102,62 @@ func deployCluster(conf *asset.ClusterAsset) error {
 }
 
 func getClusterDeployConfig(conf *asset.ClusterAsset) error {
-	// if conf.cert is empty
-	generateCerts(conf)
+	certs, err := generateCerts(conf)
+	if err != nil {
+		logrus.Errorf("Error generating certificate files: %v", err)
+		return err
+	}
 
-	generateIgnition(conf)
+	if err := generateIgnition(conf, certs); err != nil {
+		logrus.Errorf("Error generating ignition files: %v", err)
+		return err
+	}
 
-	generateTF(conf)
+	if err := generateTF(conf); err != nil {
+		logrus.Errorf("Error generating terraform files: %v", err)
+		return err
+	}
 
 	return nil
 }
 
-func generateCerts(conf *asset.ClusterAsset) ([]ignition.CertFile, error) {
+func generateCerts(conf *asset.ClusterAsset) (Certificates, error) {
 	rootCA, err := cert.GenerateRootCA()
 	if err != nil {
 		logrus.Errorf("Error generating root CA:%v", err)
 		return nil, err
 	}
-	// todo:用CA实例生成其它证书
-
-	certFiles := []ignition.CertFile{
-		{
-			Path:    constants.CaCrt,
-			Mode:    int(constants.CertFileMode),
-			Content: rootCA.CertRaw,
-		},
-		{
-			Path:    constants.CaKey,
-			Mode:    int(constants.CertFileMode),
-			Content: rootCA.KeyRaw,
-		},
+	etcdCA, err := cert.GenerateEtcdCA()
+	if err != nil {
+		logrus.Errorf("Error generating etcd CA:%v", err)
+		return nil, err
+	}
+	frontProxyCA, err := cert.GenerateFrontProxyCA()
+	if err != nil {
+		logrus.Errorf("Error generating front proxy CA:%v", err)
+		return nil, err
 	}
 
-	return certFiles, nil
+	var certs Certificates
+	ignition.UpsertStorageFiles(certs, constants.CaCrt, int(constants.CertFileMode), rootCA.CertRaw)
+	ignition.UpsertStorageFiles(certs, constants.CaKey, int(constants.CertFileMode), rootCA.KeyRaw)
+	ignition.UpsertStorageFiles(certs, constants.EtcdCaCrt, int(constants.CertFileMode), etcdCA.CertRaw)
+	ignition.UpsertStorageFiles(certs, constants.EtcdCaKey, int(constants.CertFileMode), etcdCA.KeyRaw)
+	ignition.UpsertStorageFiles(certs, constants.FrontProxyCaCrt, int(constants.CertFileMode), frontProxyCA.CertRaw)
+	ignition.UpsertStorageFiles(certs, constants.FrontProxyCaKey, int(constants.CertFileMode), frontProxyCA.KeyRaw)
+
+	return certs, nil
 }
 
-func generateIgnition(conf asset.ClusterAsset, certFiles []ignition.CertFile) ([][]byte, error) {
+func generateIgnition(conf *asset.ClusterAsset, certFiles []ignition.StorageContent) error {
 	master := &machine.Master{
-		ClusterAsset: conf,
-		CertFiles:    certFiles,
-		IgnFiles:     []ignition.IgnFile{},
+		ClusterAsset:   conf,
+		StorageContent: certFiles,
+		IgnFiles:       []ignition.IgnFile{},
 	}
 	if err := master.GenerateFiles(); err != nil {
 		logrus.Errorf("Failed to generate master ignition file: %v", err)
-		return nil, err
+		return err
 	}
 
 	worker := &machine.Worker{
@@ -150,25 +166,25 @@ func generateIgnition(conf asset.ClusterAsset, certFiles []ignition.CertFile) ([
 	}
 	if err := worker.GenerateFiles(); err != nil {
 		logrus.Errorf("Failed to generate worker ignition file: %v", err)
-		return nil, err
+		return err
 	}
 
-	// Append IgnFile data to [][]byte
-	var result [][]byte
-
-	for _, ignFile := range master.IgnFiles {
-		result = append(result, ignFile.Data)
-	}
-	for _, ignFile := range worker.IgnFiles {
-		result = append(result, ignFile.Data)
-	}
-
-	return result, nil
+	return nil
 }
 
 func generateTF(conf *asset.ClusterAsset) error {
-
-	/*调用TF生成接口*/
+	// generate master.tf
+	var master infra.Infra
+	if err := master.Generate(conf, "master"); err != nil {
+		logrus.Errorf("Failed to generate master terraform file")
+		return err
+	}
+	// generate worker.tf
+	var worker infra.Infra
+	if err := worker.Generate(conf, "worker"); err != nil {
+		logrus.Errorf("Failed to generate worker terraform file")
+		return err
+	}
 	return nil
 }
 
