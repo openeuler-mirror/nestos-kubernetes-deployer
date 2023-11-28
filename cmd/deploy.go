@@ -21,6 +21,8 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/cluster"
 	"nestos-kubernetes-deployer/pkg/configmanager/manager"
+	"nestos-kubernetes-deployer/pkg/ignition"
+	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
@@ -113,10 +115,37 @@ func generateCerts(conf *cluster.ClusterAsset) error {
 	return nil
 }
 
-func generateIgnition(conf *cluster.ClusterAsset) error {
+func generateIgnition(conf *cluster.ClusterAsset, certFiles []ignition.CertFile) ([][]byte, error) {
+	master := &machine.Master{
+		ClusterAsset: conf,
+		CertFiles:    certFiles,
+		IgnFiles:     []ignition.IgnFile{},
+	}
+	if err := master.GenerateFiles(); err != nil {
+		logrus.Errorf("Failed to generate master ignition file: %v", err)
+		return nil, err
+	}
 
-	/*调用Ignition生成接口*/
-	return nil
+	worker := &machine.Worker{
+		ClusterAsset: conf,
+		IgnFiles:     []ignition.IgnFile{},
+	}
+	if err := worker.GenerateFiles(); err != nil {
+		logrus.Errorf("Failed to generate worker ignition file: %v", err)
+		return nil, err
+	}
+
+	// Append IgnFile data to [][]byte
+	var result [][]byte
+
+	for _, ignFile := range master.IgnFiles {
+		result = append(result, ignFile.Data)
+	}
+	for _, ignFile := range worker.IgnFiles {
+		result = append(result, ignFile.Data)
+	}
+
+	return result, nil
 }
 
 func generateTF(conf *cluster.ClusterAsset) error {
