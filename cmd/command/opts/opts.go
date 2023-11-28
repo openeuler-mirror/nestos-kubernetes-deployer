@@ -23,36 +23,42 @@ var (
 var Opts OptionsList
 
 type OptionsList struct {
-	File              string
-	ClusterID         string
-	Password          string
-	SSHKey            string
-	Platform          string
-	DeployConfig      string
+	ClusterConfigFile string
+
+	NKD NKDConfig
+
+	ClusterID string
+	Platform  string
+
+	Master NodeConfig
+	Worker NodeConfig
+
 	ApiServerEndpoint string
 	InsecureRegistry  string
 	PauseImage        string
 	ReleaseImageUrl   string
 	KubeVersion       string
-	MasterCount       int
-	MasterConfig      []NodeConfig
-	WorkerCount       int
-	WorkerConfig      []NodeConfig
-	NetWork           NetworkConfig
-	Housekeeper       HousekeeperConfig
-	Upgrade           UpgradeOpts
+
+	NetWork     NetworkConfig
+	Housekeeper HousekeeperConfig
+	Upgrade     UpgradeOpts
+}
+
+type NKDConfig struct {
+	Log_Level string
 }
 
 type NodeConfig struct {
-	Hostname string
+	Count    int
+	Hostname []string
 	CPU      int
 	RAM      int
 	Disk     int
 	UserName string
 	Password string
 	SSHKey   string
-	IP       string
-	Ign_Data string
+	IP       []string
+	Ign_Data []string
 }
 
 type NetworkConfig struct {

@@ -28,9 +28,9 @@ import (
 func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
 	clusterAsset := &ClusterAsset{}
 
-	if opts.File != "" {
+	if opts.ClusterConfigFile != "" {
 		// Parse configuration file.
-		configData, err := os.ReadFile(opts.File)
+		configData, err := os.ReadFile(opts.ClusterConfigFile)
 		if err != nil {
 			return nil, err
 		}
@@ -52,53 +52,51 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 		if !ok {
 			return nil, errors.New("unsupported platform")
 		}
-		setStringValue(&clusterAsset.OpenStack.Auth_URL, openstackAsset.Auth_URL, "default openstack auth url")
+		clusterAsset.InfraPlatform = openstackAsset
+	case "libvirt", "Libvirt":
+		libvirtAsset, ok := infraAsset.(*LibvirtAsset)
+		if !ok {
+			return nil, errors.New("unsupported platform")
+		}
+		clusterAsset.InfraPlatform = libvirtAsset
 	}
 
 	// subordinate info
 	// master node
-	if opts.MasterCount != 0 {
-		clusterAsset.Master.Count = opts.MasterCount
-	} else if clusterAsset.Master.Count == 0 {
-		clusterAsset.Master.Count = 3
-	}
-	for i := 0; i < opts.MasterCount; i++ {
+	setIntValue(&clusterAsset.Master.Count, opts.Master.Count, 3)
+	for i := 0; i < opts.Master.Count; i++ {
 		master_node := &NodeAsset{
-			Hostname: opts.MasterConfig[i].Hostname,
+			Hostname: opts.Master.Hostname[i],
 			HardwareInfo: HardwareInfo{
-				CPU:  opts.MasterConfig[i].CPU,
-				RAM:  opts.MasterConfig[i].RAM,
-				Disk: opts.MasterConfig[i].Disk,
+				CPU:  opts.Master.CPU,
+				RAM:  opts.Master.RAM,
+				Disk: opts.Master.Disk,
 			},
-			UserName: opts.MasterConfig[i].UserName,
-			Password: opts.MasterConfig[i].Password,
-			SSHKey:   opts.MasterConfig[i].SSHKey,
-			IP:       opts.MasterConfig[i].IP,
-			Ign_Data: opts.MasterConfig[i].Ign_Data,
+			UserName: opts.Master.UserName,
+			Password: opts.Master.Password,
+			SSHKey:   opts.Master.SSHKey,
+			IP:       opts.Master.IP[i],
+			Ign_Data: opts.Master.Ign_Data[i],
 		}
 		if len(clusterAsset.Master.NodeAsset) == 0 {
 			clusterAsset.Master.NodeAsset = append(clusterAsset.Master.NodeAsset, *master_node)
 		}
 	}
 	// worker node
-	if opts.WorkerCount != 0 {
-		clusterAsset.Worker.Count = opts.WorkerCount
-	} else if clusterAsset.Worker.Count == 0 {
-		clusterAsset.Worker.Count = 3
-	}
-	for i := 0; i < opts.WorkerCount; i++ {
+	setIntValue(&clusterAsset.Worker.Count, opts.Worker.Count, 3)
+	for i := 0; i < opts.Worker.Count; i++ {
 		worker_node := &NodeAsset{
-			Hostname: opts.WorkerConfig[i].Hostname,
+			Hostname: opts.Worker.Hostname[i],
 			HardwareInfo: HardwareInfo{
-				CPU:  opts.WorkerConfig[i].CPU,
-				RAM:  opts.WorkerConfig[i].RAM,
-				Disk: opts.WorkerConfig[i].Disk,
+				CPU:  opts.Worker.CPU,
+				RAM:  opts.Worker.RAM,
+				Disk: opts.Worker.Disk,
 			},
-			UserName: opts.WorkerConfig[i].UserName,
-			Password: opts.WorkerConfig[i].Password,
-			SSHKey:   opts.WorkerConfig[i].SSHKey,
-			IP:       opts.WorkerConfig[i].IP,
-			Ign_Data: opts.WorkerConfig[i].Ign_Data,
+			UserName: opts.Worker.UserName,
+			Password: opts.Worker.Password,
+			SSHKey:   opts.Worker.SSHKey,
+			IP:       opts.Worker.IP[i],
+			Ign_Data: opts.Worker.Ign_Data[i],
 		}
 		if len(clusterAsset.Worker.NodeAsset) == 0 {
 			clusterAsset.Worker.NodeAsset = append(clusterAsset.Worker.NodeAsset, *worker_node)
@@ -133,31 +131,14 @@ func setIntValue(target *int, value int, defaultValue int) {
 type ClusterAsset struct {
 	Cluster_ID string
 
-	Platform
+	InfraPlatform
 	Master
 	Worker
 	Kubernetes
 	Housekeeper
 }
 
-type Platform struct {
-	OpenStack
-	Libvirt
-}
-
-type OpenStack struct {
-	UserName          string
-	Password          string
-	Tenant_Name       string
-	Auth_URL          string
-	Region            string
-	Internal_Network  string
-	External_Network  string
-	Glance_Name       string
-	Availability_Zone string
-}
-
-type Libvirt struct {
+type InfraPlatform interface {
 }
 
 type Master struct {
