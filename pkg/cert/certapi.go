@@ -23,16 +23,10 @@ import (
 	"time"
 )
 
-type CertInterface interface {
-	// Cert returns the certificate.
-	Cert() []byte
-}
-
-// CertKeyInterface contains a private key and the associated cert.
-type CertKeyInterface interface {
-	CertInterface
-	// Key returns the private key.
-	Key() []byte
+// KeyPairPEM{}仅供生成密钥对使用，证书的私钥使用CertKey{}
+type KeyPairPEM struct {
+	PrivateKeyPEM []byte
+	PublicKeyPEM  []byte
 }
 
 type CertificateGenerator interface {
