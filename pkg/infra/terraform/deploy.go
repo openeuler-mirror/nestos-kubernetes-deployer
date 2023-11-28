@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func executeApplyTerraform(tfDir string, terraformDir string) ([]byte, error) {
+func ExecuteApplyTerraform(tfDir string, terraformDir string) ([]byte, error) {
 	var applyOpts []tfexec.ApplyOption
 	return applyTerraform(tfDir, terraformDir, applyOpts...)
 }
