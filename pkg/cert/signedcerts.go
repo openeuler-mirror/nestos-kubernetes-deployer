@@ -93,25 +93,25 @@ type SignedCertKey struct {
 
 func (c *SignedCertKey) Generate(
 	cfg *CertConfig,
-	parentCA CertKeyInterface,
+	cacert, cakey []byte,
 ) error {
 	var key *rsa.PrivateKey
 	var crt *x509.Certificate
 	var err error
 
-	caKey, err := PemToPrivateKey(parentCA.Key())
+	cakeypem, err := PemToPrivateKey(cakey)
 	if err != nil {
 		logrus.Debugf("Failed to parse RSA private key: %s", err)
 		return errors.Wrap(err, "failed to parse rsa private key")
 	}
 
-	caCert, err := PemToCertificate(parentCA.Cert())
+	cacertpem, err := PemToCertificate(cacert)
 	if err != nil {
 		logrus.Debugf("Failed to parse x509 certificate: %s", err)
 		return errors.Wrap(err, "failed to parse x509 certificate")
 	}
 
-	key, crt, err = GenerateSignedCertificate(caKey, caCert, cfg)
+	key, crt, err = GenerateSignedCertificate(cakeypem, cacertpem, cfg)
 	if err != nil {
 		logrus.Debugf("Failed to generate signed cert/key pair: %s", err)
 		return errors.Wrap(err, "failed to generate signed cert/key pair")
