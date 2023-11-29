@@ -111,7 +111,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
 		infra.Master.Disk = append(infra.Master.Disk, nodeAsset.Disk)
 		infra.Master.Hostname = append(infra.Master.Hostname, nodeAsset.Hostname)
 		infra.Master.IP = append(infra.Master.IP, nodeAsset.IP)
-		infra.Master.Ign_Data = append(infra.Master.Ign_Data, nodeAsset.Ign_Data)
+		infra.Master.Ign_Data = append(infra.Master.Ign_Data, string(nodeAsset.Ign_Data))
 	}
 
 	infra.Worker.Count = conf.Worker.Count
@@ -121,7 +121,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
 		infra.Worker.Disk = append(infra.Worker.Disk, nodeAsset.Disk)
 		infra.Worker.Hostname = append(infra.Worker.Hostname, nodeAsset.Hostname)
 		infra.Worker.IP = append(infra.Worker.IP, nodeAsset.IP)
-		infra.Worker.Ign_Data = append(infra.Worker.Ign_Data, nodeAsset.Ign_Data)
+		infra.Worker.Ign_Data = append(infra.Worker.Ign_Data, string(nodeAsset.Ign_Data))
 	}
 
 	outputFile, err := os.Create(filepath.Join(node, fmt.Sprintf("%s.tf", node)))
