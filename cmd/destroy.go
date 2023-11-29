@@ -16,48 +16,50 @@ limitations under the License.
 package cmd
 
 import (
-	"nestos-kubernetes-deployer/pkg/configmanager/manager"
+	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var destroyClusterOpts struct {
-	clusterID string
-}
-
 func NewDestroyCommand() *cobra.Command {
-	cmd := &cobra.Command{
+	destroyCmd := &cobra.Command{
 		Use:   "destroy",
 		Short: "Destroy a kubernetes cluster",
 		RunE:  runDestroyCmd,
 	}
-	cmd.PersistentFlags().StringVarP(&destroyClusterOpts.clusterID, "cluster-id", "", "", "cluster ID")
+	command.SetupDestroyCmdOpts(destroyCmd)
 
-	// cmd.AddCommand(destroy.NewDestroyMasterCommand())
-	// cmd.AddCommand(destroy.NewDestroyWorkerCommand())
-
-	return cmd
+	return destroyCmd
 }
 
 func runDestroyCmd(cmd *cobra.Command, args []string) error {
-	if err := manager.Initial(cmd); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
-		return err
-	}
-	clusterID, _ := cmd.Flags().GetString("cluster-id")
-	conf, err := manager.GetClusterConfig(clusterID)
+	clusterId, err := cmd.Flags().GetString("cluster-id")
 	if err != nil {
+		logrus.Errorf("Failed to get cluster-id: %v", err)
 		return err
 	}
 
-	if err := destroyCluster(conf); err != nil {
+	if err := configmanager.Initial(&opts.Opts); err != nil {
+		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		return err
+	}
+	config, err := configmanager.GetClusterConfig(clusterId)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		return err
+	}
+
+	if err := destroyCluster(config); err != nil {
 		return err
 	}
 	return nil
 }
 
-func destroyCluster( /*输入：TF配置*/ ) error {
+func destroyCluster(config *asset.ClusterAsset) error {
 	/*调用TF模块接口，销毁集群*/
 	return nil
 }
