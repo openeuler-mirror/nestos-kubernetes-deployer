@@ -25,7 +25,6 @@ import (
 
 type Worker struct {
 	ClusterAsset *asset.ClusterAsset
-	IgnFiles     []ignition.IgnFile
 }
 
 func (w *Worker) GenerateFiles() error {
@@ -50,15 +49,8 @@ func (w *Worker) GenerateFiles() error {
 			logrus.Errorf("failed to Marshal ignition config: %v", err)
 			return err
 		}
-		appendWorkerData(w, data)
+		w.ClusterAsset.Master.NodeAsset[i].Ign_Data = data
 	}
 
 	return nil
-}
-
-func appendWorkerData(worker *Worker, data []byte) {
-	ignFile := ignition.IgnFile{
-		Data: data,
-	}
-	worker.IgnFiles = append(worker.IgnFiles, ignFile)
 }

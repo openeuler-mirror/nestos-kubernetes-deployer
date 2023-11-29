@@ -23,12 +23,6 @@ import (
 	"github.com/vincent-petithory/dataurl"
 )
 
-type StorageContent struct {
-	Path    string
-	Mode    int
-	Content []byte
-}
-
 func Marshal(input interface{}) ([]byte, error) {
 	return json.Marshal(input)
 }
@@ -67,12 +61,4 @@ func AppendFiles(files []igntypes.File, file igntypes.File) []igntypes.File {
 	}
 	files = append(files, file)
 	return files
-}
-
-func UpsertStorageFiles(files []StorageContent, path string, mode int, content []byte) {
-	files = append(files, StorageContent{
-		Path:    path,
-		Mode:    mode,
-		Content: content,
-	})
 }

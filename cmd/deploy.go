@@ -19,10 +19,8 @@ import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
-	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/ignition"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
@@ -44,8 +42,6 @@ type crdTmplData struct {
 	operatorImageUrl   string
 	controllerImageUrl string
 }
-
-type Certificates []ignition.StorageContent
 
 func NewDeployCommand() *cobra.Command {
 	deployCmd := &cobra.Command{
@@ -121,39 +117,15 @@ func getClusterDeployConfig(conf *asset.ClusterAsset) error {
 	return nil
 }
 
-func generateCerts(conf *asset.ClusterAsset) (Certificates, error) {
-	rootCA, err := cert.GenerateRootCA()
-	if err != nil {
-		logrus.Errorf("Error generating root CA:%v", err)
-		return nil, err
-	}
-	etcdCA, err := cert.GenerateEtcdCA()
-	if err != nil {
-		logrus.Errorf("Error generating etcd CA:%v", err)
-		return nil, err
-	}
-	frontProxyCA, err := cert.GenerateFrontProxyCA()
-	if err != nil {
-		logrus.Errorf("Error generating front proxy CA:%v", err)
-		return nil, err
-	}
+func generateCerts(conf *asset.ClusterAsset) error {
 
-	var certs Certificates
-	ignition.UpsertStorageFiles(certs, constants.CaCrt, int(constants.CertFileMode), rootCA.CertRaw)
-	ignition.UpsertStorageFiles(certs, constants.CaKey, int(constants.CertFileMode), rootCA.KeyRaw)
-	ignition.UpsertStorageFiles(certs, constants.EtcdCaCrt, int(constants.CertFileMode), etcdCA.CertRaw)
-	ignition.UpsertStorageFiles(certs, constants.EtcdCaKey, int(constants.CertFileMode), etcdCA.KeyRaw)
-	ignition.UpsertStorageFiles(certs, constants.FrontProxyCaCrt, int(constants.CertFileMode), frontProxyCA.CertRaw)
-	ignition.UpsertStorageFiles(certs, constants.FrontProxyCaKey, int(constants.CertFileMode), frontProxyCA.KeyRaw)
-
-	return certs, nil
+	return nil
 }
 
 func generateIgnition(conf *asset.ClusterAsset, certFiles []ignition.StorageContent) error {
 	master := &machine.Master{
 		ClusterAsset:   conf,
 		StorageContent: certFiles,
-		IgnFiles:       []ignition.IgnFile{},
 	}
 	if err := master.GenerateFiles(); err != nil {
 		logrus.Errorf("Failed to generate master ignition file: %v", err)
@@ -162,7 +134,6 @@ func generateIgnition(conf *asset.ClusterAsset, certFiles []ignition.StorageCont
 
 	worker := &machine.Worker{
 		ClusterAsset: conf,
-		IgnFiles:     []ignition.IgnFile{},
 	}
 	if err := worker.GenerateFiles(); err != nil {
 		logrus.Errorf("Failed to generate worker ignition file: %v", err)

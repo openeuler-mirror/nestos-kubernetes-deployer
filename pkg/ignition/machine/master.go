@@ -26,7 +26,6 @@ import (
 type Master struct {
 	ClusterAsset   *asset.ClusterAsset
 	StorageContent []ignition.StorageContent
-	IgnFiles       []ignition.IgnFile
 }
 
 func (m *Master) GenerateFiles() error {
@@ -53,7 +52,7 @@ func (m *Master) GenerateFiles() error {
 		logrus.Errorf("failed to Marshal ignition config: %v", err)
 		return err
 	}
-	appendMasterData(m, data)
+	m.ClusterAsset.Master.NodeAsset[0].Ign_Data = data
 	for i := 1; i < m.ClusterAsset.Master.Count; i++ {
 		generateFile.UserName = m.ClusterAsset.Master.NodeAsset[i].UserName
 		generateFile.SSHKey = m.ClusterAsset.Master.NodeAsset[i].SSHKey
@@ -68,15 +67,8 @@ func (m *Master) GenerateFiles() error {
 			logrus.Errorf("failed to Marshal ignition config: %v", err)
 			return err
 		}
-		appendMasterData(m, data)
+		m.ClusterAsset.Master.NodeAsset[i].Ign_Data = data
 	}
 
 	return nil
-}
-
-func appendMasterData(master *Master, data []byte) {
-	ignFile := ignition.IgnFile{
-		Data: data,
-	}
-	master.IgnFiles = append(master.IgnFiles, ignFile)
 }

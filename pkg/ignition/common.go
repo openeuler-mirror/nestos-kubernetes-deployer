@@ -42,10 +42,6 @@ var (
 	}
 )
 
-type IgnFile struct {
-	Data []byte
-}
-
 type TmplData struct {
 	APIServerURL    string
 	ImageRegistry   string

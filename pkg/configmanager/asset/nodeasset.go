@@ -23,7 +23,7 @@ type NodeAsset struct {
 	Password string
 	SSHKey   string
 	IP       string
-	Ign_Data string
+	Ign_Data []byte
 }
 
 type HardwareInfo struct {
