@@ -20,20 +20,19 @@ import (
 	"fmt"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/yaml"
-
 	wait "k8s.io/apimachinery/pkg/util/wait"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func NewUpgradeCommand() *cobra.Command {
@@ -49,23 +48,31 @@ func NewUpgradeCommand() *cobra.Command {
 }
 
 func runUpgradeCmd(cmd *cobra.Command, args []string) error {
-	loopTimeout := 2 * time.Minute
-	// Get the kubeconfig configuration
-	config, err := clientcmd.BuildConfigFromFlags("", opts.Upgrade.KubeConfigFile)
+	clusterId, err := cmd.Flags().GetString("cluster-id")
 	if err != nil {
-		config, err = rest.InClusterConfig()
-		if err != nil {
-			logrus.Errorf("Error getting Kubernetes client config: %v\n", err)
-			return err
-		}
-	}
-
-	// Create dynamic client
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		logrus.Errorf("Error creating Dynamic client: %v\n", err)
+		logrus.Errorf("Failed to get cluster-id: %v", err)
 		return err
 	}
+	if err := configmanager.Initial(&opts.Opts); err != nil {
+		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		return err
+	}
+	clusterConfig, err := configmanager.GetClusterConfig(clusterId)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		return err
+	}
+
+	if err := upgradeCluster(clusterConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func upgradeCluster(clusterConfig *asset.ClusterAsset) error {
+	loopTimeout := 2 * time.Minute
+	dynamicClient, err := kubeclient.CreateDynamicClient("/***/")
 
 	// Define the YAML data for the Custom Resource (CR)
 	yamlData := fmt.Sprintf(`
@@ -79,7 +86,7 @@ osImageURL: %s
 kubeVersion: %s
 evictPodForce: %t
 maxUnavailable: %d
-`, opts.Upgrade.OSImageURL, opts.Upgrade.KubeVersion, opts.Upgrade.EvictPodForce, opts.Upgrade.MaxUnavailable)
+`, clusterConfig.Housekeeper.OSImageURL, clusterConfig.Housekeeper.KubeVersion, clusterConfig.Housekeeper.EvictPodForce, clusterConfig.Housekeeper.MaxUnavailable)
 
 	var unstructuredObj unstructured.Unstructured
 	err = yaml.Unmarshal([]byte(yamlData), &unstructuredObj)

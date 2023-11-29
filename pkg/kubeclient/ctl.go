@@ -19,7 +19,9 @@ import (
 	"context"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -34,17 +36,39 @@ import (
 func CreateClient(kubeconfig string) (*kubernetes.Clientset, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		logrus.Errorf("error loading kubeconfig: %v", err)
+		logrus.Errorf("Error loading kubeconfig: %v", err)
 		return nil, err
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		logrus.Errorf("failed to create a Kubernetes client: %v", err)
+		logrus.Errorf("Failed to create a Kubernetes client: %v", err)
 		return nil, err
 	}
 
 	return clientset, nil
+}
+
+// CreateDynamicClient creates a dynamic client.
+func CreateDynamicClient(kubeconfig string) (dynamic.Interface, error) {
+	// Get the kubeconfig configuration
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			logrus.Errorf("Error getting Kubernetes client config: %v\n", err)
+			return nil, err
+		}
+	}
+
+	// Create dynamic client
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		logrus.Errorf("Error creating Dynamic client: %v\n", err)
+		return nil, err
+	}
+
+	return dynamicClient, nil
 }
 
 // Apply a Kubernetes resource of the specified type using the provided content.

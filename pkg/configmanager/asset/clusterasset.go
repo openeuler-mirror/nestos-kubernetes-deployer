@@ -181,6 +181,10 @@ type Network struct {
 type Housekeeper struct {
 	Operator_Image_URL   string
 	Controller_Image_URL string
+	KubeVersion          string
+	EvictPodForce        bool
+	MaxUnavailable       int
+	OSImageURL           string
 }
 
 // TODO: Delete deletes the cluster asset.
