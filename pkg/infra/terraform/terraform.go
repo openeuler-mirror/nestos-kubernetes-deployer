@@ -28,13 +28,14 @@ import (
 )
 
 /*
-	tfDir: tf配置文件所在目录
-	terraformDir: terraform执行文件所在目录
+	tfFileDir: tf file directory
+	persistDir: nkd config directory, default /etc/nkd
 */
 
-func newTFExec(tfDir string, terraformDir string) (*tfexec.Terraform, error) {
-	tfPath := filepath.Join(terraformDir, "terraform")
-	tf, err := tfexec.NewTerraform(tfDir, tfPath)
+const execPath string = "/usr/bin/tofu"
+
+func newTFExec(tfFileDir string) (*tfexec.Terraform, error) {
+	tf, err := tfexec.NewTerraform(tfFileDir, execPath)
 	if err != nil {
 		return nil, err
 	}
@@ -59,21 +60,21 @@ func newTFExec(tfDir string, terraformDir string) (*tfexec.Terraform, error) {
 }
 
 // terraform init
-func TFInit(tfDir string, terraformDir string) (err error) {
-	tf, err := newTFExec(tfDir, terraformDir)
+func TFInit(tfFileDir string, persistDir string) (err error) {
+	tf, err := newTFExec(tfFileDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec")
 	}
 
-	// 尝试使用本地插件目录执行初始化
-	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(terraformDir, "providers")))
+	// Try to perform initialization using the local plug-in directory.
+	err = tf.Init(context.Background(), tfexec.PluginDir(filepath.Join(persistDir, "providers")))
 	if err == nil {
 		return nil
 	}
 
 	fmt.Print("Failed to initialize Terraform with existed plugin directory\nStart downloading plugins...\n")
-	// 设置插件下载的路径
-	os.Setenv("TF_DATA_DIR", terraformDir)
+	// Set the path for downloading plug-ins.
+	os.Setenv("TF_DATA_DIR", persistDir)
 	err = tf.Init(context.Background(), tfexec.Upgrade(false))
 	if err != nil {
 		return errors.Wrap(err, "failed to init terraform")
@@ -83,12 +84,12 @@ func TFInit(tfDir string, terraformDir string) (err error) {
 }
 
 // terraform apply
-func TFApply(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption) error {
-	if err := TFInit(tfDir, terraformDir); err != nil {
+func TFApply(tfFileDir string, persistDir string, applyOpts ...tfexec.ApplyOption) error {
+	if err := TFInit(tfFileDir, persistDir); err != nil {
 		return errors.Wrap(err, "failed to init terraform")
 	}
 
-	tf, err := newTFExec(tfDir, terraformDir)
+	tf, err := newTFExec(tfFileDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec")
 	}
@@ -102,17 +103,17 @@ func TFApply(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption)
 }
 
 // terraform apply for nkd extend
-func TFExtend(tfDir string, terraformDir string, num int) error {
-	if err := TFInit(tfDir, terraformDir); err != nil {
+func TFExtend(tfFileDir string, persistDir string, count int) error {
+	if err := TFInit(tfFileDir, persistDir); err != nil {
 		return errors.Wrap(err, "failed to init terraform")
 	}
 
-	tf, err := newTFExec(tfDir, terraformDir)
+	tf, err := newTFExec(tfFileDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to create a new tfexec")
 	}
 
-	err = tf.Apply(context.Background(), tfexec.Var(fmt.Sprintf("instance_count=%d", num)))
+	err = tf.Apply(context.Background(), tfexec.Var(fmt.Sprintf("instance_count=%d", count)))
 	if err != nil {
 		return errors.Wrap(err, "failed to extend Terraform")
 	}
@@ -121,12 +122,12 @@ func TFExtend(tfDir string, terraformDir string, num int) error {
 }
 
 // terraform destroy
-func TFDestroy(tfDir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
-	if err := TFInit(tfDir, terraformDir); err != nil {
+func TFDestroy(tfFileDir string, persistDir string, destroyOpts ...tfexec.DestroyOption) error {
+	if err := TFInit(tfFileDir, persistDir); err != nil {
 		return errors.Wrap(err, "failed to init terraform")
 	}
 
-	tf, err := newTFExec(tfDir, terraformDir)
+	tf, err := newTFExec(tfFileDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to destroy a new tfexec")
 	}

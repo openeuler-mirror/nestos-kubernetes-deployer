@@ -17,68 +17,46 @@ limitations under the License.
 package infra
 
 import (
-	"fmt"
 	"nestos-kubernetes-deployer/pkg/infra/terraform"
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type Cluster struct {
-	Node string // 节点类别
-	Num  int    // 扩展节点个数
+	PersistDir string
+	ClusterID  string
+	Node       string
+	Count      int
 }
 
-func (c *Cluster) Deploy() error {
-	// 工作目录，包含terraform执行文件以及所需plugins
-	workDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	// tf配置文件所在目录
-	tfDir := filepath.Join(workDir, c.Node)
-
-	outputs, err := terraform.ExecuteApplyTerraform(tfDir, workDir)
+func (c *Cluster) Deploy() (err error) {
+	tfFileDir := filepath.Join(c.PersistDir, c.ClusterID, c.Node)
+	outputs, err := terraform.ExecuteApplyTerraform(tfFileDir, c.PersistDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform apply")
 	}
-	fmt.Println(string(outputs))
+	logrus.Println(string(outputs))
 
 	return nil
 }
 
-func (c *Cluster) Extend() error {
-	// 工作目录，包含terraform执行文件以及所需plugins
-	workDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	// tf配置文件所在目录
-	tfDir := filepath.Join(workDir, c.Node)
-
-	outputs, err := terraform.ExtendTerraform(tfDir, workDir, c.Num)
+func (c *Cluster) Extend() (err error) {
+	tfFileDir := filepath.Join(c.PersistDir, c.ClusterID, c.Node)
+	outputs, err := terraform.ExtendTerraform(tfFileDir, c.PersistDir, c.Count)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform apply")
 	}
-	fmt.Println(string(outputs))
+	logrus.Println(string(outputs))
 
 	return nil
 }
 
-func (c *Cluster) Destroy() error {
-	// 工作目录，包含terraform执行文件以及所需plugins
-	workDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	// tf配置文件所在目录
-	tfDir := filepath.Join(workDir, c.Node)
-
-	err = terraform.ExecuteDestroyTerraform(tfDir, workDir)
+func (c *Cluster) Destroy() (err error) {
+	// tf file directory.
+	tfFileDir := filepath.Join(c.PersistDir, c.ClusterID, c.Node)
+	err = terraform.ExecuteDestroyTerraform(tfFileDir, c.PersistDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform destroy")
 	}

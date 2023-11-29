@@ -23,23 +23,23 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func ExecuteApplyTerraform(tfDir string, terraformDir string) ([]byte, error) {
+func ExecuteApplyTerraform(tfFileDir string, persistDir string) ([]byte, error) {
 	var applyOpts []tfexec.ApplyOption
-	return applyTerraform(tfDir, terraformDir, applyOpts...)
+	return applyTerraform(tfFileDir, persistDir, applyOpts...)
 }
 
-func applyTerraform(tfDir string, terraformDir string, applyOpts ...tfexec.ApplyOption) ([]byte, error) {
-	applyErr := TFApply(tfDir, terraformDir, applyOpts...)
+func applyTerraform(tfFileDir string, persistDir string, applyOpts ...tfexec.ApplyOption) ([]byte, error) {
+	applyErr := TFApply(tfFileDir, persistDir, applyOpts...)
 	if applyErr != nil {
 		return nil, applyErr
 	}
 
-	_, err := os.Stat(filepath.Join(tfDir, "terraform.tfstate"))
+	_, err := os.Stat(filepath.Join(tfFileDir, "terraform.tfstate"))
 	if os.IsNotExist(err) {
 		return nil, err
 	}
 
-	outputs, err := Outputs(tfDir, terraformDir)
+	outputs, err := Outputs(tfFileDir)
 	if err != nil {
 		return nil, err
 	}

@@ -21,18 +21,18 @@ import (
 	"path/filepath"
 )
 
-func ExtendTerraform(tfDir string, terraformDir string, num int) ([]byte, error) {
-	applyErr := TFExtend(tfDir, terraformDir, num)
+func ExtendTerraform(tfFileDir string, persistDir string, count int) ([]byte, error) {
+	applyErr := TFExtend(tfFileDir, persistDir, count)
 	if applyErr != nil {
 		return nil, applyErr
 	}
 
-	_, err := os.Stat(filepath.Join(tfDir, "terraform.tfstate"))
+	_, err := os.Stat(filepath.Join(tfFileDir, "terraform.tfstate"))
 	if os.IsNotExist(err) {
 		return nil, err
 	}
 
-	outputs, err := Outputs(tfDir, terraformDir)
+	outputs, err := Outputs(tfFileDir)
 	if err != nil {
 		return nil, err
 	}
