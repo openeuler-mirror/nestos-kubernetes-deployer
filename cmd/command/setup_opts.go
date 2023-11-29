@@ -24,7 +24,7 @@ import (
 
 func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags := deployCmd.Flags()
-	flags.StringVarP(&opts.Opts.DeployConfig, "file", "f", "./deploy-config.yaml", "location of cluster deploy config file, default ./deploy-config.yaml")
+	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "./deploy-config.yaml", "location of cluster deploy config file, default ./deploy-config.yaml")
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "cluster id")
 	flags.StringVarP(&opts.Opts.SSHKey, "sshkey", "", "", "path to SSH private keys that should be used for authentication.")
 	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "select the infrastructure platform to deploy the cluster")
@@ -37,9 +37,10 @@ func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {
 
 func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
 	flags := upgradeCmd.Flags()
-	flags.StringVarP(&opts.Opts.Upgrade.KubeVersion, "kube-version", "", "", "Choose a specific kubernetes version for upgrading")
-	flags.BoolVarP(&opts.Opts.Upgrade.EvictPodForce, "force", "f", false, "Force evict pod")
-	flags.IntVarP(&opts.Opts.Upgrade.MaxUnavailable, "maxunavailable", "n", 2, "Number of nodes that are upgraded at the same time")
-	flags.StringVarP(&opts.Opts.Upgrade.KubeConfigFile, "kubeconfig", "", "./auth/config", "kubeconfig file access path")
-	flags.StringVarP(&opts.Opts.Upgrade.OSImageURL, "imageurl", "", "", "The address of the container image to use for upgrading")
+	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "cluster id")
+	flags.StringVarP(&opts.Opts.Housekeeper.KubeVersion, "kube-version", "", "", "Choose a specific kubernetes version for upgrading")
+	flags.BoolVarP(&opts.Opts.Housekeeper.EvictPodForce, "force", "", false, "Force eviction of pods even if unsafe. This may result in data loss or service disruption, use with caution")
+	flags.IntVarP(&opts.Opts.Housekeeper.MaxUnavailable, "maxunavailable", "", 2, "Number of nodes that are upgraded at the same time")
+	flags.StringVarP(&opts.Opts.KubeConfigFile, "kubeconfig", "", "/etc/nkd/pki/kubeconfig/admin.conf", "kubeconfig file access path")
+	flags.StringVarP(&opts.Opts.Housekeeper.OSImageURL, "imageurl", "", "", "The address of the container image to use for upgrading")
 }

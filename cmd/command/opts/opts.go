@@ -24,8 +24,8 @@ var Opts OptionsList
 
 type OptionsList struct {
 	ClusterConfigFile string
-
-	NKD NKDConfig
+	KubeConfigFile    string
+	NKD               NKDConfig
 
 	ClusterID string
 	Platform  string
@@ -39,9 +39,8 @@ type OptionsList struct {
 	ReleaseImageUrl   string
 	KubeVersion       string
 
-	NetWork     NetworkConfig
-	Housekeeper HousekeeperConfig
-	Upgrade     UpgradeOpts
+	NetWork NetworkConfig
+	Housekeeper
 }
 
 type NKDConfig struct {
@@ -71,15 +70,11 @@ type DnsConfig struct {
 	ImageVersion string //coredns
 }
 
-type HousekeeperConfig struct {
+type Housekeeper struct {
 	OperatorImageUrl   string
 	ControllerImageUrl string
-}
-
-type UpgradeOpts struct {
-	KubeVersion    string
-	EvictPodForce  bool
-	MaxUnavailable int
-	KubeConfigFile string
-	OSImageURL     string
+	KubeVersion        string
+	EvictPodForce      bool
+	MaxUnavailable     int
+	OSImageURL         string
 }
