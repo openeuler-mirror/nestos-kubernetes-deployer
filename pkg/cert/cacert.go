@@ -22,12 +22,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"io/ioutil"
-	"nestos-kubernetes-deployer/pkg/configmanager"
 
 	"github.com/pkg/errors"
 )
 
-// SetUserCA 读取用户提供的ca证书和密钥路径
+// SetUserCA 读取用户提供的各类ca证书和密钥路径中的内容
 func setUserCA(a *SelfSignedCertKey, certPath, keyPath string) error {
 	cacert, err := ioutil.ReadFile(certPath)
 	if err != nil {
@@ -46,12 +45,15 @@ func setUserCA(a *SelfSignedCertKey, certPath, keyPath string) error {
 	return nil
 }
 
-//GenerateRootCA()用于生成/etc/kubernetes/pki/ca.crt
-func GenerateRootCA(clusterID string) (*SelfSignedCertKey, error) {
+/*
+GenerateAllCA()用于生成
+/etc/kubernetes/pki/ca.crt
+/etc/kubernetes/pki/front-proxy-ca.crt
+/etc/kubernetes/pki/etcd/ca.crt
+*/
+func GenerateAllCA(userCACertPath, userCAKeyPath, commonname string, dnsname []string) (*SelfSignedCertKey, error) {
 
 	a := SelfSignedCertKey{}
-	//接受用户输入的两个路径
-	userCACertPath, userCAKeyPath := GetCustomRootCAPathFromConfig(clusterID)
 
 	// 如果用户提供了路径，则读取用户提供的证书和密钥
 	if userCACertPath != "" && userCAKeyPath != "" {
@@ -62,10 +64,11 @@ func GenerateRootCA(clusterID string) (*SelfSignedCertKey, error) {
 	} else {
 		// 如果用户没有提供自定义CA证书路径，则继续生成
 		cfg := &CertConfig{
-			Subject:   pkix.Name{CommonName: "Kubernetes", OrganizationalUnit: []string{"NestOS"}},
+			Subject:   pkix.Name{CommonName: commonname},
 			KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 			Validity:  3650,
 			IsCA:      true,
+			DNSNames:  dnsname,
 		}
 
 		err := a.Generate(cfg)
@@ -75,98 +78,6 @@ func GenerateRootCA(clusterID string) (*SelfSignedCertKey, error) {
 	}
 
 	return &a, nil
-}
-
-// GetCustomRootCAPathFromConfig 实现从配置文件中获取用户提供的自定义root CA路径和对应密钥路径的逻辑
-func GetCustomRootCAPathFromConfig(clusterID string) (string, string) {
-	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
-
-	certpath := clusterconfig.CertAsset.RootCaCertPath
-	keypath := clusterconfig.CertAsset.RootCaKeyPath
-
-	return certpath, keypath
-}
-
-//GenerateEtcdCA()用于生成/etc/kubernetes/pki/etcd/ca.crt
-func GenerateEtcdCA(clusterID string) (*SelfSignedCertKey, error) {
-
-	a := SelfSignedCertKey{}
-	//接受用户输入的两个路径
-	userCACertPath, userCAKeyPath := GetCustomEtcdCAPathFromConfig(clusterID)
-
-	// 如果用户提供了路径，则读取用户提供的证书和密钥
-	if userCACertPath != "" && userCAKeyPath != "" {
-		err := setUserCA(&a, userCACertPath, userCAKeyPath)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// 如果用户没有提供自定义CA证书路径，则继续生成
-		cfg := &CertConfig{
-			Subject:   pkix.Name{CommonName: "etcd-ca", OrganizationalUnit: []string{"NestOS"}},
-			KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-			Validity:  3650,
-			IsCA:      true,
-		}
-
-		err := a.Generate(cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &a, nil
-}
-
-// GetCustomEtcdCAPathFromConfig 实现从配置文件中获取用户提供的自定义ETCD CA路径和对应密钥路径的逻辑
-func GetCustomEtcdCAPathFromConfig(clusterID string) (string, string) {
-	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
-
-	certpath := clusterconfig.CertAsset.EtcdCaCertPath
-	keypath := clusterconfig.CertAsset.EtcdCaKeyPath
-
-	return certpath, keypath
-}
-
-//GenerateFrontProxyCA()用于生成/etc/kubernetes/pki/front-proxy-ca.crt
-func GenerateFrontProxyCA(clusterID string) (*SelfSignedCertKey, error) {
-
-	a := SelfSignedCertKey{}
-	//接受用户输入的两个路径
-	userCACertPath, userCAKeyPath := GetCustomFrontProxyCAPathFromConfig(clusterID)
-
-	// 如果用户提供了路径，则读取用户提供的证书和密钥
-	if userCACertPath != "" && userCAKeyPath != "" {
-		err := setUserCA(&a, userCACertPath, userCAKeyPath)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// 如果用户没有提供自定义CA证书路径，则继续生成
-		cfg := &CertConfig{
-			Subject:   pkix.Name{CommonName: "front-proxy-ca", OrganizationalUnit: []string{"NestOS"}},
-			KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-			Validity:  3650,
-			IsCA:      true,
-		}
-
-		err := a.Generate(cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &a, nil
-}
-
-// GetCustomFrontProxyCAPathFromConfig 实现从配置文件中获取用户提供的自定义front-proxy CA路径和对应密钥路径的逻辑
-func GetCustomFrontProxyCAPathFromConfig(clusterID string) (string, string) {
-	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
-
-	certpath := clusterconfig.CertAsset.EtcdCaCertPath
-	keypath := clusterconfig.CertAsset.EtcdCaKeyPath
-
-	return certpath, keypath
 }
 
 /* GenerateKeyPair()用于生成/etc/kubernetes/pki/sa.pub和/etc/kubernetes/pki/sa.key ，
