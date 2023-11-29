@@ -18,6 +18,7 @@ package machine
 import (
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
+	"nestos-kubernetes-deployer/pkg/utils"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/sirupsen/logrus"
@@ -25,7 +26,7 @@ import (
 
 type Master struct {
 	ClusterAsset   *asset.ClusterAsset
-	StorageContent []ignition.StorageContent
+	StorageContent []utils.StorageContent
 }
 
 func (m *Master) GenerateFiles() error {
