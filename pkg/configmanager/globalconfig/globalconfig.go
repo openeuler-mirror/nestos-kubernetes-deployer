@@ -23,8 +23,8 @@ import (
 func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 	globalAsset := &GlobalConfig{}
 
-	if opts.Log_Level != "" {
-		globalAsset.Log_Level = opts.Log_Level
+	if opts.NKD.Log_Level != "" {
+		globalAsset.Log_Level = opts.NKD.Log_Level
 	} else {
 		globalAsset.Log_Level = "default log level"
 	}
