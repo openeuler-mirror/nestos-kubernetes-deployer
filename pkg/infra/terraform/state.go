@@ -24,8 +24,8 @@ import (
 )
 
 // Outputs reads the terraform state file and returns the outputs of the stage as json.
-func Outputs(dir string, terraformDir string) ([]byte, error) {
-	tf, err := newTFExec(dir, terraformDir)
+func Outputs(tfFileDir string) ([]byte, error) {
+	tf, err := newTFExec(tfFileDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to destroy a new tfexec")
 	}

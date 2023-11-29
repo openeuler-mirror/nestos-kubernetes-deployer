@@ -20,13 +20,13 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func ExecuteDestroyTerraform(tfDir string, terraformDir string) error {
+func ExecuteDestroyTerraform(tfFileDir string, persistDir string) error {
 	var destroyOpts []tfexec.DestroyOption
-	return destroyTerraform(tfDir, terraformDir, destroyOpts...)
+	return destroyTerraform(tfFileDir, persistDir, destroyOpts...)
 }
 
-func destroyTerraform(tfDir string, terraformDir string, destroyOpts ...tfexec.DestroyOption) error {
-	destroyErr := TFDestroy(tfDir, terraformDir, destroyOpts...)
+func destroyTerraform(tfFileDir string, persistDir string, destroyOpts ...tfexec.DestroyOption) error {
+	destroyErr := TFDestroy(tfFileDir, persistDir, destroyOpts...)
 	if destroyErr != nil {
 		return destroyErr
 	}
