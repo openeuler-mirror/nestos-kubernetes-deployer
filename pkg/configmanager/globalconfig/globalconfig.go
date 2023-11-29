@@ -37,6 +37,7 @@ func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 type GlobalConfig struct {
 	Log_Level          string
 	ClusterConfig_Path string
+	PersistDir         string // default: /etc/nkd
 }
 
 // TODO: Delete deletes the global asset.
