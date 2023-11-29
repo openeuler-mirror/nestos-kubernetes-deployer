@@ -145,6 +145,7 @@ type ClusterAsset struct {
 	Worker
 	Kubernetes
 	Housekeeper
+	CertAsset
 }
 
 type InfraPlatform interface {

@@ -23,11 +23,12 @@ import (
 )
 
 // GenerateAllCertificates 生成所有证书和密钥
-func GenerateAllFiles() ([]utils.StorageContent, error) {
+func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	var certs []utils.StorageContent
+	//后续引入dns、ip后再调用clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
 
 	// 生成root CA 证书和密钥
-	rootCACert, err := GenerateRootCA()
+	rootCACert, err := GenerateRootCA(clusterID)
 	if err != nil {
 		logrus.Errorf("Error generating root CA:%v", err)
 		return nil, err
@@ -56,7 +57,7 @@ func GenerateAllFiles() ([]utils.StorageContent, error) {
 	certs = append(certs, rootCACertContent, rootCAKeyContent)
 
 	// 生成 etcd CA 证书
-	etcdCACert, err := GenerateEtcdCA()
+	etcdCACert, err := GenerateEtcdCA(clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func GenerateAllFiles() ([]utils.StorageContent, error) {
 	certs = append(certs, etcdCACertContent, etcdCAKeyContent)
 
 	// 生成 front-proxy CA 证书
-	frontProxyCACert, err := GenerateFrontProxyCA()
+	frontProxyCACert, err := GenerateFrontProxyCA(clusterID)
 	if err != nil {
 		return nil, err
 	}

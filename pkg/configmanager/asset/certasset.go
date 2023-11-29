@@ -16,5 +16,12 @@ limitations under the License.
 
 package asset
 
+//接受用户自定义的各类ca证书路径
 type CertAsset struct {
+	RootCaCertPath       string
+	RootCaKeyPath        string
+	EtcdCaCertPath       string
+	EtcdCaKeyPath        string
+	FrontProxyCaCertPath string
+	FrontProxyCaKeyPath  string
 }
