@@ -23,8 +23,8 @@ import (
 )
 
 // GenerateAllCertificates 生成所有证书和密钥
-func GenerateAllFiles() ([]StorageContent, error) {
-	var certs []StorageContent
+func GenerateAllFiles() ([]utils.StorageContent, error) {
+	var certs []utils.StorageContent
 
 	// 生成root CA 证书和密钥
 	rootCACert, err := GenerateRootCA()
@@ -42,12 +42,12 @@ func GenerateAllFiles() ([]StorageContent, error) {
 	if err != nil {
 		return nil, err
 	}
-	rootCACertContent := StorageContent{
+	rootCACertContent := utils.StorageContent{
 		Path:    utils.CaCrt,
 		Mode:    int(utils.CertFileMode),
 		Content: rootCACert.CertRaw,
 	}
-	rootCAKeyContent := StorageContent{
+	rootCAKeyContent := utils.StorageContent{
 		Path:    utils.CaKey,
 		Mode:    int(utils.CertFileMode),
 		Content: rootCACert.KeyRaw,
@@ -60,12 +60,12 @@ func GenerateAllFiles() ([]StorageContent, error) {
 	if err != nil {
 		return nil, err
 	}
-	etcdCACertContent := StorageContent{
+	etcdCACertContent := utils.StorageContent{
 		Path:    utils.EtcdCaCrt,
 		Mode:    int(utils.CertFileMode),
 		Content: etcdCACert.CertRaw,
 	}
-	etcdCAKeyContent := StorageContent{
+	etcdCAKeyContent := utils.StorageContent{
 		Path:    utils.EtcdCaKey,
 		Mode:    int(utils.CertFileMode),
 		Content: etcdCACert.KeyRaw,
@@ -78,12 +78,12 @@ func GenerateAllFiles() ([]StorageContent, error) {
 		return nil, err
 	}
 
-	frontProxyCACertContent := StorageContent{
+	frontProxyCACertContent := utils.StorageContent{
 		Path:    utils.FrontProxyCaCrt,
 		Mode:    int(utils.CertFileMode),
 		Content: frontProxyCACert.CertRaw,
 	}
-	frontProxyCAKeyContent := StorageContent{
+	frontProxyCAKeyContent := utils.StorageContent{
 		Path:    utils.FrontProxyCaKey,
 		Mode:    int(utils.CertFileMode),
 		Content: frontProxyCACert.KeyRaw,

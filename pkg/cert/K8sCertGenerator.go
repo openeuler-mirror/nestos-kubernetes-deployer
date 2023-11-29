@@ -23,10 +23,8 @@ import (
 
 // 用于创建apiserver.crt,是kube-apiserver 对外提供服务的服务器证书及私钥
 
-func GenerateApiServer() error {
+func GenerateApiServer(rootcacert, rootcakey []byte) error {
 	a := SignedCertKey{}
-
-	ca := &RootCA{} //仍需在资产管理模块完善，未来可以直接调用
 
 	cfg := &CertConfig{
 		Subject:      pkix.Name{CommonName: "apiserver server", Organization: []string{"NestOS"}},
@@ -35,15 +33,13 @@ func GenerateApiServer() error {
 		Validity:     3650,
 	}
 
-	return a.Generate(cfg, ca) //这里的ca会报错，因为类型不符合原先定义的接口，需搭配资产管理修改
+	return a.Generate(cfg, rootcacert, rootcakey) //
 }
 
 //用于创建apiserver-kubelet-client.crt，是kube-apiserver 访问 kubelet 所需的客户端证书及私钥。
 
-func GenerateApiServerToKubeletclient() error {
+func GenerateApiServerToKubeletclient(rootcacert, rootcakey []byte) error {
 	a := SignedCertKey{}
-
-	ca := &RootCA{} //仍需在资产管理模块完善，未来可以直接调用
 
 	cfg := &CertConfig{
 		Subject:      pkix.Name{CommonName: "apiserver-kubelet-client", Organization: []string{"NestOS"}},
@@ -52,15 +48,13 @@ func GenerateApiServerToKubeletclient() error {
 		Validity:     3650,
 	}
 
-	return a.Generate(cfg, ca)
+	return a.Generate(cfg, rootcacert, rootcakey)
 }
 
-//用于创建apiserver-Etcd-client.crt，是kube-apiserver 访问 Etcd 所需的客户端证书及私钥
-func GenerateApiServerToEtcdclient() error {
+//用于创建apiserver-etcd-client.crt，是kube-apiserver 访问 Etcd 所需的客户端证书及私钥
+func GenerateApiServerToEtcdclient(rootcacert, rootcakey []byte) error {
 
 	a := SignedCertKey{}
-
-	ca := &RootCA{} //仍需在资产管理模块完善，未来可以直接调用
 
 	cfg := &CertConfig{
 		Subject:      pkix.Name{CommonName: "apiserver-etcd-client", Organization: []string{"NestOS"}},
@@ -69,5 +63,5 @@ func GenerateApiServerToEtcdclient() error {
 		Validity:     3650,
 	}
 
-	return a.Generate(cfg, ca)
+	return a.Generate(cfg, rootcacert, rootcakey)
 }
