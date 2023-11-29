@@ -21,7 +21,6 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
-	"nestos-kubernetes-deployer/pkg/ignition"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
@@ -37,11 +36,6 @@ import (
 	wait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 )
-
-type crdTmplData struct {
-	operatorImageUrl   string
-	controllerImageUrl string
-}
 
 func NewDeployCommand() *cobra.Command {
 	deployCmd := &cobra.Command{
@@ -82,14 +76,17 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	}
 
 	configPath := filepath.Join(opts.RootOptDir, "auth", "kubeconfig")
-	if err := checkClusterState(configPath); err != nil {
+	kubeClient, err := kubeclient.CreateClient(configPath)
+	if err != nil {
+		logrus.Errorf("failed to create kubernetes client %v", err)
+		return err
+	}
+	if err := checkClusterState(kubeClient); err != nil {
 		logrus.Error("Cluster deploy timeout!")
 		return err
 	}
 
-	/*调用配置管理模块接口，获取crdTmplData数据*/
-
-	if err := deployOperator( /**/ ); err != nil {
+	if err := deployOperator(conf.Housekeeper, kubeClient); err != nil {
 		logrus.Errorf("Failed to deploy operator: %v", err)
 		return err
 	}
@@ -122,7 +119,7 @@ func generateCerts(conf *asset.ClusterAsset) error {
 	return nil
 }
 
-func generateIgnition(conf *asset.ClusterAsset, certFiles []ignition.StorageContent) error {
+func generateIgnition(conf *asset.ClusterAsset, certFiles []utils.StorageContent) error {
 	master := &machine.Master{
 		ClusterAsset:   conf,
 		StorageContent: certFiles,
@@ -161,16 +158,10 @@ func generateTF(conf *asset.ClusterAsset) error {
 
 func createCluster(conf *asset.ClusterAsset) error {
 
-	/*应用集群配置文件部署集群*/
 	return nil
 }
 
-func checkClusterState(kubeconfigPath string) error {
-	client, err := kubeclient.CreateClient(kubeconfigPath)
-	if err != nil {
-		logrus.Errorf("failed to create kubernetes client %v", err)
-		return err
-	}
+func checkClusterState(client *kubernetes.Clientset) error {
 	if err := waitForAPIReady(client); err != nil {
 		logrus.Errorf("failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
@@ -182,16 +173,16 @@ func checkClusterState(kubeconfigPath string) error {
 	return nil
 }
 
-func deployOperator(folderPath string, client *kubernetes.Clientset) error {
+func deployOperator(tmplData interface{}, client *kubernetes.Clientset) error {
+	folderPath := "housekeeper/"
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
 		logrus.Errorf("Error reading folder: %v", err)
 		return err
 	}
-	// 实例化crdTmplData
 	for _, file := range files {
 		filePath := filepath.Join(folderPath, file.Name())
-		data, err := utils.FetchAndUnmarshalUrl(filePath, "" /*获取crdTmplData数据*/)
+		data, err := utils.FetchAndUnmarshalUrl(filePath, tmplData)
 		if err != nil {
 			logrus.Errorf("Error to get file content: %v", err)
 			return err
