@@ -49,7 +49,7 @@ func setUserCA(a *SelfSignedCertKey, certPath, keyPath string) error {
 GenerateAllCA()用于生成
 /etc/kubernetes/pki/ca.crt
 /etc/kubernetes/pki/front-proxy-ca.crt
-/etc/kubernetes/pki/etcd/ca.crt
+/etc/kubernetes/pki/etcd/ca.crt   以及所有对应key
 */
 func GenerateAllCA(userCACertPath, userCAKeyPath, commonname string, dnsname []string) (*SelfSignedCertKey, error) {
 
