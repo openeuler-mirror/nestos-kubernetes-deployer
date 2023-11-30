@@ -22,6 +22,8 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
 
+	"github.com/clarketm/json"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -75,8 +77,14 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 			Password: opts.Master.Password,
 			SSHKey:   opts.Master.SSHKey,
 			IP:       opts.Master.IP[i],
-			Ign_Data: opts.Master.Ign_Data[i],
 		}
+
+		ignData, err := json.Marshal(opts.Master.IgnFilePath[i])
+		if err != nil {
+			return nil, err
+		}
+		master_node.Ign_Data = ignData
+
 		if len(clusterAsset.Master.NodeAsset) == 0 {
 			clusterAsset.Master.NodeAsset = append(clusterAsset.Master.NodeAsset, *master_node)
 		}
@@ -95,8 +103,13 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 			Password: opts.Worker.Password,
 			SSHKey:   opts.Worker.SSHKey,
 			IP:       opts.Worker.IP[i],
-			Ign_Data: opts.Worker.Ign_Data[i],
 		}
+		ignData, err := json.Marshal(opts.Worker.IgnFilePath[i])
+		if err != nil {
+			return nil, err
+		}
+		worker_node.Ign_Data = ignData
+
 		if len(clusterAsset.Worker.NodeAsset) == 0 {
 			clusterAsset.Worker.NodeAsset = append(clusterAsset.Worker.NodeAsset, *worker_node)
 		}

@@ -27,8 +27,6 @@ import (
 var GlobalConfig *globalconfig.GlobalConfig
 var ClusterAsset = map[string]*asset.ClusterAsset{}
 
-// var InfraAsset = map[string]*asset.InfraAsset{}
-
 func Initial(opts *opts.OptionsList) error {
 	// Init global asset
 	globalConfig, err := globalconfig.InitGlobalConfig(opts)
