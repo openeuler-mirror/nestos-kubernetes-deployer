@@ -19,6 +19,7 @@ import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
@@ -29,6 +30,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -49,29 +51,38 @@ func NewDeployCommand() *cobra.Command {
 }
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
+	clusterID := uuid.New()
+	opts.Opts.ClusterID = clusterID
+
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
-	config, err := configmanager.GetClusterConfig("clusterId")
+	config, err := configmanager.GetClusterConfig(clusterID)
 	if err != nil {
 		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
 	if err := deployCluster(config); err != nil {
+		logrus.Errorf("Failed to deploy %s cluster: %v", clusterID, err)
 		return err
 	}
-	err = configmanager.Persist()
+	if err := configmanager.Persist(); err != nil {
+		logrus.Errorf("Failed to persist the cluster asset: %v", err)
+		return err
+	}
 
 	return nil
 }
 
 func deployCluster(conf *asset.ClusterAsset) error {
 	if err := getClusterDeployConfig(conf); err != nil {
+		logrus.Errorf("Failed to get cluster deploy config: %v", err)
 		return err
 	}
 	if err := createCluster(conf); err != nil {
+		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
 	}
 
@@ -95,7 +106,7 @@ func deployCluster(conf *asset.ClusterAsset) error {
 }
 
 func getClusterDeployConfig(conf *asset.ClusterAsset) error {
-	certs, err := generateCerts(conf)
+	certs, err := generateCerts(conf.Cluster_ID)
 	if err != nil {
 		logrus.Errorf("Error generating certificate files: %v", err)
 		return err
@@ -114,9 +125,12 @@ func getClusterDeployConfig(conf *asset.ClusterAsset) error {
 	return nil
 }
 
-func generateCerts(conf *asset.ClusterAsset) error {
-
-	return nil
+func generateCerts(clusterID string) ([]utils.StorageContent, error) {
+	certs, err := cert.GenerateAllFiles(clusterID)
+	if err != nil {
+		return nil, err
+	}
+	return certs, nil
 }
 
 func generateIgnition(conf *asset.ClusterAsset, certFiles []utils.StorageContent) error {
