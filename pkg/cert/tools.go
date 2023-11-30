@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -94,7 +95,13 @@ func PemToCertificate(data []byte) (*x509.Certificate, error) {
 
 // SaveCertificateToFile 将证书保存到文件
 func SaveCertificateToFile(savepath string, cert []byte) error {
-	err := os.WriteFile(savepath, cert, 0644)
+	err := os.MkdirAll(filepath.Dir(savepath), 0755)
+	if err != nil {
+		logrus.Errorf("Failed to create directory: %v", err)
+		return err
+	}
+
+	err = os.WriteFile(savepath, cert, 0644)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", savepath, err)
 		return err
@@ -107,7 +114,13 @@ func SaveCertificateToFile(savepath string, cert []byte) error {
 
 // SavePrivateKeyToFile 将私钥保存到文件
 func SavePrivateKeyToFile(savepath string, Key []byte) error {
-	err := os.WriteFile(savepath, Key, 0600)
+	err := os.MkdirAll(filepath.Dir(savepath), 0755)
+	if err != nil {
+		logrus.Errorf("Failed to create directory: %v", err)
+		return err
+	}
+
+	err = os.WriteFile(savepath, Key, 0600)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", savepath, err)
 		return err
