@@ -46,12 +46,12 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	clusterconfig.CertAsset.RootCaKeyPath = globalconfig.PersistDir + "/pki/ca.key"
 
 	//保存root CA证书和密钥到宿主机
-	err = SaveCertificateToFile(globalconfig.PersistDir+"/pki/ca.crt", rootCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/ca.crt", rootCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SavePrivateKeyToFile(globalconfig.PersistDir+"/pki/ca.key", rootCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/ca.key", rootCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -84,12 +84,12 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	clusterconfig.CertAsset.EtcdCaKeyPath = globalconfig.PersistDir + "/pki/etcd/ca.key"
 
 	//保存etcd-ca和密钥到宿主机
-	err = SaveCertificateToFile(globalconfig.PersistDir+"/pki/etcd/ca.crt", etcdCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/etcd/ca.crt", etcdCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SavePrivateKeyToFile(globalconfig.PersistDir+"/pki/etcd/ca.key", etcdCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/etcd/ca.key", etcdCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -122,12 +122,12 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	clusterconfig.CertAsset.FrontProxyCaKeyPath = globalconfig.PersistDir + "/pki/front-proxy-ca.key"
 
 	//保存front-proxy-ca和密钥到宿主机
-	err = SaveCertificateToFile(globalconfig.PersistDir+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SavePrivateKeyToFile(globalconfig.PersistDir+"/pki/front-proxy-ca.key", frontProxyCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/front-proxy-ca.key", frontProxyCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +146,42 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 
 	certs = append(certs, frontProxyCACertContent, frontProxyCAKeyContent)
 
+	/* **********生成 sa.pub和sa.key********** */
+	sakeypair, err := GenerateKeyPair()
+	if err != nil {
+		logrus.Errorf("Error generating sa keypair:%v", err)
+		return nil, err
+	}
+
+	/*如果用户没有提供自定义路径，则将密钥对保存在以下目录；
+	  如果用户提供了自定义路径，也保存一份在以下路径，并反存到配置文件中*/
+	clusterconfig.CertAsset.SaKey = globalconfig.PersistDir + "/pki/sa.key"
+	clusterconfig.CertAsset.SaPub = globalconfig.PersistDir + "/pki/sa.pub"
+
+	//保存密钥对到宿主机
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/sa.key", sakeypair.PrivateKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/sa.pub", sakeypair.PublicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	saKeyContent := utils.StorageContent{
+		Path:    utils.SaKey,
+		Mode:    int(utils.CertFileMode),
+		Content: sakeypair.PrivateKeyPEM,
+	}
+
+	saPubContent := utils.StorageContent{
+		Path:    utils.SaPub,
+		Mode:    int(utils.CertFileMode),
+		Content: sakeypair.PublicKeyPEM,
+	}
+
+	certs = append(certs, saKeyContent, saPubContent)
 	//todo:添加其他证书生成方法
 	return certs, nil
 }

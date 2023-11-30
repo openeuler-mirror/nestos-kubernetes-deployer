@@ -24,4 +24,6 @@ type CertAsset struct {
 	EtcdCaKeyPath        string
 	FrontProxyCaCertPath string
 	FrontProxyCaKeyPath  string
+	SaPub                string
+	SaKey                string
 }

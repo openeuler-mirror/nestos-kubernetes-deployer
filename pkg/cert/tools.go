@@ -93,34 +93,15 @@ func PemToCertificate(data []byte) (*x509.Certificate, error) {
 	return x509.ParseCertificate(block.Bytes)
 }
 
-// SaveCertificateToFile 将证书保存到文件
-func SaveCertificateToFile(savepath string, cert []byte) error {
+// SaveFileToLocal 将文件保存到本地
+func SaveFileToLocal(savepath string, file []byte) error {
 	err := os.MkdirAll(filepath.Dir(savepath), 0755)
 	if err != nil {
 		logrus.Errorf("Failed to create directory: %v", err)
 		return err
 	}
 
-	err = os.WriteFile(savepath, cert, 0644)
-	if err != nil {
-		logrus.Errorf("Faile to save %s: %v", savepath, err)
-		return err
-	}
-
-	logrus.Infof("Successfully saved %s", savepath)
-
-	return nil
-}
-
-// SavePrivateKeyToFile 将私钥保存到文件
-func SavePrivateKeyToFile(savepath string, Key []byte) error {
-	err := os.MkdirAll(filepath.Dir(savepath), 0755)
-	if err != nil {
-		logrus.Errorf("Failed to create directory: %v", err)
-		return err
-	}
-
-	err = os.WriteFile(savepath, Key, 0600)
+	err = os.WriteFile(savepath, file, 0644)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", savepath, err)
 		return err
