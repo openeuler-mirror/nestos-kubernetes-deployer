@@ -16,30 +16,24 @@ limitations under the License.
 package cmd
 
 import (
-	"nestos-kubernetes-deployer/pkg/terraform"
+	"nestos-kubernetes-deployer/cmd/command"
 
 	"github.com/spf13/cobra"
 )
 
 func NewExtendCommand() *cobra.Command {
-	var num int
-	cmd := &cobra.Command{
+	extendCmd := &cobra.Command{
 		Use:   "extend",
 		Short: "Extend worker nodes of kubernetes cluster",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if num == 0 {
-				return cmd.Help()
-			}
-
-			cluster := &terraform.Cluster{
-				Node: "worker",
-				Num:  num,
-			}
-			return cluster.Extend()
-		},
+		RunE:  runExtendCmd,
 	}
+	command.SetupExtendCmdOpts(extendCmd)
 
-	cmd.PersistentFlags().IntVarP(&num, "num", "n", 0, "extend to the number of the nodes")
+	return extendCmd
+}
 
-	return cmd
+func runExtendCmd(cmd *cobra.Command, args []string) error {
+	/*调用扩展节点接口*/
+
+	return nil
 }

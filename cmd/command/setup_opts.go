@@ -44,3 +44,9 @@ func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.KubeConfigFile, "kubeconfig", "", "/etc/nkd/pki/kubeconfig/admin.conf", "kubeconfig file access path")
 	flags.StringVarP(&opts.Opts.Housekeeper.OSImageURL, "imageurl", "", "", "The address of the container image to use for upgrading")
 }
+
+func SetupExtendCmdOpts(extendCmd *cobra.Command) {
+	flags := extendCmd.Flags()
+	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "cluster id")
+	flags.IntVarP(&opts.Opts.Worker.Count, "num", "n", 0, "The number of expanded worker nodes")
+}

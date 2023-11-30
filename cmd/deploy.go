@@ -30,7 +30,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -51,9 +50,8 @@ func NewDeployCommand() *cobra.Command {
 }
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
-	clusterID := uuid.New()
+	var clusterID = "cluster-id"
 	opts.Opts.ClusterID = clusterID
-
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err

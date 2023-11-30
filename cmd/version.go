@@ -25,9 +25,8 @@ import (
 
 func NewVersionCommand() *cobra.Command {
 	var (
-		version   = "0.1.0"
-		goVersion = runtime.Version()
-		arch      = fmt.Sprint(runtime.GOOS, "/", runtime.GOARCH)
+		version = "0.2.0"
+		arch    = fmt.Sprint(runtime.GOOS, "/", runtime.GOARCH)
 	)
 
 	cmd := &cobra.Command{
@@ -35,7 +34,6 @@ func NewVersionCommand() *cobra.Command {
 		Short: "Display the NKD version information",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("Version:    %s\n", version)
-			fmt.Printf("Go Version: %s\n", goVersion)
 			fmt.Printf("OS/Arch:    %s\n", arch)
 		},
 	}
