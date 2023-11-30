@@ -48,16 +48,16 @@ type NKDConfig struct {
 }
 
 type NodeConfig struct {
-	Count    int
-	Hostname []string
-	CPU      int
-	RAM      int
-	Disk     int
-	UserName string
-	Password string
-	SSHKey   string
-	IP       []string
-	Ign_Data [][]byte
+	Count       int
+	Hostname    []string
+	CPU         int
+	RAM         int
+	Disk        int
+	UserName    string
+	Password    string
+	SSHKey      string
+	IP          []string
+	IgnFilePath []string
 }
 
 type NetworkConfig struct {
