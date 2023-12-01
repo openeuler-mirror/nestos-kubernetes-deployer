@@ -31,14 +31,16 @@ type OptionsList struct {
 	ClusterID string
 	Platform  string
 
-	Master NodeConfig
-	Worker NodeConfig
+	Master      NodeConfig
+	Worker      NodeConfig
+	ExtendCount int
 
 	ApiServerEndpoint string
 	InsecureRegistry  string
 	PauseImage        string
 	ReleaseImageUrl   string
 	KubeVersion       string
+	Token             string
 
 	NetWork NetworkConfig
 	Housekeeper

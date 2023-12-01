@@ -17,53 +17,127 @@ limitations under the License.
 package asset
 
 import (
-	"errors"
 	"fmt"
+	mrand "math/rand"
 	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
+	"time"
 
 	"github.com/clarketm/json"
+	"github.com/pkg/errors"
 
 	"gopkg.in/yaml.v2"
 )
 
-func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
-	clusterAsset := &ClusterAsset{}
+// Sets a value of the string type, using the parameter value if the command line argument exists,
+// otherwise using the default value.
+func setStringValue(target *string, value string, defaultValue string) {
+	if value != "" {
+		*target = value
+	} else if *target == "" {
+		*target = defaultValue
+	}
+}
 
-	if opts.ClusterConfigFile != "" {
-		// Parse configuration file.
-		configData, err := os.ReadFile(opts.ClusterConfigFile)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := yaml.Unmarshal(configData, clusterAsset); err != nil {
-			return nil, err
-		}
+// Check whether the value is provided
+func checkStringValue(target *string, value string) error {
+	if value != "" {
+		*target = value
+	} else if *target == "" {
+		return errors.Errorf("%s is unprovided", *target)
 	}
 
+	return nil
+}
+
+// Sets a value of type integer, using the parameter value if the command line argument exists,
+// otherwise using the default value.
+func setIntValue(target *int, value int, defaultValue int) {
+	if value != 0 {
+		*target = value
+	} else if *target == 0 {
+		*target = defaultValue
+	}
+}
+
+// Generate token
+func generateToken() (string, error) {
+	// Generate a character set for lowercase letters and numbers.
+	charset := "abcdefghijklmnopqrstuvwxyz0123456789"
+	charsetLength := len(charset)
+
+	mrand.Seed(time.Now().UnixNano())
+
+	const tokenLength = 6
+	token := make([]byte, tokenLength)
+	for i := range token {
+		token[i] = charset[mrand.Intn(charsetLength)]
+	}
+
+	// Add a dot.
+	token = append(token, '.')
+
+	// Generate a 16-bit random string.
+	const randomPartLength = 16
+	randomPart := make([]byte, randomPartLength)
+	for i := range randomPart {
+		randomPart[i] = charset[mrand.Intn(charsetLength)]
+	}
+
+	token = append(token, randomPart...)
+	return string(token), nil
+}
+
+// ========== Structure method ==========
+
+type ClusterAsset struct {
+	Cluster_ID string
+	Platform   string
+
+	InfraPlatform
+	Master []NodeAsset
+	Worker []NodeAsset
+	Kubernetes
+	Housekeeper
+	CertAsset
+}
+
+type InfraPlatform interface {
+}
+
+type Kubernetes struct {
+	Kubernetes_Version string
+	ApiServer_Endpoint string
+	Insecure_Registry  string
+	Pause_Image        string
+	Release_Image_URL  string
+	Token              string
+
+	Network
+}
+
+type Network struct {
+	Service_Subnet        string
+	Pod_Subnet            string
+	CoreDNS_Image_Version string
+}
+
+type Housekeeper struct {
+	Operator_Image_URL   string
+	Controller_Image_URL string
+	KubeVersion          string
+	EvictPodForce        bool
+	MaxUnavailable       int
+	OSImageURL           string
+}
+
+func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
 	// cluster info
 	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, "cluster")
 
 	// bind info
 	// infra platform
-	switch opts.Platform {
-	case "openstack", "Openstack", "OpenStack":
-		openstackAsset, ok := infraAsset.(*OpenStackAsset)
-		if !ok {
-			return nil, errors.New("unsupported platform")
-		}
-		clusterAsset.InfraPlatform = openstackAsset
-	case "libvirt", "Libvirt":
-		libvirtAsset, ok := infraAsset.(*LibvirtAsset)
-		if !ok {
-			return nil, errors.New("unsupported platform")
-		}
-		clusterAsset.InfraPlatform = libvirtAsset
-	default:
-		return nil, errors.New("unsupported platform")
-	}
+	clusterAsset.InfraPlatform = infraAsset
 
 	// subordinate info
 	// master node
@@ -114,6 +188,13 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 	setStringValue(&clusterAsset.Kubernetes.Insecure_Registry, opts.InsecureRegistry, "")
 	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, "")
 	setStringValue(&clusterAsset.Kubernetes.Release_Image_URL, opts.ReleaseImageUrl, "")
+
+	token, err := generateToken()
+	if err != nil {
+		return nil, err
+	}
+	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, token)
+
 	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, "")
 	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, "")
 	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, "")
@@ -121,84 +202,21 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 	return clusterAsset, nil
 }
 
-// Sets a value of the string type, using the parameter value if the command line argument exists,
-// otherwise using the default value.
-func setStringValue(target *string, value string, defaultValue string) {
-	if value != "" {
-		*target = value
-	} else if *target == "" {
-		*target = defaultValue
+func (clusterAsset *ClusterAsset) Delete(dir string) error {
+	if err := os.RemoveAll(dir); err != nil {
+		return err
 	}
-}
-
-// Sets a value of type integer, using the parameter value if the command line argument exists,
-// otherwise using the default value.
-func setIntValue(target *int, value int, defaultValue int) {
-	if value != 0 {
-		*target = value
-	} else if *target == 0 {
-		*target = defaultValue
-	}
-}
-
-// ========== Structure method ==========
-
-type ClusterAsset struct {
-	Cluster_ID string
-	Platform   string
-
-	InfraPlatform
-	Master []NodeAsset
-	Worker []NodeAsset
-	Kubernetes
-	Housekeeper
-	CertAsset
-}
-
-type InfraPlatform interface {
-}
-
-type Kubernetes struct {
-	Kubernetes_Version string
-	ApiServer_Endpoint string
-	Insecure_Registry  string
-	Pause_Image        string
-	Release_Image_URL  string
-	Token              string
-
-	Network
-}
-
-type Network struct {
-	Service_Subnet        string
-	Pod_Subnet            string
-	CoreDNS_Image_Version string
-}
-
-type Housekeeper struct {
-	Operator_Image_URL   string
-	Controller_Image_URL string
-	KubeVersion          string
-	EvictPodForce        bool
-	MaxUnavailable       int
-	OSImageURL           string
-}
-
-// TODO: Delete deletes the cluster asset.
-func (ca *ClusterAsset) Delete() error {
 	return nil
 }
 
-// TODO: Persist persists the cluster asset.
-func (ca *ClusterAsset) Persist() error {
+func (clusterAsset *ClusterAsset) Persist(dir string) error {
 	// Serialize the cluster asset to yaml.
-	clusterData, err := yaml.Marshal(ca)
+	clusterData, err := yaml.Marshal(clusterAsset)
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile("cluster_config.yaml", clusterData, 0644)
-	if err != nil {
+	if err := os.WriteFile(dir+"/cluster_config.yaml", clusterData, 0644); err != nil {
 		return err
 	}
 

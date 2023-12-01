@@ -24,20 +24,22 @@ import (
 type InfraAsset interface {
 }
 
-func InitInfraAsset(opts *opts.OptionsList) (InfraAsset, error) {
+func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAsset, error) {
 	switch opts.Platform {
 	case "openstack", "Openstack", "OpenStack":
-		openstackAsset, err := initOpenStackAsset(opts)
+		openstackAsset := clusterAsset.InfraPlatform.(*OpenStackAsset)
+		infraAsset, err := initOpenStackAsset(openstackAsset, opts)
 		if err != nil {
 			return nil, err
 		}
-		return openstackAsset, nil
+		return infraAsset, nil
 	case "libvirt", "Libvirt":
-		libvirtAsset, err := initLibvirtAsset(opts)
+		libvirtAsset := clusterAsset.InfraPlatform.(*LibvirtAsset)
+		infraAsset, err := initLibvirtAsset(libvirtAsset, opts)
 		if err != nil {
 			return nil, err
 		}
-		return libvirtAsset, nil
+		return infraAsset, nil
 	default:
 		return nil, errors.New("unsupported platform")
 	}
@@ -55,17 +57,34 @@ type OpenStackAsset struct {
 	Availability_Zone string
 }
 
-func initOpenStackAsset(opts *opts.OptionsList) (*OpenStackAsset, error) {
-	openstackAsset := &OpenStackAsset{}
-	setStringValue(&openstackAsset.UserName, opts.InfraPlatform.OpenStack.UserName, "")
-	setStringValue(&openstackAsset.Password, opts.InfraPlatform.OpenStack.Password, "")
-	setStringValue(&openstackAsset.Tenant_Name, opts.InfraPlatform.OpenStack.Tenant_Name, "")
-	setStringValue(&openstackAsset.Auth_URL, opts.InfraPlatform.OpenStack.Auth_URL, "")
-	setStringValue(&openstackAsset.Region, opts.InfraPlatform.OpenStack.Region, "")
-	setStringValue(&openstackAsset.Internal_Network, opts.InfraPlatform.OpenStack.Internal_Network, "")
-	setStringValue(&openstackAsset.External_Network, opts.InfraPlatform.OpenStack.External_Network, "")
-	setStringValue(&openstackAsset.Glance_Name, opts.InfraPlatform.OpenStack.Glance_Name, "")
-	setStringValue(&openstackAsset.Availability_Zone, opts.InfraPlatform.OpenStack.Availability_Zone, "")
+func initOpenStackAsset(openstackAsset *OpenStackAsset, opts *opts.OptionsList) (*OpenStackAsset, error) {
+	if err := checkStringValue(&openstackAsset.UserName, opts.InfraPlatform.OpenStack.UserName); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Password, opts.InfraPlatform.OpenStack.Password); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Tenant_Name, opts.InfraPlatform.OpenStack.Tenant_Name); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Auth_URL, opts.InfraPlatform.OpenStack.Auth_URL); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Region, opts.InfraPlatform.OpenStack.Region); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Internal_Network, opts.InfraPlatform.OpenStack.Internal_Network); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.External_Network, opts.InfraPlatform.OpenStack.External_Network); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Glance_Name, opts.InfraPlatform.OpenStack.Glance_Name); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Availability_Zone, opts.InfraPlatform.OpenStack.Availability_Zone); err != nil {
+		return nil, err
+	}
 
 	return openstackAsset, nil
 }
@@ -73,7 +92,6 @@ func initOpenStackAsset(opts *opts.OptionsList) (*OpenStackAsset, error) {
 type LibvirtAsset struct {
 }
 
-func initLibvirtAsset(opts *opts.OptionsList) (*LibvirtAsset, error) {
-	libvirtAsset := &LibvirtAsset{}
+func initLibvirtAsset(libvirtAsset *LibvirtAsset, opts *opts.OptionsList) (*LibvirtAsset, error) {
 	return libvirtAsset, nil
 }

@@ -21,11 +21,17 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
+	"os"
+	"path/filepath"
+
+	"gopkg.in/yaml.v2"
 )
 
 // Set global data
 var GlobalConfig *globalconfig.GlobalConfig
 var ClusterAsset = map[string]*asset.ClusterAsset{}
+
+// var InfraAsset = map[string]*asset.InfraAsset{}
 
 func Initial(opts *opts.OptionsList) error {
 	// Init global asset
@@ -35,18 +41,31 @@ func Initial(opts *opts.OptionsList) error {
 	}
 	GlobalConfig = globalConfig
 
+	fileData := &asset.ClusterAsset{}
+	if opts.ClusterConfigFile != "" {
+		// Parse configuration file.
+		configData, err := os.ReadFile(opts.ClusterConfigFile)
+		if err != nil {
+			return err
+		}
+
+		if err := yaml.Unmarshal(configData, fileData); err != nil {
+			return err
+		}
+	}
+
 	// Init infra asset
-	infraAsset, err := asset.InitInfraAsset(opts)
+	infraAsset, err := asset.InitInfraAsset(fileData, opts)
 	if err != nil {
 		return err
 	}
 
 	// Init cluster asset
-	clusterAsset, err := asset.InitClusterAsset(globalConfig, infraAsset, opts)
+	clusterAsset, err := fileData.InitClusterAsset(infraAsset, opts)
 	if err != nil {
 		return err
 	}
-	ClusterAsset[clusterAsset.Cluster_ID] = clusterAsset
+	ClusterAsset[fileData.Cluster_ID] = clusterAsset
 
 	return nil
 }
@@ -69,18 +88,17 @@ func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {
 }
 
 func Persist() error {
-	// Persist global
-	globalConfig, err := GetGlobalConfig()
-	if err != nil {
-		return err
-	}
-	if err := globalConfig.Persist(); err != nil {
-		return err
-	}
+	// Get persist dir
+	persistDir := GetPersistDir()
 
 	// Persist cluster
-	for _, clusterConfig := range ClusterAsset {
-		if err := clusterConfig.Persist(); err != nil {
+	for _, clusterAsset := range ClusterAsset {
+		clusterDir := filepath.Join(persistDir, clusterAsset.Cluster_ID)
+		if err := os.MkdirAll(clusterDir, 0644); err != nil {
+			return err
+		}
+
+		if err := clusterAsset.Persist(clusterDir); err != nil {
 			return err
 		}
 	}
@@ -88,6 +106,18 @@ func Persist() error {
 	return nil
 }
 
-func Delete() error {
+func Delete(clusterID string) error {
+	// Get persist dir
+	persistDir := GetPersistDir()
+
+	clusterAsset, err := GetClusterConfig(clusterID)
+	if err != nil {
+		return err
+	}
+
+	if err := clusterAsset.Delete(filepath.Join(persistDir, clusterID)); err != nil {
+		return err
+	}
+
 	return nil
 }
