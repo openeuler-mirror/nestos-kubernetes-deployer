@@ -55,6 +55,10 @@ func GetGlobalConfig() (*globalconfig.GlobalConfig, error) {
 	return GlobalConfig, nil
 }
 
+func GetPersistDir() string {
+	return GlobalConfig.PersistDir
+}
+
 func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {
 	clusterConfig, ok := ClusterAsset[clusterID]
 	if !ok {

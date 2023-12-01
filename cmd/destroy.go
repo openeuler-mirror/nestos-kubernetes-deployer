@@ -19,7 +19,7 @@ import (
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/infra"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -37,7 +37,7 @@ func NewDestroyCommand() *cobra.Command {
 }
 
 func runDestroyCmd(cmd *cobra.Command, args []string) error {
-	clusterId, err := cmd.Flags().GetString("cluster-id")
+	clusterID, err := cmd.Flags().GetString("cluster-id")
 	if err != nil {
 		logrus.Errorf("Failed to get cluster-id: %v", err)
 		return err
@@ -47,19 +47,29 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
-	config, err := configmanager.GetClusterConfig(clusterId)
+	config, err := configmanager.GetClusterConfig(clusterID)
 	if err != nil {
 		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
-	if err := destroyCluster(config); err != nil {
+	persistDir := configmanager.GetPersistDir()
+
+	workerInfra := infra.InstanceCluster(persistDir, clusterID, "worker", config.Worker.Count)
+	if err := workerInfra.Destroy(); err != nil {
+		logrus.Errorf("Failed to perform the extended worker nodes:%v", err)
 		return err
 	}
-	return nil
-}
+	masterInfra := infra.InstanceCluster(persistDir, clusterID, "master", config.Master.Count)
+	if err := masterInfra.Destroy(); err != nil {
+		logrus.Errorf("Failed to perform the extended master nodes:%v", err)
+		return err
+	}
 
-func destroyCluster(config *asset.ClusterAsset) error {
-	/*调用TF模块接口，销毁集群*/
+	if err := configmanager.Delete(clusterID); err != nil {
+		logrus.Errorf("Failed to perform delete config: %v", err)
+		return err
+	}
+
 	return nil
 }

@@ -50,7 +50,7 @@ func NewDeployCommand() *cobra.Command {
 }
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
-	var clusterID = "cluster-id"
+	var clusterID = "cluster"
 	opts.Opts.ClusterID = clusterID
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
@@ -169,6 +169,17 @@ func generateTF(conf *asset.ClusterAsset) error {
 }
 
 func createCluster(conf *asset.ClusterAsset) error {
+	persistDir := configmanager.GetPersistDir()
+	masterInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "master", conf.Master.Count)
+	if err := masterInfra.Deploy(); err != nil {
+		logrus.Errorf("Failed to deploy master nodes:%v", err)
+		return err
+	}
+	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", conf.Worker.Count)
+	if err := workerInfra.Deploy(); err != nil {
+		logrus.Errorf("Failed to deploy worker nodes:%v", err)
+		return err
+	}
 
 	return nil
 }

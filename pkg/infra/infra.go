@@ -63,3 +63,12 @@ func (c *Cluster) Destroy() (err error) {
 
 	return nil
 }
+
+func InstanceCluster(persistDir string, clusterID string, nodeType string, count int) *Cluster {
+	return &Cluster{
+		PersistDir: persistDir,
+		ClusterID:  clusterID,
+		Node:       nodeType,
+		Count:      count,
+	}
+}
