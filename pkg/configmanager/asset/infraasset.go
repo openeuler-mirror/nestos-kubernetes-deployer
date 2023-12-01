@@ -57,6 +57,16 @@ type OpenStackAsset struct {
 
 func initOpenStackAsset(opts *opts.OptionsList) (*OpenStackAsset, error) {
 	openstackAsset := &OpenStackAsset{}
+	setStringValue(&openstackAsset.UserName, opts.InfraPlatform.OpenStack.UserName, "")
+	setStringValue(&openstackAsset.Password, opts.InfraPlatform.OpenStack.Password, "")
+	setStringValue(&openstackAsset.Tenant_Name, opts.InfraPlatform.OpenStack.Tenant_Name, "")
+	setStringValue(&openstackAsset.Auth_URL, opts.InfraPlatform.OpenStack.Auth_URL, "")
+	setStringValue(&openstackAsset.Region, opts.InfraPlatform.OpenStack.Region, "")
+	setStringValue(&openstackAsset.Internal_Network, opts.InfraPlatform.OpenStack.Internal_Network, "")
+	setStringValue(&openstackAsset.External_Network, opts.InfraPlatform.OpenStack.External_Network, "")
+	setStringValue(&openstackAsset.Glance_Name, opts.InfraPlatform.OpenStack.Glance_Name, "")
+	setStringValue(&openstackAsset.Availability_Zone, opts.InfraPlatform.OpenStack.Availability_Zone, "")
+
 	return openstackAsset, nil
 }
 

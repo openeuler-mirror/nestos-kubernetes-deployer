@@ -26,6 +26,7 @@ type OptionsList struct {
 	ClusterConfigFile string
 	KubeConfigFile    string
 	NKD               NKDConfig
+	InfraPlatform
 
 	ClusterID string
 	Platform  string
@@ -47,8 +48,27 @@ type NKDConfig struct {
 	Log_Level string
 }
 
+type InfraPlatform struct {
+	OpenStack
+	Libvirt
+}
+
+type OpenStack struct {
+	UserName          string
+	Password          string
+	Tenant_Name       string
+	Auth_URL          string
+	Region            string
+	Internal_Network  string
+	External_Network  string
+	Glance_Name       string
+	Availability_Zone string
+}
+
+type Libvirt struct {
+}
+
 type NodeConfig struct {
-	Count       int
 	Hostname    []string
 	CPU         int
 	RAM         int
