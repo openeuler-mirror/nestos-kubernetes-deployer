@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/utils"
+	"net"
 
 	"github.com/sirupsen/logrus"
 )
@@ -32,6 +33,10 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	//读取配置
 	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
 	globalconfig, _ := configmanager.GetGlobalConfig()
+
+	//获取master0节点hostname和ip地址
+	master0name := clusterconfig.Master.NodeAsset[0].Hostname
+	master0ip := clusterconfig.Master.NodeAsset[0].IP
 
 	/* **********生成root CA 证书和密钥********** */
 
@@ -214,6 +219,171 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	}
 
 	certs = append(certs, apiserverEtcdClientCertContent, apiserverEtcdClientKeyContent)
+
+	/* **********生成 /etcd/server.crt********** */
+
+	commonName = master0name
+	dnsNames := []string{master0name, "localhost"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
+	ipAddresses := []net.IP{net.ParseIP(master0ip), net.ParseIP("127.0.0.1")}
+
+	servercrt, err := GenerateAllSignedCert(commonName,
+		nil, dnsNames, extKeyUsage, ipAddresses, etcdCACert.CertRaw, etcdCACert.KeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating /etcd/server cert:%v", err)
+		return nil, err
+	}
+
+	serverCertContent := utils.StorageContent{
+		Path:    utils.ServerCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: servercrt.CertRaw,
+	}
+
+	serverKeyContent := utils.StorageContent{
+		Path:    utils.ServerKey,
+		Mode:    int(utils.CertFileMode),
+		Content: servercrt.KeyRaw,
+	}
+
+	certs = append(certs, serverCertContent, serverKeyContent)
+
+	/* **********生成 /etcd/peer.crt********** */
+
+	commonName = master0name
+	dnsNames = []string{master0name, "localhost"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
+	ipAddresses = []net.IP{net.ParseIP(master0ip), net.ParseIP("127.0.0.1"), net.ParseIP("::1")}
+
+	peercrt, err := GenerateAllSignedCert(commonName,
+		nil, dnsNames, extKeyUsage, ipAddresses, etcdCACert.CertRaw, etcdCACert.KeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating /etcd/peer cert:%v", err)
+		return nil, err
+	}
+
+	peerCertContent := utils.StorageContent{
+		Path:    utils.PeerCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: peercrt.CertRaw,
+	}
+
+	peerKeyContent := utils.StorageContent{
+		Path:    utils.PeerKey,
+		Mode:    int(utils.CertFileMode),
+		Content: peercrt.KeyRaw,
+	}
+
+	certs = append(certs, peerCertContent, peerKeyContent)
+
+	/* **********生成 healthcheck.crt********** */
+
+	commonName = "kube-etcd-healthcheck-client"
+	organization = []string{"system:masters"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	healthcheckcrt, err := GenerateAllSignedCert(commonName,
+		organization, nil, extKeyUsage, nil, etcdCACert.CertRaw, etcdCACert.KeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating healthcheck cert:%v", err)
+		return nil, err
+	}
+
+	healthcheckCertContent := utils.StorageContent{
+		Path:    utils.HealthcheckClientCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: healthcheckcrt.CertRaw,
+	}
+
+	healthcheckKeyContent := utils.StorageContent{
+		Path:    utils.HealthcheckClientKey,
+		Mode:    int(utils.CertFileMode),
+		Content: healthcheckcrt.KeyRaw,
+	}
+
+	certs = append(certs, healthcheckCertContent, healthcheckKeyContent)
+
+	/* **********生成 front-proxy-client.crt********** */
+
+	commonName = "front-proxy-client"
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	frontProxyClientcrt, err := GenerateAllSignedCert(commonName,
+		nil, nil, extKeyUsage, nil, frontProxyCACert.CertRaw, frontProxyCACert.KeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating front-proxy-client cert:%v", err)
+		return nil, err
+	}
+
+	frontProxyClientCertContent := utils.StorageContent{
+		Path:    utils.FrontProxyClientCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: frontProxyClientcrt.CertRaw,
+	}
+
+	frontProxyClientKeyContent := utils.StorageContent{
+		Path:    utils.FrontProxyClientKey,
+		Mode:    int(utils.CertFileMode),
+		Content: frontProxyClientcrt.KeyRaw,
+	}
+
+	certs = append(certs, frontProxyClientCertContent, frontProxyClientKeyContent)
+
+	/* **********生成 apiserver.crt********** */
+
+	commonName = "kube-apiserver"
+	dnsNames = []string{master0name, "kubernetes", "kubernetes.default",
+		"kubernetes.default.svc", "kubernetes.default.svc.cluster", "kubernetes.default.svc.cluster.local"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+	ipAddresses = []net.IP{net.ParseIP(master0ip), net.ParseIP("127.0.0.1"), net.ParseIP("0.0.0.0")}
+
+	apiservercrt, err := GenerateAllSignedCert(commonName,
+		nil, dnsNames, extKeyUsage, ipAddresses, rootCACert.CertRaw, rootCACert.KeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating apiserver cert:%v", err)
+		return nil, err
+	}
+
+	apiserverCertContent := utils.StorageContent{
+		Path:    utils.ApiserverCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: apiservercrt.CertRaw,
+	}
+
+	apiserverKeyContent := utils.StorageContent{
+		Path:    utils.ApiserverKey,
+		Mode:    int(utils.CertFileMode),
+		Content: apiservercrt.KeyRaw,
+	}
+
+	certs = append(certs, apiserverCertContent, apiserverKeyContent)
+
+	/* **********生成 apiserver-kubelet-client.crt********** */
+
+	commonName = "kube-apiserver-kubelet-client"
+	organization = []string{"system:masters"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	apiserverKubeletClientcrt, err := GenerateAllSignedCert(commonName,
+		organization, nil, extKeyUsage, nil, rootCACert.CertRaw, rootCACert.KeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating apiserver-kubelet-client cert:%v", err)
+		return nil, err
+	}
+
+	apiserverKubeletClientCertContent := utils.StorageContent{
+		Path:    utils.ApiserverKubeletClientCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: apiserverKubeletClientcrt.CertRaw,
+	}
+
+	apiserverKubeletClientKeyContent := utils.StorageContent{
+		Path:    utils.ApiserverKubeletClientKey,
+		Mode:    int(utils.CertFileMode),
+		Content: frontProxyClientcrt.KeyRaw,
+	}
+
+	certs = append(certs, apiserverKubeletClientCertContent, apiserverKubeletClientKeyContent)
 
 	return certs, nil
 }
