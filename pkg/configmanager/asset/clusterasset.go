@@ -18,6 +18,7 @@ package asset
 
 import (
 	"errors"
+	"fmt"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
@@ -43,7 +44,7 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 	}
 
 	// cluster info
-	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, "default cluster id")
+	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, "cluster")
 
 	// bind info
 	// infra platform
@@ -60,59 +61,52 @@ func InitClusterAsset(globalAsset *globalconfig.GlobalConfig, infraAsset InfraAs
 			return nil, errors.New("unsupported platform")
 		}
 		clusterAsset.InfraPlatform = libvirtAsset
+	default:
+		return nil, errors.New("unsupported platform")
 	}
 
 	// subordinate info
 	// master node
-	setIntValue(&clusterAsset.Master.Count, opts.Master.Count, 3)
-	for i := 0; i < opts.Master.Count; i++ {
-		master_node := &NodeAsset{
-			Hostname: opts.Master.Hostname[i],
-			HardwareInfo: HardwareInfo{
-				CPU:  opts.Master.CPU,
-				RAM:  opts.Master.RAM,
-				Disk: opts.Master.Disk,
-			},
-			UserName: opts.Master.UserName,
-			Password: opts.Master.Password,
-			SSHKey:   opts.Master.SSHKey,
-			IP:       opts.Master.IP[i],
+	for i, master_node := range clusterAsset.Master {
+		setStringValue(&master_node.Hostname, opts.Master.Hostname[i], fmt.Sprintf("master%.2d", i))
+		setIntValue(&master_node.HardwareInfo.CPU, opts.Master.CPU, 4)
+		setIntValue(&master_node.HardwareInfo.RAM, opts.Master.RAM, 8)
+		setIntValue(&master_node.HardwareInfo.Disk, opts.Master.Disk, 100)
+		setStringValue(&master_node.UserName, opts.Master.UserName, "root")
+		setStringValue(&master_node.Password, opts.Master.Password, "")
+		setStringValue(&master_node.SSHKey, opts.Master.SSHKey, "")
+		setStringValue(&master_node.IP, opts.Master.IP[i], "")
+
+		if opts.Master.IgnFilePath[i] != "" {
+			ignData, err := json.Marshal(opts.Master.IgnFilePath[i])
+			if err != nil {
+				return nil, err
+			}
+			master_node.Ign_Data = ignData
 		}
 
-		ignData, err := json.Marshal(opts.Master.IgnFilePath[i])
-		if err != nil {
-			return nil, err
-		}
-		master_node.Ign_Data = ignData
-
-		if len(clusterAsset.Master.NodeAsset) == 0 {
-			clusterAsset.Master.NodeAsset = append(clusterAsset.Master.NodeAsset, *master_node)
-		}
+		clusterAsset.Master = append(clusterAsset.Master, master_node)
 	}
 	// worker node
-	setIntValue(&clusterAsset.Worker.Count, opts.Worker.Count, 3)
-	for i := 0; i < opts.Worker.Count; i++ {
-		worker_node := &NodeAsset{
-			Hostname: opts.Worker.Hostname[i],
-			HardwareInfo: HardwareInfo{
-				CPU:  opts.Worker.CPU,
-				RAM:  opts.Worker.RAM,
-				Disk: opts.Worker.Disk,
-			},
-			UserName: opts.Worker.UserName,
-			Password: opts.Worker.Password,
-			SSHKey:   opts.Worker.SSHKey,
-			IP:       opts.Worker.IP[i],
-		}
-		ignData, err := json.Marshal(opts.Worker.IgnFilePath[i])
-		if err != nil {
-			return nil, err
-		}
-		worker_node.Ign_Data = ignData
+	for i, worker_node := range clusterAsset.Worker {
+		setStringValue(&worker_node.Hostname, opts.Worker.Hostname[i], fmt.Sprintf("worker%.2d", i))
+		setIntValue(&worker_node.HardwareInfo.CPU, opts.Worker.CPU, 4)
+		setIntValue(&worker_node.HardwareInfo.RAM, opts.Worker.RAM, 8)
+		setIntValue(&worker_node.HardwareInfo.Disk, opts.Worker.Disk, 100)
+		setStringValue(&worker_node.UserName, opts.Worker.UserName, "root")
+		setStringValue(&worker_node.Password, opts.Worker.Password, "")
+		setStringValue(&worker_node.SSHKey, opts.Worker.SSHKey, "")
+		setStringValue(&worker_node.IP, opts.Worker.IP[i], "")
 
-		if len(clusterAsset.Worker.NodeAsset) == 0 {
-			clusterAsset.Worker.NodeAsset = append(clusterAsset.Worker.NodeAsset, *worker_node)
+		if opts.Worker.IgnFilePath[i] != "" {
+			ignData, err := json.Marshal(opts.Worker.IgnFilePath[i])
+			if err != nil {
+				return nil, err
+			}
+			worker_node.Ign_Data = ignData
 		}
+
+		clusterAsset.Worker = append(clusterAsset.Worker, worker_node)
 	}
 
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")
@@ -154,24 +148,14 @@ type ClusterAsset struct {
 	Platform   string
 
 	InfraPlatform
-	Master
-	Worker
+	Master []NodeAsset
+	Worker []NodeAsset
 	Kubernetes
 	Housekeeper
 	CertAsset
 }
 
 type InfraPlatform interface {
-}
-
-type Master struct {
-	Count     int
-	NodeAsset []NodeAsset
-}
-
-type Worker struct {
-	Count     int
-	NodeAsset []NodeAsset
 }
 
 type Kubernetes struct {
