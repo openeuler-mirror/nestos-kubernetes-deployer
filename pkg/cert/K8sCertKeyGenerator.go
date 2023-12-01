@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"io/ioutil"
+	"net"
 
 	"github.com/pkg/errors"
 )
@@ -98,4 +99,26 @@ func GenerateKeyPair() (*KeyPairPEM, error) {
 		PrivateKeyPEM: privateKeyPEM,
 		PublicKeyPEM:  publicKeyPEM,
 	}, nil
+}
+
+//GenerateAllSignedCert()用于生成所有签发的证书
+func GenerateAllSignedCert(commonname string, org, dnsname []string, extkeyusage []x509.ExtKeyUsage,
+	ip []net.IP, cacert, cakey []byte) (*SignedCertKey, error) {
+	a := SignedCertKey{}
+
+	cfg := &CertConfig{
+		Subject:      pkix.Name{CommonName: commonname, Organization: org},
+		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsages: extkeyusage,
+		Validity:     3650,
+		IsCA:         false,
+		DNSNames:     dnsname,
+		IPAddresses:  ip,
+	}
+	err := a.Generate(cfg, cacert, cakey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &a, nil
 }

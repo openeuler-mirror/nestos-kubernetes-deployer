@@ -17,6 +17,7 @@ limitations under the License.
 package cert
 
 import (
+	"crypto/x509"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/utils"
 
@@ -33,6 +34,7 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	globalconfig, _ := configmanager.GetGlobalConfig()
 
 	/* **********生成root CA 证书和密钥********** */
+
 	rootCACert, err := GenerateAllCA(clusterconfig.CertAsset.RootCaCertPath,
 		clusterconfig.CertAsset.RootCaKeyPath, "kubernetes", []string{"kubernetes"})
 	if err != nil {
@@ -71,6 +73,7 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	certs = append(certs, rootCACertContent, rootCAKeyContent)
 
 	/* **********生成etcd CA 证书和密钥********** */
+
 	etcdCACert, err := GenerateAllCA(clusterconfig.CertAsset.EtcdCaCertPath,
 		clusterconfig.CertAsset.EtcdCaKeyPath, "etcd-ca", []string{"etcd-ca"})
 	if err != nil {
@@ -109,6 +112,7 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	certs = append(certs, etcdCACertContent, etcdCAKeyContent)
 
 	/* **********生成front-proxy CA 证书和密钥********** */
+
 	frontProxyCACert, err := GenerateAllCA(clusterconfig.CertAsset.EtcdCaCertPath,
 		clusterconfig.CertAsset.EtcdCaKeyPath, "front-proxy-ca", []string{"front-proxy-ca"})
 	if err != nil {
@@ -147,6 +151,7 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	certs = append(certs, frontProxyCACertContent, frontProxyCAKeyContent)
 
 	/* **********生成 sa.pub和sa.key********** */
+
 	sakeypair, err := GenerateKeyPair()
 	if err != nil {
 		logrus.Errorf("Error generating sa keypair:%v", err)
@@ -182,6 +187,33 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	}
 
 	certs = append(certs, saKeyContent, saPubContent)
-	//todo:添加其他证书生成方法
+
+	/* **********生成 apiserver-etcd-client.crt********** */
+
+	commonName := "kube-apiserver-etcd-client"
+	organization := []string{"system:masters"}
+	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	apiserverEtcdClient, err := GenerateAllSignedCert(commonName,
+		organization, nil, extKeyUsage, nil, etcdCACert.CertRaw, etcdCACert.KeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating kube-apiserver-etcd-client cert:%v", err)
+		return nil, err
+	}
+
+	apiserverEtcdClientCertContent := utils.StorageContent{
+		Path:    utils.ApiserverEtcdClientCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: apiserverEtcdClient.CertRaw,
+	}
+
+	apiserverEtcdClientKeyContent := utils.StorageContent{
+		Path:    utils.ApiserverEtcdClientKey,
+		Mode:    int(utils.CertFileMode),
+		Content: apiserverEtcdClient.KeyRaw,
+	}
+
+	certs = append(certs, apiserverEtcdClientCertContent, apiserverEtcdClientKeyContent)
+
 	return certs, nil
 }
