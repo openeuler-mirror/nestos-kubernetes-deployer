@@ -17,7 +17,11 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/infra"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +37,26 @@ func NewExtendCommand() *cobra.Command {
 }
 
 func runExtendCmd(cmd *cobra.Command, args []string) error {
-	/*调用扩展节点接口*/
+	clusterId, err := cmd.Flags().GetString("cluster-id")
+	if err != nil {
+		logrus.Errorf("Failed to get cluster-id: %v", err)
+		return err
+	}
 
+	if err := configmanager.Initial(&opts.Opts); err != nil {
+		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		return err
+	}
+	config, err := configmanager.GetClusterConfig(clusterId)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		return err
+	}
+	persistDir := configmanager.GetPersistDir()
+	cluster := infra.InstanceCluster(persistDir, config.Cluster_ID, "worker", config.Worker.Count)
+	if err := cluster.Extend(); err != nil {
+		logrus.Errorf("Failed to perform the extended nodes:%v", err)
+		return err
+	}
 	return nil
 }
