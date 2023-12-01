@@ -18,7 +18,10 @@ package globalconfig
 
 import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"os"
 )
+
+const persistDir string = "/etc/nkd"
 
 func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 	globalAsset := &GlobalConfig{}
@@ -28,6 +31,11 @@ func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 	} else {
 		globalAsset.Log_Level = "default log level"
 	}
+
+	if err := os.MkdirAll(persistDir, 0644); err != nil {
+		return nil, err
+	}
+	globalAsset.PersistDir = persistDir
 
 	return globalAsset, nil
 }
