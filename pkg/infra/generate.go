@@ -104,24 +104,24 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
 
 	infra.Platform.SetPlatform(conf.InfraPlatform)
 
-	infra.Master.Count = conf.Master.Count
-	for _, nodeAsset := range conf.Master.NodeAsset {
-		infra.Master.CPU = append(infra.Master.CPU, nodeAsset.CPU)
-		infra.Master.RAM = append(infra.Master.RAM, nodeAsset.RAM)
-		infra.Master.Disk = append(infra.Master.Disk, nodeAsset.Disk)
-		infra.Master.Hostname = append(infra.Master.Hostname, nodeAsset.Hostname)
-		infra.Master.IP = append(infra.Master.IP, nodeAsset.IP)
-		infra.Master.Ign_Data = append(infra.Master.Ign_Data, string(nodeAsset.Ign_Data))
+	infra.Master.Count = len(conf.Master)
+	for _, master := range conf.Master {
+		infra.Master.CPU = append(infra.Master.CPU, master.CPU)
+		infra.Master.RAM = append(infra.Master.RAM, master.RAM)
+		infra.Master.Disk = append(infra.Master.Disk, master.Disk)
+		infra.Master.Hostname = append(infra.Master.Hostname, master.Hostname)
+		infra.Master.IP = append(infra.Master.IP, master.IP)
+		infra.Master.Ign_Data = append(infra.Master.Ign_Data, string(master.Ign_Data))
 	}
 
-	infra.Worker.Count = conf.Worker.Count
-	for _, nodeAsset := range conf.Worker.NodeAsset {
-		infra.Worker.CPU = append(infra.Worker.CPU, nodeAsset.CPU)
-		infra.Worker.RAM = append(infra.Worker.RAM, nodeAsset.RAM)
-		infra.Worker.Disk = append(infra.Worker.Disk, nodeAsset.Disk)
-		infra.Worker.Hostname = append(infra.Worker.Hostname, nodeAsset.Hostname)
-		infra.Worker.IP = append(infra.Worker.IP, nodeAsset.IP)
-		infra.Worker.Ign_Data = append(infra.Worker.Ign_Data, string(nodeAsset.Ign_Data))
+	infra.Worker.Count = len(conf.Worker)
+	for _, worker := range conf.Worker {
+		infra.Worker.CPU = append(infra.Worker.CPU, worker.CPU)
+		infra.Worker.RAM = append(infra.Worker.RAM, worker.RAM)
+		infra.Worker.Disk = append(infra.Worker.Disk, worker.Disk)
+		infra.Worker.Hostname = append(infra.Worker.Hostname, worker.Hostname)
+		infra.Worker.IP = append(infra.Worker.IP, worker.IP)
+		infra.Worker.Ign_Data = append(infra.Worker.Ign_Data, string(worker.Ign_Data))
 	}
 
 	outputFile, err := os.Create(filepath.Join(node, fmt.Sprintf("%s.tf", node)))
