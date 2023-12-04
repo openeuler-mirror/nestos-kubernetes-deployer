@@ -201,12 +201,12 @@ func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{
 
 func GetTmplData(c *asset.ClusterAsset) *TmplData {
 	var hsip string
-	ip := net.ParseIP(c.Master.NodeAsset[0].IP)
+	ip := net.ParseIP(c.Master[0].IP)
 	ipSegment := ip.To4()
 	ipSegment[2] = 0
 	ipSegment[3] = 0
-	for i := 0; i < c.Master.Count; i++ {
-		temp := c.Master.NodeAsset[i].IP + " " + c.Master.NodeAsset[i].Hostname + "\n"
+	for i := 0; i < len(c.Master); i++ {
+		temp := c.Master[i].IP + " " + c.Master[i].Hostname + "\n"
 		hsip = hsip + temp
 	}
 	return &TmplData{

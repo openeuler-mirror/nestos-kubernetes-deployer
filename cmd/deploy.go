@@ -170,12 +170,12 @@ func generateTF(conf *asset.ClusterAsset) error {
 
 func createCluster(conf *asset.ClusterAsset) error {
 	persistDir := configmanager.GetPersistDir()
-	masterInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "master", conf.Master.Count)
+	masterInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "master", len(conf.Master))
 	if err := masterInfra.Deploy(); err != nil {
 		logrus.Errorf("Failed to deploy master nodes:%v", err)
 		return err
 	}
-	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", conf.Worker.Count)
+	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", len(conf.Worker))
 	if err := workerInfra.Deploy(); err != nil {
 		logrus.Errorf("Failed to deploy worker nodes:%v", err)
 		return err
@@ -223,7 +223,7 @@ func waitForAPIReady(client *kubernetes.Clientset) error {
 	apiTimeout := 10 * time.Minute
 	ctx := context.Background()
 	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
-	logrus.Infof("Waiting up to %v for the Kubernetes API at %s...", apiTimeout, config.Host)
+	logrus.Infof("Waiting up to %v for the Kubernetes API ready...", apiTimeout)
 	defer cancel()
 
 	discovery := client.Discovery()

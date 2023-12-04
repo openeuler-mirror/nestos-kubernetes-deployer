@@ -32,16 +32,16 @@ type Master struct {
 func (m *Master) GenerateFiles() error {
 	mtd := ignition.GetTmplData(m.ClusterAsset)
 	generateFile := ignition.Common{
-		UserName:        m.ClusterAsset.Master.NodeAsset[0].UserName,
-		SSHKey:          m.ClusterAsset.Master.NodeAsset[0].SSHKey,
-		PassWord:        m.ClusterAsset.Master.NodeAsset[0].Password,
+		UserName:        m.ClusterAsset.Master[0].UserName,
+		SSHKey:          m.ClusterAsset.Master[0].SSHKey,
+		PassWord:        m.ClusterAsset.Master[0].Password,
 		NodeType:        "controlplane",
 		TmplData:        mtd,
 		EnabledServices: ignition.EnabledServices,
 		Config:          &igntypes.Config{},
 	}
 	if err := generateFile.Generate(); err != nil {
-		logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master.NodeAsset[0].UserName, err)
+		logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master[0].UserName, err)
 		return err
 	}
 	for _, file := range m.StorageContent {
@@ -53,14 +53,14 @@ func (m *Master) GenerateFiles() error {
 		logrus.Errorf("failed to Marshal ignition config: %v", err)
 		return err
 	}
-	m.ClusterAsset.Master.NodeAsset[0].Ign_Data = data
-	for i := 1; i < m.ClusterAsset.Master.Count; i++ {
-		generateFile.UserName = m.ClusterAsset.Master.NodeAsset[i].UserName
-		generateFile.SSHKey = m.ClusterAsset.Master.NodeAsset[i].SSHKey
-		generateFile.PassWord = m.ClusterAsset.Master.NodeAsset[i].Password
+	m.ClusterAsset.Master[0].Ign_Data = data
+	for i := 1; i < len(m.ClusterAsset.Master); i++ {
+		generateFile.UserName = m.ClusterAsset.Master[i].UserName
+		generateFile.SSHKey = m.ClusterAsset.Master[i].SSHKey
+		generateFile.PassWord = m.ClusterAsset.Master[i].Password
 		generateFile.NodeType = "master"
 		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master.NodeAsset[i].UserName, err)
+			logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master[i].UserName, err)
 			return err
 		}
 		data, err := ignition.Marshal(generateFile.Config)
@@ -68,7 +68,7 @@ func (m *Master) GenerateFiles() error {
 			logrus.Errorf("failed to Marshal ignition config: %v", err)
 			return err
 		}
-		m.ClusterAsset.Master.NodeAsset[i].Ign_Data = data
+		m.ClusterAsset.Master[i].Ign_Data = data
 	}
 
 	return nil
