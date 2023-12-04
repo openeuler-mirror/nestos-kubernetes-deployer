@@ -211,7 +211,7 @@ func GetTmplData(c *asset.ClusterAsset) *TmplData {
 	}
 	return &TmplData{
 		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
-		ImageRegistry:   c.Kubernetes.Insecure_Registry,
+		ImageRegistry:   c.Kubernetes.Image_Registry,
 		PauseImage:      c.Kubernetes.Pause_Image,
 		KubeVersion:     c.Kubernetes.Kubernetes_Version,
 		ServiceSubnet:   c.Network.Service_Subnet,

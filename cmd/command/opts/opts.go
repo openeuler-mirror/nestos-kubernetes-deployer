@@ -36,7 +36,7 @@ type OptionsList struct {
 	ExtendCount int
 
 	ApiServerEndpoint string
-	InsecureRegistry  string
+	ImageRegistry     string
 	PauseImage        string
 	ReleaseImageUrl   string
 	KubeVersion       string
@@ -72,9 +72,9 @@ type Libvirt struct {
 
 type NodeConfig struct {
 	Hostname    []string
-	CPU         int
-	RAM         int
-	Disk        int
+	CPU         uint
+	RAM         uint
+	Disk        uint
 	UserName    string
 	Password    string
 	SSHKey      string
@@ -93,6 +93,7 @@ type DnsConfig struct {
 }
 
 type Housekeeper struct {
+	DeployHousekeeper  bool
 	OperatorImageUrl   string
 	ControllerImageUrl string
 	KubeVersion        string

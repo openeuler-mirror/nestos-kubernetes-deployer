@@ -95,9 +95,13 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		return err
 	}
 
-	if err := deployOperator(conf.Housekeeper, kubeClient); err != nil {
-		logrus.Errorf("Failed to deploy operator: %v", err)
-		return err
+	if conf.Housekeeper.DeployHousekeeper {
+		logrus.Info("Starting deployment of Housekeeper...")
+		if err := deployOperator(conf.Housekeeper, kubeClient); err != nil {
+			logrus.Errorf("Failed to deploy operator: %v", err)
+			return err
+		}
+		logrus.Info("Housekeeper deployment completed successfully.")
 	}
 
 	return nil
@@ -256,7 +260,7 @@ func waitForPodsRunning(client *kubernetes.Clientset) error {
 		pods, err := client.CoreV1().Pods("kube-system").List(waitCtx, metav1.ListOptions{})
 		if err != nil {
 			logrus.Errorf("Failed to list Pods: %v", err)
-			return err
+			return
 		}
 		allRunning := true
 		for _, pod := range pods.Items {

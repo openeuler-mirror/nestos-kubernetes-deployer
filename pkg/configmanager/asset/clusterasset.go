@@ -52,7 +52,7 @@ func checkStringValue(target *string, value string) error {
 
 // Sets a value of type integer, using the parameter value if the command line argument exists,
 // otherwise using the default value.
-func setIntValue(target *int, value int, defaultValue int) {
+func setIntValue(target *uint, value uint, defaultValue uint) {
 	if value != 0 {
 		*target = value
 	} else if *target == 0 {
@@ -108,7 +108,7 @@ type InfraPlatform interface {
 type Kubernetes struct {
 	Kubernetes_Version string
 	ApiServer_Endpoint string
-	Insecure_Registry  string
+	Image_Registry     string
 	Pause_Image        string
 	Release_Image_URL  string
 	Token              string
@@ -123,6 +123,7 @@ type Network struct {
 }
 
 type Housekeeper struct {
+	DeployHousekeeper    bool
 	Operator_Image_URL   string
 	Controller_Image_URL string
 	KubeVersion          string
@@ -185,7 +186,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")
 	setStringValue(&clusterAsset.Kubernetes.ApiServer_Endpoint, opts.ApiServerEndpoint, "")
-	setStringValue(&clusterAsset.Kubernetes.Insecure_Registry, opts.InsecureRegistry, "")
+	setStringValue(&clusterAsset.Kubernetes.Image_Registry, opts.ImageRegistry, "")
 	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, "")
 	setStringValue(&clusterAsset.Kubernetes.Release_Image_URL, opts.ReleaseImageUrl, "")
 

@@ -74,9 +74,9 @@ type Infra struct {
 
 type Master struct {
 	Count    int
-	CPU      []int
-	RAM      []int
-	Disk     []int
+	CPU      []uint
+	RAM      []uint
+	Disk     []uint
 	Hostname []string
 	IP       []string
 	Ign_Data []string
@@ -84,9 +84,9 @@ type Master struct {
 
 type Worker struct {
 	Count    int
-	CPU      []int
-	RAM      []int
-	Disk     []int
+	CPU      []uint
+	RAM      []uint
+	Disk     []uint
 	Hostname []string
 	IP       []string
 	Ign_Data []string

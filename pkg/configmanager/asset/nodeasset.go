@@ -27,7 +27,7 @@ type NodeAsset struct {
 }
 
 type HardwareInfo struct {
-	CPU  int
-	RAM  int
-	Disk int
+	CPU  uint
+	RAM  uint
+	Disk uint
 }
