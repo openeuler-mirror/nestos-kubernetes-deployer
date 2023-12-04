@@ -53,7 +53,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	persistDir := configmanager.GetPersistDir()
-	cluster := infra.InstanceCluster(persistDir, config.Cluster_ID, "worker", config.Worker.Count)
+	cluster := infra.InstanceCluster(persistDir, config.Cluster_ID, "worker", len(config.Worker))
 	if err := cluster.Extend(); err != nil {
 		logrus.Errorf("Failed to perform the extended nodes:%v", err)
 		return err

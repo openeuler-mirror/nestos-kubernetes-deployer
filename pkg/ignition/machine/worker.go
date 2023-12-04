@@ -36,12 +36,12 @@ func (w *Worker) GenerateFiles() error {
 		Config:          &igntypes.Config{},
 	}
 
-	for i := 0; i < w.ClusterAsset.Worker.Count; i++ {
-		generateFile.UserName = w.ClusterAsset.Worker.NodeAsset[i].UserName
-		generateFile.SSHKey = w.ClusterAsset.Worker.NodeAsset[i].SSHKey
-		generateFile.PassWord = w.ClusterAsset.Worker.NodeAsset[i].Password
+	for i := 0; i < len(w.ClusterAsset.Worker); i++ {
+		generateFile.UserName = w.ClusterAsset.Worker[i].UserName
+		generateFile.SSHKey = w.ClusterAsset.Worker[i].SSHKey
+		generateFile.PassWord = w.ClusterAsset.Worker[i].Password
 		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", w.ClusterAsset.Worker.NodeAsset[i].UserName, err)
+			logrus.Errorf("failed to generate %s ignition file: %v", w.ClusterAsset.Worker[i].UserName, err)
 			return err
 		}
 		data, err := ignition.Marshal(generateFile.Config)
@@ -49,7 +49,7 @@ func (w *Worker) GenerateFiles() error {
 			logrus.Errorf("failed to Marshal ignition config: %v", err)
 			return err
 		}
-		w.ClusterAsset.Master.NodeAsset[i].Ign_Data = data
+		w.ClusterAsset.Master[i].Ign_Data = data
 	}
 
 	return nil

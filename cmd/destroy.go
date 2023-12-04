@@ -55,12 +55,12 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 
 	persistDir := configmanager.GetPersistDir()
 
-	workerInfra := infra.InstanceCluster(persistDir, clusterID, "worker", config.Worker.Count)
+	workerInfra := infra.InstanceCluster(persistDir, clusterID, "worker", len(config.Worker))
 	if err := workerInfra.Destroy(); err != nil {
 		logrus.Errorf("Failed to perform the extended worker nodes:%v", err)
 		return err
 	}
-	masterInfra := infra.InstanceCluster(persistDir, clusterID, "master", config.Master.Count)
+	masterInfra := infra.InstanceCluster(persistDir, clusterID, "master", len(config.Master))
 	if err := masterInfra.Destroy(); err != nil {
 		logrus.Errorf("Failed to perform the extended master nodes:%v", err)
 		return err
