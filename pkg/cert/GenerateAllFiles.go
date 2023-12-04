@@ -19,24 +19,28 @@ package cert
 import (
 	"crypto/x509"
 	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"net"
 
 	"github.com/sirupsen/logrus"
 )
 
-// GenerateAllFiles 生成所有证书、密钥、kubeconfig
-func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
+var cacertraw []byte
+var cakeyraw []byte
+var etcdcacertraw []byte
+var etcdcakeyraw []byte
+var frontProxyCaCertRaw []byte
+var frontProxyCaCkeyRaw []byte
+
+// 生成ca证书，只需调用一次，所有节点ca均一致
+func GenerateCAFiles(clusterID string) ([]utils.StorageContent, error) {
 
 	var certs []utils.StorageContent
 
 	//读取配置
 	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
 	globalconfig, _ := configmanager.GetGlobalConfig()
-
-	//获取master0节点hostname和ip地址
-	master0name := clusterconfig.Master.NodeAsset[0].Hostname
-	master0ip := clusterconfig.Master.NodeAsset[0].IP
 
 	/* **********生成root CA 证书和密钥********** */
 
@@ -51,6 +55,10 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	  如果用户提供了自定义路径，也保存一份在以下路径，并反存到配置文件中*/
 	clusterconfig.CertAsset.RootCaCertPath = globalconfig.PersistDir + "/pki/ca.crt"
 	clusterconfig.CertAsset.RootCaKeyPath = globalconfig.PersistDir + "/pki/ca.key"
+
+	//保存ca证书内容到全局变量
+	cacertraw = rootCACert.CertRaw
+	cakeyraw = rootCACert.KeyRaw
 
 	//保存root CA证书和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/ca.crt", rootCACert.CertRaw)
@@ -91,6 +99,10 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	clusterconfig.CertAsset.EtcdCaCertPath = globalconfig.PersistDir + "/pki/etcd/ca.crt"
 	clusterconfig.CertAsset.EtcdCaKeyPath = globalconfig.PersistDir + "/pki/etcd/ca.key"
 
+	//保存ca证书内容到全局变量
+	etcdcacertraw = etcdCACert.CertRaw
+	etcdcakeyraw = etcdCACert.KeyRaw
+
 	//保存etcd-ca和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/etcd/ca.crt", etcdCACert.CertRaw)
 	if err != nil {
@@ -130,6 +142,8 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	clusterconfig.CertAsset.FrontProxyCaCertPath = globalconfig.PersistDir + "/pki/front-proxy-ca.crt"
 	clusterconfig.CertAsset.FrontProxyCaKeyPath = globalconfig.PersistDir + "/pki/front-proxy-ca.key"
 
+	frontProxyCaCertRaw = frontProxyCACert.CertRaw
+	frontProxyCaCkeyRaw = frontProxyCACert.CertRaw
 	//保存front-proxy-ca和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
 	if err != nil {
@@ -193,42 +207,27 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 
 	certs = append(certs, saKeyContent, saPubContent)
 
-	/* **********生成 apiserver-etcd-client.crt********** */
+	return certs, nil
+}
 
-	commonName := "kube-apiserver-etcd-client"
-	organization := []string{"system:masters"}
-	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+//不同的节点都需要调用一次,生成被签名证书
+func GenerateCertFilesForNode(node *asset.NodeAsset) ([]utils.StorageContent, error) {
 
-	apiserverEtcdClient, err := GenerateAllSignedCert(commonName,
-		organization, nil, extKeyUsage, nil, etcdCACert.CertRaw, etcdCACert.KeyRaw)
-	if err != nil {
-		logrus.Errorf("Error generating kube-apiserver-etcd-client cert:%v", err)
-		return nil, err
-	}
+	var certs []utils.StorageContent
 
-	apiserverEtcdClientCertContent := utils.StorageContent{
-		Path:    utils.ApiserverEtcdClientCrt,
-		Mode:    int(utils.CertFileMode),
-		Content: apiserverEtcdClient.CertRaw,
-	}
-
-	apiserverEtcdClientKeyContent := utils.StorageContent{
-		Path:    utils.ApiserverEtcdClientKey,
-		Mode:    int(utils.CertFileMode),
-		Content: apiserverEtcdClient.KeyRaw,
-	}
-
-	certs = append(certs, apiserverEtcdClientCertContent, apiserverEtcdClientKeyContent)
+	//获取node节点hostname和ip地址
+	hostname := node.Hostname
+	ipaddress := node.IP
 
 	/* **********生成 /etcd/server.crt********** */
 
-	commonName = master0name
-	dnsNames := []string{master0name, "localhost"}
-	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
-	ipAddresses := []net.IP{net.ParseIP(master0ip), net.ParseIP("127.0.0.1")}
+	commonName := hostname
+	dnsNames := []string{hostname, "localhost"}
+	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
+	ipAddresses := []net.IP{net.ParseIP(ipaddress), net.ParseIP("127.0.0.1")}
 
 	servercrt, err := GenerateAllSignedCert(commonName,
-		nil, dnsNames, extKeyUsage, ipAddresses, etcdCACert.CertRaw, etcdCACert.KeyRaw)
+		nil, dnsNames, extKeyUsage, ipAddresses, etcdcacertraw, etcdcakeyraw)
 	if err != nil {
 		logrus.Errorf("Error generating /etcd/server cert:%v", err)
 		return nil, err
@@ -250,13 +249,13 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 
 	/* **********生成 /etcd/peer.crt********** */
 
-	commonName = master0name
-	dnsNames = []string{master0name, "localhost"}
+	commonName = hostname
+	dnsNames = []string{hostname, "localhost"}
 	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}
-	ipAddresses = []net.IP{net.ParseIP(master0ip), net.ParseIP("127.0.0.1"), net.ParseIP("::1")}
+	ipAddresses = []net.IP{net.ParseIP(ipaddress), net.ParseIP("127.0.0.1"), net.ParseIP("::1")}
 
 	peercrt, err := GenerateAllSignedCert(commonName,
-		nil, dnsNames, extKeyUsage, ipAddresses, etcdCACert.CertRaw, etcdCACert.KeyRaw)
+		nil, dnsNames, extKeyUsage, ipAddresses, etcdcacertraw, etcdcakeyraw)
 	if err != nil {
 		logrus.Errorf("Error generating /etcd/peer cert:%v", err)
 		return nil, err
@@ -276,69 +275,16 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 
 	certs = append(certs, peerCertContent, peerKeyContent)
 
-	/* **********生成 healthcheck.crt********** */
-
-	commonName = "kube-etcd-healthcheck-client"
-	organization = []string{"system:masters"}
-	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
-
-	healthcheckcrt, err := GenerateAllSignedCert(commonName,
-		organization, nil, extKeyUsage, nil, etcdCACert.CertRaw, etcdCACert.KeyRaw)
-	if err != nil {
-		logrus.Errorf("Error generating healthcheck cert:%v", err)
-		return nil, err
-	}
-
-	healthcheckCertContent := utils.StorageContent{
-		Path:    utils.HealthcheckClientCrt,
-		Mode:    int(utils.CertFileMode),
-		Content: healthcheckcrt.CertRaw,
-	}
-
-	healthcheckKeyContent := utils.StorageContent{
-		Path:    utils.HealthcheckClientKey,
-		Mode:    int(utils.CertFileMode),
-		Content: healthcheckcrt.KeyRaw,
-	}
-
-	certs = append(certs, healthcheckCertContent, healthcheckKeyContent)
-
-	/* **********生成 front-proxy-client.crt********** */
-
-	commonName = "front-proxy-client"
-	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
-
-	frontProxyClientcrt, err := GenerateAllSignedCert(commonName,
-		nil, nil, extKeyUsage, nil, frontProxyCACert.CertRaw, frontProxyCACert.KeyRaw)
-	if err != nil {
-		logrus.Errorf("Error generating front-proxy-client cert:%v", err)
-		return nil, err
-	}
-
-	frontProxyClientCertContent := utils.StorageContent{
-		Path:    utils.FrontProxyClientCrt,
-		Mode:    int(utils.CertFileMode),
-		Content: frontProxyClientcrt.CertRaw,
-	}
-
-	frontProxyClientKeyContent := utils.StorageContent{
-		Path:    utils.FrontProxyClientKey,
-		Mode:    int(utils.CertFileMode),
-		Content: frontProxyClientcrt.KeyRaw,
-	}
-
-	certs = append(certs, frontProxyClientCertContent, frontProxyClientKeyContent)
-
 	/* **********生成 apiserver.crt********** */
 
 	commonName = "kube-apiserver"
-	dnsNames = []string{master0name, "kubernetes", "kubernetes.default",
+	dnsNames = []string{hostname, "kubernetes", "kubernetes.default",
 		"kubernetes.default.svc", "kubernetes.default.svc.cluster", "kubernetes.default.svc.cluster.local"}
 	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-	ipAddresses = []net.IP{net.ParseIP(master0ip), net.ParseIP("127.0.0.1"), net.ParseIP("0.0.0.0")}
+	ipAddresses = []net.IP{net.ParseIP(ipaddress), net.ParseIP("127.0.0.1"), net.ParseIP("0.0.0.0")}
 
 	apiservercrt, err := GenerateAllSignedCert(commonName,
-		nil, dnsNames, extKeyUsage, ipAddresses, rootCACert.CertRaw, rootCACert.KeyRaw)
+		nil, dnsNames, extKeyUsage, ipAddresses, cacertraw, cakeyraw)
 	if err != nil {
 		logrus.Errorf("Error generating apiserver cert:%v", err)
 		return nil, err
@@ -358,14 +304,53 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 
 	certs = append(certs, apiserverCertContent, apiserverKeyContent)
 
+	return certs, nil
+}
+
+//只需要一次，不同节点这些证书文件一致(包括kubeconfig)
+func GenerateCertFilesAllSame(clusterID string) ([]utils.StorageContent, error) {
+
+	var certs []utils.StorageContent
+
+	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
+
+	//用于后续kubeconfig生成
+	endpoint := clusterconfig.Kubernetes.ApiServer_Endpoint
+
+	/* **********生成 front-proxy-client.crt********** */
+
+	commonName := "front-proxy-client"
+	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	frontProxyClientcrt, err := GenerateAllSignedCert(commonName,
+		nil, nil, extKeyUsage, nil, frontProxyCaCertRaw, frontProxyCaCkeyRaw)
+	if err != nil {
+		logrus.Errorf("Error generating front-proxy-client cert:%v", err)
+		return nil, err
+	}
+
+	frontProxyClientCertContent := utils.StorageContent{
+		Path:    utils.FrontProxyClientCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: frontProxyClientcrt.CertRaw,
+	}
+
+	frontProxyClientKeyContent := utils.StorageContent{
+		Path:    utils.FrontProxyClientKey,
+		Mode:    int(utils.CertFileMode),
+		Content: frontProxyClientcrt.KeyRaw,
+	}
+
+	certs = append(certs, frontProxyClientCertContent, frontProxyClientKeyContent)
+
 	/* **********生成 apiserver-kubelet-client.crt********** */
 
 	commonName = "kube-apiserver-kubelet-client"
-	organization = []string{"system:masters"}
+	organization := []string{"system:masters"}
 	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 
 	apiserverKubeletClientcrt, err := GenerateAllSignedCert(commonName,
-		organization, nil, extKeyUsage, nil, rootCACert.CertRaw, rootCACert.KeyRaw)
+		organization, nil, extKeyUsage, nil, cacertraw, cakeyraw)
 	if err != nil {
 		logrus.Errorf("Error generating apiserver-kubelet-client cert:%v", err)
 		return nil, err
@@ -384,6 +369,60 @@ func GenerateAllFiles(clusterID string) ([]utils.StorageContent, error) {
 	}
 
 	certs = append(certs, apiserverKubeletClientCertContent, apiserverKubeletClientKeyContent)
+
+	/* **********生成 apiserver-etcd-client.crt********** */
+
+	commonName = "kube-apiserver-etcd-client"
+	organization = []string{"system:masters"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	apiserverEtcdClient, err := GenerateAllSignedCert(commonName,
+		organization, nil, extKeyUsage, nil, etcdcacertraw, etcdcakeyraw)
+	if err != nil {
+		logrus.Errorf("Error generating kube-apiserver-etcd-client cert:%v", err)
+		return nil, err
+	}
+
+	apiserverEtcdClientCertContent := utils.StorageContent{
+		Path:    utils.ApiserverEtcdClientCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: apiserverEtcdClient.CertRaw,
+	}
+
+	apiserverEtcdClientKeyContent := utils.StorageContent{
+		Path:    utils.ApiserverEtcdClientKey,
+		Mode:    int(utils.CertFileMode),
+		Content: apiserverEtcdClient.KeyRaw,
+	}
+
+	certs = append(certs, apiserverEtcdClientCertContent, apiserverEtcdClientKeyContent)
+
+	/* **********生成 healthcheck.crt********** */
+
+	commonName = "kube-etcd-healthcheck-client"
+	organization = []string{"system:masters"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	healthcheckcrt, err := GenerateAllSignedCert(commonName,
+		organization, nil, extKeyUsage, nil, etcdcacertraw, etcdcakeyraw)
+	if err != nil {
+		logrus.Errorf("Error generating healthcheck cert:%v", err)
+		return nil, err
+	}
+
+	healthcheckCertContent := utils.StorageContent{
+		Path:    utils.HealthcheckClientCrt,
+		Mode:    int(utils.CertFileMode),
+		Content: healthcheckcrt.CertRaw,
+	}
+
+	healthcheckKeyContent := utils.StorageContent{
+		Path:    utils.HealthcheckClientKey,
+		Mode:    int(utils.CertFileMode),
+		Content: healthcheckcrt.KeyRaw,
+	}
+
+	certs = append(certs, healthcheckCertContent, healthcheckKeyContent)
 
 	return certs, nil
 }
