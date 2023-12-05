@@ -68,7 +68,7 @@ func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Cluster ID")
 	flags.StringVarP(&opts.Opts.Housekeeper.KubeVersion, "kube-version", "", "", "Choose a specific kubernetes version for upgrading")
 	flags.BoolVarP(&opts.Opts.Housekeeper.EvictPodForce, "force", "", false, "Force eviction of pods even if unsafe. This may result in data loss or service disruption, use with caution")
-	flags.IntVarP(&opts.Opts.Housekeeper.MaxUnavailable, "maxunavailable", "", 2, "Number of nodes that are upgraded at the same time")
+	flags.UintVarP(&opts.Opts.Housekeeper.MaxUnavailable, "maxunavailable", "", 2, "Number of nodes that are upgraded at the same time")
 	flags.StringVarP(&opts.Opts.KubeConfigFile, "kubeconfig", "", "/etc/nkd/pki/kubeconfig/admin.conf", "Specify the access path to the Kubeconfig file")
 	flags.StringVarP(&opts.Opts.Housekeeper.OSImageURL, "imageurl", "", "", "The address of the container image to use for upgrading")
 }
@@ -76,5 +76,5 @@ func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
 func SetupExtendCmdOpts(extendCmd *cobra.Command) {
 	flags := extendCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Cluster ID")
-	flags.IntVarP(&opts.Opts.ExtendCount, "num", "n", 0, "The number of expanded worker nodes")
+	flags.UintVarP(&opts.Opts.ExtendCount, "num", "n", 0, "The number of expanded worker nodes")
 }

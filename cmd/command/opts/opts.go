@@ -33,7 +33,7 @@ type OptionsList struct {
 
 	Master      NodeConfig
 	Worker      NodeConfig
-	ExtendCount int
+	ExtendCount uint
 
 	ApiServerEndpoint string
 	ImageRegistry     string
@@ -98,6 +98,6 @@ type Housekeeper struct {
 	ControllerImageUrl string
 	KubeVersion        string
 	EvictPodForce      bool
-	MaxUnavailable     int
+	MaxUnavailable     uint
 	OSImageURL         string
 }
