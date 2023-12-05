@@ -61,12 +61,12 @@ func GenerateCAFiles(clusterID string) ([]utils.StorageContent, error) {
 	cakeyraw = rootCACert.KeyRaw
 
 	//保存root CA证书和密钥到宿主机
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/ca.crt", rootCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/ca.crt", rootCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/ca.key", rootCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/ca.key", rootCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -104,12 +104,12 @@ func GenerateCAFiles(clusterID string) ([]utils.StorageContent, error) {
 	etcdcakeyraw = etcdCACert.KeyRaw
 
 	//保存etcd-ca和密钥到宿主机
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/etcd/ca.crt", etcdCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/etcd/ca.crt", etcdCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/etcd/ca.key", etcdCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/etcd/ca.key", etcdCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -145,12 +145,12 @@ func GenerateCAFiles(clusterID string) ([]utils.StorageContent, error) {
 	frontProxyCaCertRaw = frontProxyCACert.CertRaw
 	frontProxyCaCkeyRaw = frontProxyCACert.CertRaw
 	//保存front-proxy-ca和密钥到宿主机
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/front-proxy-ca.key", frontProxyCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.key", frontProxyCACert.CertRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -183,12 +183,12 @@ func GenerateCAFiles(clusterID string) ([]utils.StorageContent, error) {
 	clusterconfig.CertAsset.SaPub = globalconfig.PersistDir + "/pki/sa.pub"
 
 	//保存密钥对到宿主机
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/sa.key", sakeypair.PrivateKeyPEM)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/sa.key", sakeypair.PrivateKeyPEM)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SaveFileToLocal(globalconfig.PersistDir+"/pki/sa.pub", sakeypair.PublicKeyPEM)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/sa.pub", sakeypair.PublicKeyPEM)
 	if err != nil {
 		return nil, err
 	}
@@ -313,9 +313,10 @@ func GenerateCertFilesAllSame(clusterID string) ([]utils.StorageContent, error) 
 	var certs []utils.StorageContent
 
 	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
+	globalconfig, _ := configmanager.GetGlobalConfig()
 
 	//用于后续kubeconfig生成
-	endpoint := clusterconfig.Kubernetes.ApiServer_Endpoint
+	apiserverEndpoint := clusterconfig.Kubernetes.ApiServer_Endpoint
 
 	/* **********生成 front-proxy-client.crt********** */
 
@@ -423,6 +424,40 @@ func GenerateCertFilesAllSame(clusterID string) ([]utils.StorageContent, error) 
 	}
 
 	certs = append(certs, healthcheckCertContent, healthcheckKeyContent)
+
+	/* **********生成 admin.config********** */
+
+	commonName = "kubernetes-admin"
+	organization = []string{"system:masters"}
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	admincrt, err := GenerateAllSignedCert(commonName,
+		organization, nil, extKeyUsage, nil, cacertraw, cakeyraw)
+	if err != nil {
+		logrus.Errorf("Error generate admin cert:%v", err)
+		return nil, err
+	}
+
+	adminKubeconfig, err := generateKubeconfig(cacertraw, admincrt.CertRaw, admincrt.KeyRaw,
+		apiserverEndpoint, "kubernetes-admin", "kubernetes-admin@kubernetes")
+	if err != nil {
+		logrus.Errorf("Error generate admin.config:%v", err)
+		return nil, err
+	}
+
+	//将admin.config文件保存至宿主机
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/admin.config", adminKubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	adminKubeconfigContent := utils.StorageContent{
+		Path:    utils.AdminConfig,
+		Mode:    int(utils.CertFileMode),
+		Content: adminKubeconfig,
+	}
+
+	certs = append(certs, adminKubeconfigContent)
 
 	return certs, nil
 }

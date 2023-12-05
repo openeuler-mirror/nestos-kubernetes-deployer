@@ -22,7 +22,8 @@ import (
 )
 
 // generateKubeconfig 生成指定角色的 kubeconfig 文件
-func generateKubeconfig(rootcaContent, certContent, keyContent []byte, apiserverEndpoint, clientName, contextName string) error {
+func generateKubeconfig(rootcaContent, certContent, keyContent []byte,
+	apiserverEndpoint, clientName, contextName string) ([]byte, error) {
 
 	// 创建 kubeconfig 结构体
 	kubeconfig := NewKubeconfig()
@@ -48,17 +49,23 @@ func generateKubeconfig(rootcaContent, certContent, keyContent []byte, apiserver
 	// 设置当前上下文，与前面设置的上下文name保持一致
 	kubeconfig.CurrentContext = contextName
 
-	return nil
-}
-
-// SaveKubeconfig 将 kubeconfig 结构体保存到文件
-func SaveKubeconfig(config *clientcmdapi.Config, filePath string) error {
-	err := clientcmd.WriteToFile(*config, filePath)
+	// 序列化 kubeconfig
+	content, err := SerializeKubeconfig(kubeconfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return content, nil
+}
+
+// SerializeKubeconfig 将 kubeconfig 结构体序列化为yaml格式
+func SerializeKubeconfig(config *clientcmdapi.Config) ([]byte, error) {
+	content, err := clientcmd.Write(*config)
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
 }
 
 // NewKubeconfig 返回一个初始化好的 kubeconfig 结构体实例
