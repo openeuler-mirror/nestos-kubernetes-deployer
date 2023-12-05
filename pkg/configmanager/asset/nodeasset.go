@@ -16,6 +16,8 @@ limitations under the License.
 
 package asset
 
+import "nestos-kubernetes-deployer/pkg/utils"
+
 type NodeAsset struct {
 	Hostname string
 	HardwareInfo
@@ -24,6 +26,7 @@ type NodeAsset struct {
 	SSHKey   string
 	IP       string
 	Ign_Data []byte
+	Certs    []utils.StorageContent
 }
 
 type HardwareInfo struct {
