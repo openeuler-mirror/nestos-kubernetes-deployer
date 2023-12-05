@@ -128,7 +128,7 @@ type Housekeeper struct {
 	Controller_Image_URL string
 	KubeVersion          string
 	EvictPodForce        bool
-	MaxUnavailable       int
+	MaxUnavailable       uint
 	OSImageURL           string
 }
 
@@ -199,6 +199,17 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, "")
 	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, "")
 	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, "")
+
+	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
+		checkStringValue(&clusterAsset.Housekeeper.Operator_Image_URL, opts.Housekeeper.OperatorImageUrl)
+		checkStringValue(&clusterAsset.Housekeeper.Controller_Image_URL, opts.Housekeeper.ControllerImageUrl)
+		checkStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion)
+		if opts.Housekeeper.EvictPodForce {
+			clusterAsset.Housekeeper.EvictPodForce = true
+		}
+		setIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, 2)
+		checkStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL)
+	}
 
 	return clusterAsset, nil
 }
