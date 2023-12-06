@@ -45,7 +45,7 @@ func SelfSignedCertificate(cfg *CertConfig, key *rsa.PrivateKey) (*x509.Certific
 		Subject:               cfg.Subject,
 	}
 	// 判断subject字段中CommonName和OrganizationalUnit是否为空
-	if len(cfg.Subject.CommonName) == 0 || len(cfg.Subject.OrganizationalUnit) == 0 {
+	if len(cfg.Subject.CommonName) == 0 {
 		return nil, errors.Errorf("certification's subject is not set, or invalid")
 	}
 
