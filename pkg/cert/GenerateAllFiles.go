@@ -143,7 +143,7 @@ func GenerateCAFiles(clusterID string) ([]utils.StorageContent, error) {
 	clusterconfig.CertAsset.FrontProxyCaKeyPath = globalconfig.PersistDir + "/pki/front-proxy-ca.key"
 
 	frontProxyCaCertRaw = frontProxyCACert.CertRaw
-	frontProxyCaCkeyRaw = frontProxyCACert.CertRaw
+	frontProxyCaCkeyRaw = frontProxyCACert.KeyRaw
 	//保存front-proxy-ca和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
 	if err != nil {
