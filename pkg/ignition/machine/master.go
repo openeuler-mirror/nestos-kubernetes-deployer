@@ -66,7 +66,7 @@ func (m *Master) GenerateFiles() error {
 		}
 
 		//Assign the Ignition data to the Master node
-		master.Ign_Data = data
+		master.Ign_Data = string(data)
 	}
 
 	return nil
