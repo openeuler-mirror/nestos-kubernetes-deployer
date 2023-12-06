@@ -190,7 +190,11 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 	}
 
 	persistDir := configmanager.GetPersistDir()
-	outputFile, err := os.Create(filepath.Join(persistDir, conf.Cluster_ID, fmt.Sprintf("%s.tf", node)))
+	if err := os.MkdirAll(filepath.Join(persistDir, conf.Cluster_ID, node), 0644); err != nil {
+		return err
+	}
+
+	outputFile, err := os.Create(filepath.Join(persistDir, conf.Cluster_ID, node, fmt.Sprintf("%s.tf", node)))
 	if err != nil {
 		return errors.Wrap(err, "failed to create terraform config file")
 	}
