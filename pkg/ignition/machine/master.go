@@ -18,57 +18,55 @@ package machine
 import (
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
-	"nestos-kubernetes-deployer/pkg/utils"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/sirupsen/logrus"
 )
 
 type Master struct {
-	ClusterAsset   *asset.ClusterAsset
-	StorageContent []utils.StorageContent
+	ClusterAsset *asset.ClusterAsset
 }
 
 func (m *Master) GenerateFiles() error {
+	//Get template dependency configuration
 	mtd := ignition.GetTmplData(m.ClusterAsset)
-	generateFile := ignition.Common{
-		UserName:        m.ClusterAsset.Master[0].UserName,
-		SSHKey:          m.ClusterAsset.Master[0].SSHKey,
-		PassWord:        m.ClusterAsset.Master[0].Password,
-		NodeType:        "controlplane",
-		TmplData:        mtd,
-		EnabledServices: ignition.EnabledServices,
-		Config:          &igntypes.Config{},
-	}
-	if err := generateFile.Generate(); err != nil {
-		logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master[0].UserName, err)
-		return err
-	}
-	for _, file := range m.StorageContent {
-		ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
-		generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
-	}
-	data, err := ignition.Marshal(generateFile.Config)
-	if err != nil {
-		logrus.Errorf("failed to Marshal ignition config: %v", err)
-		return err
-	}
-	m.ClusterAsset.Master[0].Ign_Data = data
-	for i := 1; i < len(m.ClusterAsset.Master); i++ {
-		generateFile.UserName = m.ClusterAsset.Master[i].UserName
-		generateFile.SSHKey = m.ClusterAsset.Master[i].SSHKey
-		generateFile.PassWord = m.ClusterAsset.Master[i].Password
-		generateFile.NodeType = "master"
+
+	for i, master := range m.ClusterAsset.Master {
+		nodeType := "controlplane"
+		if i > 0 {
+			nodeType = "master"
+		}
+
+		generateFile := ignition.Common{
+			UserName:        master.UserName,
+			SSHKey:          master.SSHKey,
+			PassWord:        master.Password,
+			NodeType:        nodeType,
+			TmplData:        mtd,
+			EnabledServices: ignition.EnabledServices,
+			Config:          &igntypes.Config{},
+		}
+		// Merge certificates into ignition.Config
+		for _, file := range master.Certs {
+			ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
+			generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
+		}
+
+		// Generate Ignition data
 		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", m.ClusterAsset.Master[i].UserName, err)
+			logrus.Errorf("failed to generate %s ignition file: %v", master.UserName, err)
 			return err
 		}
+
+		// Marshal the ignition.Config
 		data, err := ignition.Marshal(generateFile.Config)
 		if err != nil {
 			logrus.Errorf("failed to Marshal ignition config: %v", err)
 			return err
 		}
-		m.ClusterAsset.Master[i].Ign_Data = data
+
+		//Assign the Ignition data to the Master node
+		master.Ign_Data = data
 	}
 
 	return nil

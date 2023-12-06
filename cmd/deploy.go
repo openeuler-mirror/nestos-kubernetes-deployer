@@ -108,13 +108,12 @@ func deployCluster(conf *asset.ClusterAsset) error {
 }
 
 func getClusterDeployConfig(conf *asset.ClusterAsset) error {
-	certs, err := generateCerts(conf.Cluster_ID)
-	if err != nil {
+	if err := generateCerts(conf); err != nil {
 		logrus.Errorf("Error generating certificate files: %v", err)
 		return err
 	}
 
-	if err := generateIgnition(conf, certs); err != nil {
+	if err := generateIgnition(conf); err != nil {
 		logrus.Errorf("Error generating ignition files: %v", err)
 		return err
 	}
@@ -127,18 +126,42 @@ func getClusterDeployConfig(conf *asset.ClusterAsset) error {
 	return nil
 }
 
-func generateCerts(clusterID string) ([]utils.StorageContent, error) {
-	certs, err := cert.GenerateAllFiles(clusterID)
+func generateCerts(conf *asset.ClusterAsset) error {
+	// Generate CA certificates
+	caCerts, err := cert.GenerateCAFiles(conf.Cluster_ID)
 	if err != nil {
-		return nil, err
+		logrus.Errorf("Error generating CA files: %v", err)
+		return err
 	}
-	return certs, nil
+
+	sameCerts, err := cert.GenerateCertFilesAllSame(conf.Cluster_ID)
+	if err != nil {
+		return err
+	}
+
+	// Generate certificates for each Master node
+	for i, master := range conf.Master {
+		var masterCerts []utils.StorageContent
+
+		certs, err := cert.GenerateCertFilesForNode(&master)
+		if err != nil {
+			logrus.Errorf("Error generating certificate files for Master %d: %v", i, err)
+			return err
+		}
+		masterCerts = append(masterCerts, caCerts...)
+		masterCerts = append(masterCerts, sameCerts...)
+		masterCerts = append(masterCerts, certs...)
+
+		// Assign the certificates to the corresponding Master node
+		master.Certs = masterCerts
+	}
+
+	return nil
 }
 
-func generateIgnition(conf *asset.ClusterAsset, certFiles []utils.StorageContent) error {
+func generateIgnition(conf *asset.ClusterAsset) error {
 	master := &machine.Master{
-		ClusterAsset:   conf,
-		StorageContent: certFiles,
+		ClusterAsset: conf,
 	}
 	if err := master.GenerateFiles(); err != nil {
 		logrus.Errorf("Failed to generate master ignition file: %v", err)
