@@ -121,7 +121,7 @@ resource "openstack_compute_instance_v2" "instance" {
   flavor_name        = element({{.Worker.Hostname}}, count.index)
   security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
   availability_zone  = "{{.Platform.Availability_Zone}}"
-  user_data          = element({{.Worker.Ign_Data}}, count.index)
+  user_data          = file(element({{.Worker.Ign_Path}}, count.index))
 
   network {
     name        = "{{.Platform.Internal_Network}}"
