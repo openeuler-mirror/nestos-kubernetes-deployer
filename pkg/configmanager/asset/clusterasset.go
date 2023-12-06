@@ -17,15 +17,14 @@ limitations under the License.
 package asset
 
 import (
+	"encoding/json"
 	"fmt"
 	mrand "math/rand"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"os"
 	"time"
 
-	"github.com/clarketm/json"
 	"github.com/pkg/errors"
-
 	"gopkg.in/yaml.v2"
 )
 
@@ -142,7 +141,12 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 
 	// subordinate info
 	// master node
-	for i, master_node := range clusterAsset.Master {
+	if len(clusterAsset.Master) == 0 {
+		clusterAsset.Master = make([]NodeAsset, 3)
+	}
+	for i := 0; i < len(clusterAsset.Master); i++ {
+		master_node := &clusterAsset.Master[i]
+
 		setStringValue(&master_node.Hostname, opts.Master.Hostname[i], fmt.Sprintf("master%.2d", i))
 		setIntValue(&master_node.HardwareInfo.CPU, opts.Master.CPU, 4)
 		setIntValue(&master_node.HardwareInfo.RAM, opts.Master.RAM, 8)
@@ -150,20 +154,25 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		setStringValue(&master_node.UserName, opts.Master.UserName, "root")
 		setStringValue(&master_node.Password, opts.Master.Password, "")
 		setStringValue(&master_node.SSHKey, opts.Master.SSHKey, "")
-		setStringValue(&master_node.IP, opts.Master.IP[i], "")
+		if len(opts.Master.IP) != 0 {
+			setStringValue(&master_node.IP, opts.Master.IP[i], "")
+		}
 
-		if opts.Master.IgnFilePath[i] != "" {
+		if len(opts.Master.IgnFilePath) != 0 {
 			ignData, err := json.Marshal(opts.Master.IgnFilePath[i])
 			if err != nil {
 				return nil, err
 			}
-			master_node.Ign_Data = ignData
+			master_node.Ign_Data = string(ignData)
 		}
-
-		clusterAsset.Master = append(clusterAsset.Master, master_node)
 	}
 	// worker node
-	for i, worker_node := range clusterAsset.Worker {
+	if len(clusterAsset.Worker) == 0 {
+		clusterAsset.Worker = make([]NodeAsset, 3)
+	}
+	for i := 0; i < len(clusterAsset.Worker); i++ {
+		worker_node := &clusterAsset.Worker[i]
+
 		setStringValue(&worker_node.Hostname, opts.Worker.Hostname[i], fmt.Sprintf("worker%.2d", i))
 		setIntValue(&worker_node.HardwareInfo.CPU, opts.Worker.CPU, 4)
 		setIntValue(&worker_node.HardwareInfo.RAM, opts.Worker.RAM, 8)
@@ -171,17 +180,17 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		setStringValue(&worker_node.UserName, opts.Worker.UserName, "root")
 		setStringValue(&worker_node.Password, opts.Worker.Password, "")
 		setStringValue(&worker_node.SSHKey, opts.Worker.SSHKey, "")
-		setStringValue(&worker_node.IP, opts.Worker.IP[i], "")
+		if len(opts.Worker.IP) != 0 {
+			setStringValue(&worker_node.IP, opts.Worker.IP[i], "")
+		}
 
-		if opts.Worker.IgnFilePath[i] != "" {
+		if len(opts.Worker.IgnFilePath) != 0 {
 			ignData, err := json.Marshal(opts.Worker.IgnFilePath[i])
 			if err != nil {
 				return nil, err
 			}
-			worker_node.Ign_Data = ignData
+			worker_node.Ign_Data = string(ignData)
 		}
-
-		clusterAsset.Worker = append(clusterAsset.Worker, worker_node)
 	}
 
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")
