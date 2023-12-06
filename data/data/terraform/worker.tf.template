@@ -8,15 +8,15 @@ terraform {
 }
 
 provider "openstack" {
-  user_name   = "{{.Infra.Platform.Username}}"
-  password    = "{{.Infra.Platform.Password}}"
-  tenant_name = "{{.Infra.Platform.Tenant_Name}}"
-  auth_url    = "{{.Infra.Platform.Auth_URL}}"
-  region      = "{{.Infra.Platform.Region}}"
+  user_name   = "{{.Platform.Username}}"
+  password    = "{{.Platform.Password}}"
+  tenant_name = "{{.Platform.Tenant_Name}}"
+  auth_url    = "{{.Platform.Auth_URL}}"
+  region      = "{{.Platform.Region}}"
 }
 
 variable "instance_count" {
-  default = "{{.Infra.Worker.Count}}"
+  default = "{{.Worker.Count}}"
 }
 
 variable "create_flavor" {
@@ -24,15 +24,15 @@ variable "create_flavor" {
 }
 
 variable "instance_name" {
-  default = element({{.Infra.Worker.Hostname}}, count.index)
+  default = element({{.Worker.Hostname}}, count.index)
 }
 
 resource "openstack_compute_flavor_v2" "flavor" {
   count     = var.create_flavor?1:0
   name      = var.instance_name
-  vcpus     = element({{.Infra.Worker.CPU}}, count.index)
-  ram       = element({{.Infra.Worker.RAM}}, count.index)
-  disk      = element({{.Infra.Worker.Disk}}, count.index)
+  vcpus     = element({{.Worker.CPU}}, count.index)
+  ram       = element({{.Worker.RAM}}, count.index)
+  disk      = element({{.Worker.Disk}}, count.index)
   is_public = "true"
 }
 
@@ -121,21 +121,21 @@ resource "openstack_compute_secgroup_v2" "secgroup" {
 resource "openstack_compute_instance_v2" "instance" {
   count              = var.instance_count
   name               = var.instance_name
-  image_name         = "{{.Infra.Platform.Glance_Name}}"
+  image_name         = "{{.Platform.Glance_Name}}"
   flavor_name        = var.instance_name
   security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
-  availability_zone  = "{{.Infra.Platform.Availability_Zone}}"
-  user_data          = element({{.Infra.Worker.Ign_Data}}, count.index)
+  availability_zone  = "{{.Platform.Availability_Zone}}"
+  user_data          = element({{.Worker.Ign_Data}}, count.index)
 
   network {
-    name        = "{{.Infra.Platform.Internal_Network}}"
-    fixed_ip_v4 = element({{.Infra.Worker.IP}}, count.index)
+    name        = "{{.Platform.Internal_Network}}"
+    fixed_ip_v4 = element({{.Worker.IP}}, count.index)
   }
 }
 
 resource "openstack_networking_floatingip_v2" "floatip" {
   count = length(openstack_compute_instance_v2.instance)
-  pool  = "{{.Infra.Platform.External_Network}}"
+  pool  = "{{.Platform.External_Network}}"
 }
 
 resource "openstack_compute_floatingip_associate_v2" "fip_associate" {

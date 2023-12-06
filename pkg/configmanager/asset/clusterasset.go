@@ -155,7 +155,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		setStringValue(&master_node.Password, opts.Master.Password, "")
 		setStringValue(&master_node.SSHKey, opts.Master.SSHKey, "")
 		if len(opts.Master.IP) != 0 {
-			setStringValue(&master_node.IP, opts.Master.IP[i], "")
+			checkStringValue(&master_node.IP, opts.Master.IP[i])
 		}
 
 		if len(opts.Master.IgnFilePath) != 0 {
@@ -181,7 +181,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		setStringValue(&worker_node.Password, opts.Worker.Password, "")
 		setStringValue(&worker_node.SSHKey, opts.Worker.SSHKey, "")
 		if len(opts.Worker.IP) != 0 {
-			setStringValue(&worker_node.IP, opts.Worker.IP[i], "")
+			checkStringValue(&worker_node.IP, opts.Worker.IP[i])
 		}
 
 		if len(opts.Worker.IgnFilePath) != 0 {
