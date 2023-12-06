@@ -18,12 +18,15 @@ package infra
 
 import (
 	"fmt"
-	"html/template"
 	"io"
 	"nestos-kubernetes-deployer/data"
+	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
+	"text/template"
 
 	"github.com/pkg/errors"
 )
@@ -46,17 +49,15 @@ type OpenStack struct {
 
 func (openstack *OpenStack) SetPlatform(infraAsset asset.InfraAsset) {
 	if openstackAsset, ok := infraAsset.(*asset.OpenStackAsset); ok {
-		openstack = &OpenStack{
-			Username:          openstackAsset.UserName,
-			Password:          openstackAsset.Password,
-			Tenant_Name:       openstackAsset.Tenant_Name,
-			Auth_URL:          openstackAsset.Auth_URL,
-			Region:            openstackAsset.Region,
-			Internal_Network:  openstackAsset.Internal_Network,
-			External_Network:  openstackAsset.External_Network,
-			Glance_Name:       openstackAsset.Glance_Name,
-			Availability_Zone: openstackAsset.Availability_Zone,
-		}
+		openstack.Username = openstackAsset.UserName
+		openstack.Password = openstackAsset.Password
+		openstack.Tenant_Name = openstackAsset.Tenant_Name
+		openstack.Auth_URL = openstackAsset.Auth_URL
+		openstack.Region = openstackAsset.Region
+		openstack.Internal_Network = openstackAsset.Internal_Network
+		openstack.External_Network = openstackAsset.External_Network
+		openstack.Glance_Name = openstackAsset.Glance_Name
+		openstack.Availability_Zone = openstackAsset.Availability_Zone
 	}
 }
 
@@ -74,9 +75,9 @@ type Infra struct {
 
 type Master struct {
 	Count    int
-	CPU      []uint
-	RAM      []uint
-	Disk     []uint
+	CPU      []string
+	RAM      []string
+	Disk     []string
 	Hostname []string
 	IP       []string
 	Ign_Data []string
@@ -84,15 +85,31 @@ type Master struct {
 
 type Worker struct {
 	Count    int
-	CPU      []uint
-	RAM      []uint
-	Disk     []uint
+	CPU      []string
+	RAM      []string
+	Disk     []string
 	Hostname []string
 	IP       []string
 	Ign_Data []string
 }
 
-func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
+func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) {
+	var (
+		master_cpu      []uint
+		master_ram      []uint
+		master_disk     []uint
+		master_hostname []string
+		master_ip       []string
+		master_ignData  []string
+
+		worker_cpu      []uint
+		worker_ram      []uint
+		worker_disk     []uint
+		worker_hostname []string
+		worker_ip       []string
+		worker_ignData  []string
+	)
+
 	switch conf.Platform {
 	case "openstack", "Openstack", "OpenStack":
 		infra.Platform = &OpenStack{}
@@ -106,32 +123,81 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
 
 	infra.Master.Count = len(conf.Master)
 	for _, master := range conf.Master {
-		infra.Master.CPU = append(infra.Master.CPU, master.CPU)
-		infra.Master.RAM = append(infra.Master.RAM, master.RAM)
-		infra.Master.Disk = append(infra.Master.Disk, master.Disk)
-		infra.Master.Hostname = append(infra.Master.Hostname, master.Hostname)
-		infra.Master.IP = append(infra.Master.IP, master.IP)
-		infra.Master.Ign_Data = append(infra.Master.Ign_Data, string(master.Ign_Data))
+		master_cpu = append(master_cpu, master.CPU)
+		master_ram = append(master_ram, master.RAM)
+		master_disk = append(master_disk, master.Disk)
+		master_hostname = append(master_hostname, master.Hostname)
+		master_ip = append(master_ip, master.IP)
+		master_ignData = append(master_ignData, string(master.Ign_Data))
+	}
+	infra.Master.CPU, err = convertSliceToStrings(master_cpu)
+	if err != nil {
+		return err
+	}
+	infra.Master.RAM, err = convertSliceToStrings(master_ram)
+	if err != nil {
+		return err
+	}
+	infra.Master.Disk, err = convertSliceToStrings(master_disk)
+	if err != nil {
+		return err
+	}
+	infra.Master.Hostname, err = convertSliceToStrings(master_hostname)
+	if err != nil {
+		return err
+	}
+	infra.Master.IP, err = convertSliceToStrings(master_ip)
+	if err != nil {
+		return err
+	}
+	infra.Master.Ign_Data, err = convertSliceToStrings(master_ignData)
+	if err != nil {
+		return err
 	}
 
 	infra.Worker.Count = len(conf.Worker)
 	for _, worker := range conf.Worker {
-		infra.Worker.CPU = append(infra.Worker.CPU, worker.CPU)
-		infra.Worker.RAM = append(infra.Worker.RAM, worker.RAM)
-		infra.Worker.Disk = append(infra.Worker.Disk, worker.Disk)
-		infra.Worker.Hostname = append(infra.Worker.Hostname, worker.Hostname)
-		infra.Worker.IP = append(infra.Worker.IP, worker.IP)
-		infra.Worker.Ign_Data = append(infra.Worker.Ign_Data, string(worker.Ign_Data))
+		worker_cpu = append(worker_cpu, worker.CPU)
+		worker_ram = append(worker_ram, worker.RAM)
+		worker_disk = append(worker_disk, worker.Disk)
+		worker_hostname = append(worker_hostname, worker.Hostname)
+		worker_ip = append(worker_ip, worker.IP)
+		worker_ignData = append(worker_ignData, string(worker.Ign_Data))
+	}
+	infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
+	if err != nil {
+		return err
+	}
+	infra.Worker.RAM, err = convertSliceToStrings(worker_ram)
+	if err != nil {
+		return err
+	}
+	infra.Worker.Disk, err = convertSliceToStrings(worker_disk)
+	if err != nil {
+		return err
+	}
+	infra.Worker.Hostname, err = convertSliceToStrings(worker_hostname)
+	if err != nil {
+		return err
+	}
+	infra.Worker.IP, err = convertSliceToStrings(worker_ip)
+	if err != nil {
+		return err
+	}
+	infra.Worker.Ign_Data, err = convertSliceToStrings(worker_ignData)
+	if err != nil {
+		return err
 	}
 
-	outputFile, err := os.Create(filepath.Join(node, fmt.Sprintf("%s.tf", node)))
+	persistDir := configmanager.GetPersistDir()
+	outputFile, err := os.Create(filepath.Join(persistDir, conf.Cluster_ID, fmt.Sprintf("%s.tf", node)))
 	if err != nil {
 		return errors.Wrap(err, "failed to create terraform config file")
 	}
 	defer outputFile.Close()
 
 	// Read template.
-	tfFilePath := filepath.Join("terraform", conf.Platform, fmt.Sprintf("%s.tf.template", node))
+	tfFilePath := filepath.Join("terraform", fmt.Sprintf("%s.tf.template", node))
 	tfFile, err := data.Assets.Open(tfFilePath)
 	if err != nil {
 		return err
@@ -153,4 +219,30 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) error {
 		return errors.Wrap(err, "failed to write terraform config")
 	}
 	return nil
+}
+
+func convertSliceToStrings(slice interface{}) ([]string, error) {
+	sliceValue := reflect.ValueOf(slice)
+	if sliceValue.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("input is not a slice")
+	}
+
+	quotedStrs := make([]string, sliceValue.Len())
+	for i := 0; i < sliceValue.Len(); i++ {
+		element := sliceValue.Index(i)
+		switch element.Kind() {
+		case reflect.Uint:
+			quotedStrs[i] = fmt.Sprintf(`"%d",`, element.Interface())
+		case reflect.String:
+			quotedStrs[i] = fmt.Sprintf(`"%s",`, element.Interface())
+		default:
+			return nil, fmt.Errorf("unsupported type in slice")
+		}
+	}
+
+	if len(quotedStrs) > 0 {
+		quotedStrs[len(quotedStrs)-1] = strings.TrimRight(quotedStrs[len(quotedStrs)-1], ",")
+	}
+
+	return quotedStrs, nil
 }
