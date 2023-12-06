@@ -30,13 +30,12 @@ type Master struct {
 func (m *Master) GenerateFiles() error {
 	//Get template dependency configuration
 	mtd := ignition.GetTmplData(m.ClusterAsset)
-
 	for i, master := range m.ClusterAsset.Master {
 		nodeType := "controlplane"
 		if i > 0 {
 			nodeType = "master"
 		}
-
+		mtd.NodeName = master.Hostname
 		generateFile := ignition.Common{
 			UserName:        master.UserName,
 			SSHKey:          master.SSHKey,

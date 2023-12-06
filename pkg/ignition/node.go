@@ -16,7 +16,11 @@ limitations under the License.
 package ignition
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/clarketm/json"
+	"github.com/sirupsen/logrus"
 
 	ignutil "github.com/coreos/ignition/v2/config/util"
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -61,4 +65,29 @@ func AppendFiles(files []igntypes.File, file igntypes.File) []igntypes.File {
 	}
 	files = append(files, file)
 	return files
+}
+
+/*
+Save the ignition config
+Parameters:
+config - the ignition config to be saved
+filePath - the path to save the file
+fileName - the name to save the file
+*/
+func SaveFile(config *igntypes.Config, filePath string, fileName string) error {
+	data, err := Marshal(config)
+	if err != nil {
+		logrus.Errorf("failed to Marshal ignition config: %v", err)
+		return err
+	}
+	path := filepath.Join(filePath, fileName)
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+		logrus.Errorf("failed to Mkdir: %v", err)
+		return err
+	}
+	if err := os.WriteFile(path, data, 0640); err != nil {
+		logrus.Errorf("failed to save ignition file: %v", err)
+		return err
+	}
+	return nil
 }
