@@ -43,6 +43,7 @@ var (
 )
 
 type TmplData struct {
+	NodeName        string
 	APIServerURL    string
 	ImageRegistry   string
 	PauseImage      string
@@ -94,6 +95,7 @@ func (c *Common) Generate() error {
 			},
 		},
 	}
+
 	nodeFilesPath := fmt.Sprintf("ignition/%s/files", c.NodeType)
 	if err := appendStorageFiles(c.Config, "/", nodeFilesPath, c.TmplData); err != nil {
 		logrus.Errorf("failed to add files to a ignition config: %v", err)

@@ -29,19 +29,23 @@ type Worker struct {
 
 func (w *Worker) GenerateFiles() error {
 	wtd := ignition.GetTmplData(w.ClusterAsset)
-	generateFile := ignition.Common{
-		NodeType:        "worker",
-		TmplData:        wtd,
-		EnabledServices: ignition.EnabledServices,
-		Config:          &igntypes.Config{},
-	}
 
-	for i := 0; i < len(w.ClusterAsset.Worker); i++ {
-		generateFile.UserName = w.ClusterAsset.Worker[i].UserName
-		generateFile.SSHKey = w.ClusterAsset.Worker[i].SSHKey
-		generateFile.PassWord = w.ClusterAsset.Worker[i].Password
+	for _, worker := range w.ClusterAsset.Worker {
+		config := &igntypes.Config{}
+		wtd.NodeName = worker.Hostname
+		generateFile := ignition.Common{
+			NodeType:        "worker",
+			TmplData:        wtd,
+			EnabledServices: ignition.EnabledServices,
+			Config:          config,
+			UserName:        worker.UserName,
+			SSHKey:          worker.SSHKey,
+			PassWord:        worker.Password,
+		}
+
+		// Generate Ignition data
 		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", w.ClusterAsset.Worker[i].UserName, err)
+			logrus.Errorf("failed to generate %s ignition file: %v", worker.UserName, err)
 			return err
 		}
 		data, err := ignition.Marshal(generateFile.Config)
@@ -49,7 +53,9 @@ func (w *Worker) GenerateFiles() error {
 			logrus.Errorf("failed to Marshal ignition config: %v", err)
 			return err
 		}
-		w.ClusterAsset.Master[i].Ign_Data = string(data)
+
+		// Assign the Ignition data to the Worker node
+		worker.Ign_Data = string(data)
 	}
 
 	return nil
