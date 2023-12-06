@@ -25,17 +25,25 @@ type InfraAsset interface {
 }
 
 func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAsset, error) {
-	switch opts.Platform {
+	checkStringValue(&clusterAsset.Platform, opts.Platform)
+
+	switch clusterAsset.Platform {
 	case "openstack", "Openstack", "OpenStack":
-		openstackAsset := clusterAsset.InfraPlatform.(*OpenStackAsset)
-		infraAsset, err := initOpenStackAsset(openstackAsset, opts)
+		openstackAsset, ok := convertMap(clusterAsset.InfraPlatform, "openstack")
+		if !ok {
+			return nil, errors.New("failed to get openstack asset")
+		}
+		infraAsset, err := initOpenStackAssetFromMap(openstackAsset, opts)
 		if err != nil {
 			return nil, err
 		}
 		return infraAsset, nil
 	case "libvirt", "Libvirt":
-		libvirtAsset := clusterAsset.InfraPlatform.(*LibvirtAsset)
-		infraAsset, err := initLibvirtAsset(libvirtAsset, opts)
+		libvirtAsset, ok := convertMap(clusterAsset.InfraPlatform, "libvirt")
+		if !ok {
+			return nil, errors.New("failed to get libvirt asset")
+		}
+		infraAsset, err := initLibvirtAssetFromMap(libvirtAsset, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -43,6 +51,48 @@ func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAs
 	default:
 		return nil, errors.New("unsupported platform")
 	}
+}
+
+func convertMap(inputMap interface{}, platform string) (map[string]interface{}, bool) {
+	resultMap := make(map[string]interface{})
+
+	if inputMap == nil {
+		// If inputMap is nil, return an empty map corresponding to the platform structure.
+		switch platform {
+		case "openstack", "Openstack", "OpenStack":
+			return map[string]interface{}{
+				"username":          "",
+				"password":          "",
+				"tenant_name":       "",
+				"auth_url":          "",
+				"region":            "",
+				"internal_network":  "",
+				"external_network":  "",
+				"glance_name":       "",
+				"availability_zone": "",
+			}, true
+		case "libvirt", "Libvirt":
+			return map[string]interface{}{}, true
+		default:
+			return resultMap, false
+		}
+	}
+
+	// Check if the inputMap is of type map[interface{}]interface{}.
+	if inputMap, ok := inputMap.(map[interface{}]interface{}); ok {
+		for key, value := range inputMap {
+			keyStr, ok := key.(string)
+			if !ok {
+				return resultMap, false
+			}
+			resultMap[keyStr] = value
+		}
+	} else {
+		// If not, handle other types as needed.
+		return resultMap, false
+	}
+
+	return resultMap, true
 }
 
 type OpenStackAsset struct {
@@ -57,34 +107,28 @@ type OpenStackAsset struct {
 	Availability_Zone string
 }
 
-func initOpenStackAsset(openstackAsset *OpenStackAsset, opts *opts.OptionsList) (*OpenStackAsset, error) {
-	if err := checkStringValue(&openstackAsset.UserName, opts.InfraPlatform.OpenStack.UserName); err != nil {
-		return nil, err
+func initOpenStackAssetFromMap(openstackMap map[string]interface{}, opts *opts.OptionsList) (InfraAsset, error) {
+	openstackAsset := &OpenStackAsset{
+		UserName:          opts.InfraPlatform.OpenStack.UserName,
+		Password:          opts.InfraPlatform.OpenStack.Password,
+		Tenant_Name:       opts.InfraPlatform.OpenStack.Tenant_Name,
+		Auth_URL:          opts.InfraPlatform.OpenStack.Auth_URL,
+		Region:            opts.InfraPlatform.OpenStack.Region,
+		Internal_Network:  opts.InfraPlatform.OpenStack.Internal_Network,
+		External_Network:  opts.InfraPlatform.OpenStack.External_Network,
+		Glance_Name:       opts.InfraPlatform.OpenStack.Glance_Name,
+		Availability_Zone: opts.InfraPlatform.OpenStack.Availability_Zone,
 	}
-	if err := checkStringValue(&openstackAsset.Password, opts.InfraPlatform.OpenStack.Password); err != nil {
-		return nil, err
-	}
-	if err := checkStringValue(&openstackAsset.Tenant_Name, opts.InfraPlatform.OpenStack.Tenant_Name); err != nil {
-		return nil, err
-	}
-	if err := checkStringValue(&openstackAsset.Auth_URL, opts.InfraPlatform.OpenStack.Auth_URL); err != nil {
-		return nil, err
-	}
-	if err := checkStringValue(&openstackAsset.Region, opts.InfraPlatform.OpenStack.Region); err != nil {
-		return nil, err
-	}
-	if err := checkStringValue(&openstackAsset.Internal_Network, opts.InfraPlatform.OpenStack.Internal_Network); err != nil {
-		return nil, err
-	}
-	if err := checkStringValue(&openstackAsset.External_Network, opts.InfraPlatform.OpenStack.External_Network); err != nil {
-		return nil, err
-	}
-	if err := checkStringValue(&openstackAsset.Glance_Name, opts.InfraPlatform.OpenStack.Glance_Name); err != nil {
-		return nil, err
-	}
-	if err := checkStringValue(&openstackAsset.Availability_Zone, opts.InfraPlatform.OpenStack.Availability_Zone); err != nil {
-		return nil, err
-	}
+
+	updateFieldFromMap("username", &openstackAsset.UserName, openstackMap)
+	updateFieldFromMap("password", &openstackAsset.Password, openstackMap)
+	updateFieldFromMap("tenant_name", &openstackAsset.Tenant_Name, openstackMap)
+	updateFieldFromMap("auth_url", &openstackAsset.Auth_URL, openstackMap)
+	updateFieldFromMap("region", &openstackAsset.Region, openstackMap)
+	updateFieldFromMap("internal_network", &openstackAsset.Internal_Network, openstackMap)
+	updateFieldFromMap("external_network", &openstackAsset.External_Network, openstackMap)
+	updateFieldFromMap("glance_name", &openstackAsset.Glance_Name, openstackMap)
+	updateFieldFromMap("availability_zone", &openstackAsset.Availability_Zone, openstackMap)
 
 	return openstackAsset, nil
 }
@@ -92,6 +136,14 @@ func initOpenStackAsset(openstackAsset *OpenStackAsset, opts *opts.OptionsList) 
 type LibvirtAsset struct {
 }
 
-func initLibvirtAsset(libvirtAsset *LibvirtAsset, opts *opts.OptionsList) (*LibvirtAsset, error) {
-	return libvirtAsset, nil
+func initLibvirtAssetFromMap(libvirtMap map[string]interface{}, opts *opts.OptionsList) (InfraAsset, error) {
+	return &LibvirtAsset{}, nil
+}
+
+func updateFieldFromMap(fieldName string, fieldValue *string, inputMap map[string]interface{}) {
+	if value, ok := inputMap[fieldName]; ok {
+		if strValue, ok := value.(string); ok && *fieldValue == "" {
+			*fieldValue = strValue
+		}
+	}
 }
