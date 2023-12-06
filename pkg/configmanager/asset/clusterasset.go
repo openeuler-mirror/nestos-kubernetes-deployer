@@ -17,7 +17,6 @@ limitations under the License.
 package asset
 
 import (
-	"encoding/json"
 	"fmt"
 	mrand "math/rand"
 	"nestos-kubernetes-deployer/cmd/command/opts"
@@ -158,13 +157,8 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		if len(opts.Master.IP) != 0 {
 			checkStringValue(&master_node.IP, opts.Master.IP[i])
 		}
-
 		if len(opts.Master.IgnFilePath) != 0 {
-			ignData, err := json.Marshal(opts.Master.IgnFilePath[i])
-			if err != nil {
-				return nil, err
-			}
-			master_node.Ign_Data = string(ignData)
+			checkStringValue(&master_node.Ign_Path, opts.Master.IgnFilePath[i])
 		}
 	}
 	// worker node
@@ -184,14 +178,10 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		if len(opts.Worker.IP) != 0 {
 			checkStringValue(&worker_node.IP, opts.Worker.IP[i])
 		}
-
 		if len(opts.Worker.IgnFilePath) != 0 {
-			ignData, err := json.Marshal(opts.Worker.IgnFilePath[i])
-			if err != nil {
-				return nil, err
-			}
-			worker_node.Ign_Data = string(ignData)
+			checkStringValue(&worker_node.Ign_Path, opts.Worker.IgnFilePath[i])
 		}
+
 	}
 
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")
