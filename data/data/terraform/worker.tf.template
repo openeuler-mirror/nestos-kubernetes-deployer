@@ -23,13 +23,9 @@ variable "create_flavor" {
   default = true
 }
 
-variable "instance_name" {
-  default = element({{.Worker.Hostname}}, count.index)
-}
-
 resource "openstack_compute_flavor_v2" "flavor" {
   count     = var.create_flavor?1:0
-  name      = var.instance_name
+  name      = element({{.Worker.Hostname}}, count.index)
   vcpus     = element({{.Worker.CPU}}, count.index)
   ram       = element({{.Worker.RAM}}, count.index)
   disk      = element({{.Worker.Disk}}, count.index)
@@ -120,9 +116,9 @@ resource "openstack_compute_secgroup_v2" "secgroup" {
 
 resource "openstack_compute_instance_v2" "instance" {
   count              = var.instance_count
-  name               = var.instance_name
+  name               = element({{.Worker.Hostname}}, count.index)
   image_name         = "{{.Platform.Glance_Name}}"
-  flavor_name        = var.instance_name
+  flavor_name        = element({{.Worker.Hostname}}, count.index)
   security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
   availability_zone  = "{{.Platform.Availability_Zone}}"
   user_data          = element({{.Worker.Ign_Data}}, count.index)
