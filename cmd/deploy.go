@@ -153,7 +153,7 @@ func generateCerts(conf *asset.ClusterAsset) error {
 		masterCerts = append(masterCerts, certs...)
 
 		// Assign the certificates to the corresponding Master node
-		master.Certs = masterCerts
+		conf.Master[i].Certs = masterCerts
 	}
 
 	return nil
