@@ -45,7 +45,7 @@ const (
 	AdminConfig       = "/etc/kubernetes/admin.conf"
 	KubeletConfig     = "/etc/kubernetes/kubelet.conf"
 	ControllerManager = "/etc/kubernetes/controller-manager.conf"
-	schedulerConf     = "/etc/kubernetes/scheduler.conf"
+	SchedulerConf     = "/etc/kubernetes/scheduler.conf"
 
 	CertFileMode os.FileMode = 0644
 )
