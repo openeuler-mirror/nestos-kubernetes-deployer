@@ -459,5 +459,86 @@ func GenerateCertFilesAllSame(clusterID string) ([]utils.StorageContent, error) 
 
 	certs = append(certs, adminKubeconfigContent)
 
+	/* **********生成 controller-manager.config********** */
+
+	commonName = "system:kube-controller-manager"
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	controllerManagercrt, err := GenerateAllSignedCert(commonName,
+		nil, nil, extKeyUsage, nil, cacertraw, cakeyraw)
+	if err != nil {
+		logrus.Errorf("Error generate controller-manager cert:%v", err)
+		return nil, err
+	}
+
+	controllerManagerKubeconfig, err := generateKubeconfig(cacertraw, controllerManagercrt.CertRaw, controllerManagercrt.KeyRaw,
+		apiserverEndpoint, "system:kube-controller-manager", "system:kube-controller-manager@kubernetes")
+	if err != nil {
+		logrus.Errorf("Error generate controller-manager.config:%v", err)
+		return nil, err
+	}
+
+	controllerManagerKubeconfigContent := utils.StorageContent{
+		Path:    utils.ControllerManager,
+		Mode:    int(utils.CertFileMode),
+		Content: controllerManagerKubeconfig,
+	}
+
+	certs = append(certs, controllerManagerKubeconfigContent)
+
+	/* **********生成 scheduler.config********** */
+
+	commonName = "system:kube-scheduler"
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	schedulercrt, err := GenerateAllSignedCert(commonName,
+		nil, nil, extKeyUsage, nil, cacertraw, cakeyraw)
+	if err != nil {
+		logrus.Errorf("Error generate scheduler cert:%v", err)
+		return nil, err
+	}
+
+	schedulerKubeconfig, err := generateKubeconfig(cacertraw, schedulercrt.CertRaw, schedulercrt.KeyRaw,
+		apiserverEndpoint, "system:kube-scheduler", "system:kube-scheduler@kubernetes")
+	if err != nil {
+		logrus.Errorf("Error generate scheduler.config:%v", err)
+		return nil, err
+	}
+
+	schedulerKubeconfigContent := utils.StorageContent{
+		Path:    utils.SchedulerConf,
+		Mode:    int(utils.CertFileMode),
+		Content: schedulerKubeconfig,
+	}
+
+	certs = append(certs, schedulerKubeconfigContent)
+
+	/* **********生成 kubelet.config********** */
+
+	commonName = "system:kubelet"
+	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	kubeletcrt, err := GenerateAllSignedCert(commonName,
+		nil, nil, extKeyUsage, nil, cacertraw, cakeyraw)
+	if err != nil {
+		logrus.Errorf("Error generate kubelet cert:%v", err)
+		return nil, err
+	}
+
+	kubeletKubeconfig, err := generateKubeconfig(cacertraw, kubeletcrt.CertRaw, kubeletcrt.KeyRaw,
+		apiserverEndpoint, "system:kubelet", "system:kubelet@kubernetes")
+	if err != nil {
+		logrus.Errorf("Error generate kubelet.config:%v", err)
+		return nil, err
+	}
+
+	kubeletKubeconfigContent := utils.StorageContent{
+		Path:    utils.KubeletConfig,
+		Mode:    int(utils.CertFileMode),
+		Content: kubeletKubeconfig,
+	}
+
+	certs = append(certs, kubeletKubeconfigContent)
+
 	return certs, nil
 }
