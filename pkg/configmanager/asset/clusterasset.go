@@ -111,6 +111,7 @@ type Kubernetes struct {
 	Pause_Image        string
 	Release_Image_URL  string
 	Token              string
+	AdminKubeConfig    string
 
 	Network
 }

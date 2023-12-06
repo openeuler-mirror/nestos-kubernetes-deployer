@@ -84,7 +84,7 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		return err
 	}
 
-	configPath := filepath.Join(opts.RootOptDir, "auth", "kubeconfig")
+	configPath := conf.Kubernetes.AdminKubeConfig
 	kubeClient, err := kubeclient.CreateClient(configPath)
 	if err != nil {
 		logrus.Errorf("failed to create kubernetes client %v", err)

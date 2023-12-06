@@ -130,8 +130,8 @@ func GenerateCAFiles(clusterID string) ([]utils.StorageContent, error) {
 
 	/* **********生成front-proxy CA 证书和密钥********** */
 
-	frontProxyCACert, err := GenerateAllCA(clusterconfig.CertAsset.EtcdCaCertPath,
-		clusterconfig.CertAsset.EtcdCaKeyPath, "front-proxy-ca", []string{"front-proxy-ca"})
+	frontProxyCACert, err := GenerateAllCA(clusterconfig.CertAsset.FrontProxyCaCertPath,
+		clusterconfig.CertAsset.FrontProxyCaKeyPath, "front-proxy-ca", []string{"front-proxy-ca"})
 	if err != nil {
 		logrus.Errorf("Error generating front-proxy CA:%v", err)
 		return nil, err
@@ -444,6 +444,8 @@ func GenerateCertFilesAllSame(clusterID string) ([]utils.StorageContent, error) 
 		logrus.Errorf("Error generate admin.config:%v", err)
 		return nil, err
 	}
+
+	clusterconfig.Kubernetes.AdminKubeConfig = globalconfig.PersistDir + "/" + clusterID + "/admin.config"
 
 	//将admin.config文件保存至宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/admin.config", adminKubeconfig)
