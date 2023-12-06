@@ -25,7 +25,7 @@ type NodeAsset struct {
 	Password string
 	SSHKey   string
 	IP       string
-	Ign_Data []byte
+	Ign_Data string
 	Certs    []utils.StorageContent
 }
 

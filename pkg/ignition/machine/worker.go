@@ -49,7 +49,7 @@ func (w *Worker) GenerateFiles() error {
 			logrus.Errorf("failed to Marshal ignition config: %v", err)
 			return err
 		}
-		w.ClusterAsset.Master[i].Ign_Data = data
+		w.ClusterAsset.Master[i].Ign_Data = string(data)
 	}
 
 	return nil
