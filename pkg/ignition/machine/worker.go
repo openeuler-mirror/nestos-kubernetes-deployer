@@ -16,8 +16,10 @@ limitations under the License.
 package machine
 
 import (
+	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
+	"path/filepath"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/sirupsen/logrus"
@@ -30,7 +32,7 @@ type Worker struct {
 func (w *Worker) GenerateFiles() error {
 	wtd := ignition.GetTmplData(w.ClusterAsset)
 
-	for _, worker := range w.ClusterAsset.Worker {
+	for i, worker := range w.ClusterAsset.Worker {
 		config := &igntypes.Config{}
 		wtd.NodeName = worker.Hostname
 		generateFile := ignition.Common{
@@ -48,14 +50,14 @@ func (w *Worker) GenerateFiles() error {
 			logrus.Errorf("failed to generate %s ignition file: %v", worker.UserName, err)
 			return err
 		}
-		data, err := ignition.Marshal(generateFile.Config)
-		if err != nil {
-			logrus.Errorf("failed to Marshal ignition config: %v", err)
-			return err
-		}
 
-		// Assign the Ignition data to the Worker node
-		worker.Ign_Data = string(data)
+		// Assign the Ignition path to the Worker node
+		filePath := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
+		fileName := worker.Hostname + ".ign"
+		w.ClusterAsset.Worker[i].Ign_Path = filepath.Join(filePath, fileName)
+
+		ignition.SaveFile(generateFile.Config, filePath, fileName)
+		logrus.Infof("Successfully generate %s ignition file", worker.Hostname)
 	}
 
 	return nil

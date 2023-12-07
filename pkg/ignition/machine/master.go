@@ -16,8 +16,10 @@ limitations under the License.
 package machine
 
 import (
+	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
+	"path/filepath"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/sirupsen/logrus"
@@ -45,11 +47,6 @@ func (m *Master) GenerateFiles() error {
 			EnabledServices: ignition.EnabledServices,
 			Config:          &igntypes.Config{},
 		}
-		// Merge certificates into ignition.Config
-		for _, file := range master.Certs {
-			ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
-			generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
-		}
 
 		// Generate Ignition data
 		if err := generateFile.Generate(); err != nil {
@@ -57,15 +54,19 @@ func (m *Master) GenerateFiles() error {
 			return err
 		}
 
-		// Marshal the ignition.Config
-		data, err := ignition.Marshal(generateFile.Config)
-		if err != nil {
-			logrus.Errorf("failed to Marshal ignition config: %v", err)
-			return err
+		// Merge certificates into ignition.Config
+		for _, file := range master.Certs {
+			ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
+			generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
 		}
 
-		//Assign the Ignition data to the Master node
-		master.Ign_Data = string(data)
+		//Assign the Ignition path to the Master node
+		filePath := filepath.Join(configmanager.GetPersistDir(), m.ClusterAsset.Cluster_ID, "ignition")
+		fileName := master.Hostname + ".ign"
+		m.ClusterAsset.Master[i].Ign_Path = filepath.Join(filePath, fileName)
+
+		ignition.SaveFile(generateFile.Config, filePath, fileName)
+		logrus.Infof("Successfully generate %s ignition file", master.Hostname)
 	}
 
 	return nil

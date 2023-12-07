@@ -69,28 +69,18 @@ func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
 
 type Infra struct {
 	Platform
-	Master
-	Worker
+	Master Node
+	Worker Node
 }
 
-type Master struct {
+type Node struct {
 	Count    int
 	CPU      []string
 	RAM      []string
 	Disk     []string
 	Hostname []string
 	IP       []string
-	Ign_Data []string
-}
-
-type Worker struct {
-	Count    int
-	CPU      []string
-	RAM      []string
-	Disk     []string
-	Hostname []string
-	IP       []string
-	Ign_Data []string
+	Ign_Path []string
 }
 
 func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) {
@@ -100,14 +90,14 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		master_disk     []uint
 		master_hostname []string
 		master_ip       []string
-		master_ignData  []string
+		master_ignPath  []string
 
 		worker_cpu      []uint
 		worker_ram      []uint
 		worker_disk     []uint
 		worker_hostname []string
 		worker_ip       []string
-		worker_ignData  []string
+		worker_ignPath  []string
 	)
 
 	switch conf.Platform {
@@ -128,7 +118,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		master_disk = append(master_disk, master.Disk)
 		master_hostname = append(master_hostname, master.Hostname)
 		master_ip = append(master_ip, master.IP)
-		master_ignData = append(master_ignData, string(master.Ign_Data))
+		master_ignPath = append(master_ignPath, master.Ign_Path)
 	}
 	infra.Master.CPU, err = convertSliceToStrings(master_cpu)
 	if err != nil {
@@ -150,7 +140,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 	if err != nil {
 		return err
 	}
-	infra.Master.Ign_Data, err = convertSliceToStrings(master_ignData)
+	infra.Master.Ign_Path, err = convertSliceToStrings(master_ignPath)
 	if err != nil {
 		return err
 	}
@@ -162,7 +152,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		worker_disk = append(worker_disk, worker.Disk)
 		worker_hostname = append(worker_hostname, worker.Hostname)
 		worker_ip = append(worker_ip, worker.IP)
-		worker_ignData = append(worker_ignData, string(worker.Ign_Data))
+		worker_ignPath = append(worker_ignPath, worker.Ign_Path)
 	}
 	infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
 	if err != nil {
@@ -184,7 +174,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 	if err != nil {
 		return err
 	}
-	infra.Worker.Ign_Data, err = convertSliceToStrings(worker_ignData)
+	infra.Worker.Ign_Path, err = convertSliceToStrings(worker_ignPath)
 	if err != nil {
 		return err
 	}
