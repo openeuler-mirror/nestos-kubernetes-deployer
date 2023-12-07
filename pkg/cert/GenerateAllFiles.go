@@ -515,20 +515,36 @@ func GenerateCertFilesAllSame(clusterID string) ([]utils.StorageContent, error) 
 
 	certs = append(certs, schedulerKubeconfigContent)
 
+	return certs, nil
+}
+
+//用于生成kubelet.conf，要求每一个节点都需要一份,同时区分hostname
+func GenerateKubeletConfigForNode(node *asset.NodeAsset, clusterID string) ([]utils.StorageContent, error) {
+
+	var certs []utils.StorageContent
+
+	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
+
+	//用于后续kubeconfig生成
+	apiserverEndpoint := clusterconfig.Kubernetes.ApiServer_Endpoint
+
+	//获取node节点hostname
+	hostname := node.Hostname
 	/* **********生成 kubelet.config********** */
 
-	commonName = "system:kubelet"
-	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+	commonName := "system:node:" + hostname
+	organization := []string{"system:nodes"}
+	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 
 	kubeletcrt, err := GenerateAllSignedCert(commonName,
-		nil, nil, extKeyUsage, nil, cacertraw, cakeyraw)
+		organization, nil, extKeyUsage, nil, cacertraw, cakeyraw)
 	if err != nil {
 		logrus.Errorf("Error generate kubelet cert:%v", err)
 		return nil, err
 	}
 
 	kubeletKubeconfig, err := generateKubeconfig(cacertraw, kubeletcrt.CertRaw, kubeletcrt.KeyRaw,
-		apiserverEndpoint, "system:kubelet", "system:kubelet@kubernetes")
+		apiserverEndpoint, "system:node:"+hostname, "system:node:"+hostname+"@kubernetes")
 	if err != nil {
 		logrus.Errorf("Error generate kubelet.config:%v", err)
 		return nil, err
