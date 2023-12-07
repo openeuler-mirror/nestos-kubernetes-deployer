@@ -66,7 +66,6 @@ func (m *Master) GenerateFiles() error {
 		m.ClusterAsset.Master[i].Ign_Path = filepath.Join(filePath, fileName)
 
 		ignition.SaveFile(generateFile.Config, filePath, fileName)
-		logrus.Infof("Successfully generate %s ignition file", master.Hostname)
 	}
 
 	return nil
