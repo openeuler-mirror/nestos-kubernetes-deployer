@@ -19,17 +19,19 @@ variable "instance_count" {
   default = "{{.Worker.Count}}"
 }
 
-variable "create_flavor" {
-  default = true
-}
-
 resource "openstack_compute_flavor_v2" "flavor" {
-  count     = var.create_flavor?1:0
+  count     = var.instance_count
   name      = element({{.Worker.Hostname}}, count.index)
   vcpus     = element({{.Worker.CPU}}, count.index)
   ram       = element({{.Worker.RAM}}, count.index)
   disk      = element({{.Worker.Disk}}, count.index)
   is_public = "true"
+}
+
+resource "openstack_blockstorage_volume_v3" "volume" {
+  count = var.instance_count
+  name  = element({{.Worker.Hostname}}, count.index)
+  size  = element({{.Worker.Disk}}, count.index)
 }
 
 resource "openstack_compute_secgroup_v2" "secgroup" {
@@ -138,6 +140,12 @@ resource "openstack_compute_floatingip_associate_v2" "fip_associate" {
   count       = length(openstack_compute_instance_v2.instance)
   floating_ip = openstack_networking_floatingip_v2.floatip.*.address[count.index]
   instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
+}
+
+resource "openstack_compute_volume_attach_v2" "volume_attach" {
+  count       = length(openstack_compute_instance_v2.instance)
+  instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
+  volume_id   = openstack_blockstorage_volume_v3.volume.*.id[count.index]
 }
 
 output "instance_info" {
