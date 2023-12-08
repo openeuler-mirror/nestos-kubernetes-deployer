@@ -221,6 +221,7 @@ func GetTmplData(c *asset.ClusterAsset) *TmplData {
 		Token:           c.Kubernetes.Token,
 		CorednsImageTag: c.Network.CoreDNS_Image_Version,
 		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
+		CertificateKey:  c.Kubernetes.CertificateKey,
 		Hsip:            hsip,
 	}
 }

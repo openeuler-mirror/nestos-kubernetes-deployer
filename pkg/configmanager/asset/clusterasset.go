@@ -111,6 +111,7 @@ type Kubernetes struct {
 	Release_Image_URL  string
 	Token              string
 	AdminKubeConfig    string
+	CertificateKey     string
 
 	Network
 }
@@ -189,6 +190,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Image_Registry, opts.ImageRegistry, "")
 	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, "")
 	setStringValue(&clusterAsset.Kubernetes.Release_Image_URL, opts.ReleaseImageUrl, "")
+	setStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, "")
 
 	token, err := generateToken()
 	if err != nil {

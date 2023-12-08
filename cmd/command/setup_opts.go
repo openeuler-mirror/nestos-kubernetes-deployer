@@ -50,6 +50,7 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.ReleaseImageUrl, "release-image-url", "", "", "Specify the URL of the NestOS container image that contains the Kubernetes component. Only supports the qcow2 format.")
 	flags.StringVarP(&opts.Opts.KubeVersion, "kubeversion", "", "", "Specify the version of Kubernetes to deploy")
 	flags.StringVarP(&opts.Opts.Token, "token", "", "", "Specify the authentication token for accessing resources")
+	flags.StringVarP(&opts.Opts.CertificateKey, "CertificateKey", "", "", "Specifies the certificate key to be added to the master node")
 	flags.StringVarP(&opts.Opts.NetWork.ServiceSubnet, "service-subnet", "", "10.96.0.0/16", "Specify the subnet for Kubernetes services")
 	flags.StringVarP(&opts.Opts.NetWork.PodSubnet, "pod-subnet", "", "", "Specify the subnet for Kubernetes Pods.")
 	flags.StringVarP(&opts.Opts.NetWork.DNS.ImageVersion, "image-version", "", "", "Specify the version of the CoreDNS container image")
