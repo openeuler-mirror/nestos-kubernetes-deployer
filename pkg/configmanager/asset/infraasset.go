@@ -25,7 +25,9 @@ type InfraAsset interface {
 }
 
 func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAsset, error) {
-	checkStringValue(&clusterAsset.Platform, opts.Platform)
+	if err := checkStringValue(&clusterAsset.Platform, opts.Platform, "platform"); err != nil {
+		return nil, err
+	}
 
 	switch clusterAsset.Platform {
 	case "openstack", "Openstack", "OpenStack":
@@ -76,6 +78,8 @@ func convertMap(inputMap interface{}, platform string) (map[string]interface{}, 
 				"username":     "",
 				"remote_ip":    "",
 				"osimage_path": "",
+				"cidr":         "",
+				"gateway":      "",
 			}, true
 		default:
 			return resultMap, false
@@ -141,6 +145,8 @@ type LibvirtAsset struct {
 	UserName     string
 	Remote_IP    string
 	OSImage_Path string
+	CIDR         string
+	Gateway      string
 }
 
 func initLibvirtAssetFromMap(libvirtMap map[string]interface{}, opts *opts.OptionsList) (InfraAsset, error) {
@@ -148,11 +154,15 @@ func initLibvirtAssetFromMap(libvirtMap map[string]interface{}, opts *opts.Optio
 		UserName:     opts.InfraPlatform.Libvirt.UserName,
 		Remote_IP:    opts.InfraPlatform.Libvirt.RemoteIP,
 		OSImage_Path: opts.InfraPlatform.Libvirt.OSImagePath,
+		CIDR:         opts.InfraPlatform.Libvirt.CIDR,
+		Gateway:      opts.InfraPlatform.Libvirt.Gateway,
 	}
 
 	updateFieldFromMap("username", &libvirtAsset.UserName, libvirtMap)
 	updateFieldFromMap("remote_ip", &libvirtAsset.Remote_IP, libvirtMap)
 	updateFieldFromMap("osimage_path", &libvirtAsset.OSImage_Path, libvirtMap)
+	updateFieldFromMap("cidr", &libvirtAsset.CIDR, libvirtMap)
+	updateFieldFromMap("gateway", &libvirtAsset.Gateway, libvirtMap)
 
 	return libvirtAsset, nil
 }

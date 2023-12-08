@@ -65,6 +65,8 @@ type Libvirt struct {
 	Username     string
 	Remote_IP    string
 	OSImage_Path string
+	CIDR         string
+	Gateway      string
 }
 
 func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
@@ -72,6 +74,8 @@ func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
 		libvirt.Username = libvirtAsset.UserName
 		libvirt.Remote_IP = libvirtAsset.Remote_IP
 		libvirt.OSImage_Path = libvirtAsset.OSImage_Path
+		libvirt.CIDR = libvirtAsset.CIDR
+		libvirt.Gateway = libvirtAsset.Gateway
 	}
 }
 

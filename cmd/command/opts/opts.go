@@ -72,6 +72,8 @@ type Libvirt struct {
 	UserName    string
 	RemoteIP    string
 	OSImagePath string
+	CIDR        string
+	Gateway     string
 }
 
 type NodeConfig struct {
