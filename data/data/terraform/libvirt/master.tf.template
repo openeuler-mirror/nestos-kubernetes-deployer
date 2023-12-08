@@ -1,0 +1,68 @@
+terraform {
+  required_providers {
+    libvirt = {
+      source = "dmacvicar/libvirt"
+      version = "0.7.6"
+    }
+  }
+}
+
+provider "libvirt" {
+  uri = "qemu+ssh://{{.Platform.Username}}@{{.Platform.Remote_IP}}/system"
+}
+
+variable "instance_count" {
+  default = "{{.Master.Count}}"
+}
+
+variable "ip" {
+  type    = list(string)
+  default = {{.Master.IP}}
+}
+
+resource "libvirt_volume" "volume" {
+  count  = var.instance_count
+  name   =  "${format("%s-volume", element({{.Master.Hostname}}, count.index))}"
+  pool   = "default"
+  source = "{{.Platform.OSImage_Path}}"
+}
+
+resource "libvirt_ignition" "ignition" {
+  count   = var.instance_count
+  name    = "${format("%s-ignition", element({{.Master.Hostname}}, count.index))}"
+  content = file(element({{.Master.Ign_Path}}, count.index))
+}
+
+resource "libvirt_domain" "nestos" {
+  count           = var.instance_count
+  name            = element({{.Master.Hostname}}, count.index)
+  vcpu            = element({{.Master.CPU}}, count.index)
+  memory          = element({{.Master.RAM}}, count.index)
+  coreos_ignition = libvirt_ignition.ignition.*.id[count.index]
+  autostart       = true
+
+  disk {
+    volume_id = libvirt_volume.volume.*.id[count.index]
+  }
+
+  network_interface {
+    network_name   = "default"
+    hostname       = element({{.Master.Hostname}}, count.index)
+    addresses      = [var.ip[count.index]]
+    wait_for_lease = true
+  }
+
+  graphics {
+    type        = "vnc"
+    listen_type = "address"
+  }
+
+  console {
+    type        = "pty"
+    target_port = "0"
+  }
+}
+
+output "ipv4" {
+  value = libvirt_domain.nestos.*.network_interface.0.addresses
+}

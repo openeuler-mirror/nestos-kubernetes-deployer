@@ -62,9 +62,17 @@ func (openstack *OpenStack) SetPlatform(infraAsset asset.InfraAsset) {
 }
 
 type Libvirt struct {
+	Username     string
+	Remote_IP    string
+	OSImage_Path string
 }
 
 func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
+	if libvirtAsset, ok := infraAsset.(*asset.LibvirtAsset); ok {
+		libvirt.Username = libvirtAsset.UserName
+		libvirt.Remote_IP = libvirtAsset.Remote_IP
+		libvirt.OSImage_Path = libvirtAsset.OSImage_Path
+	}
 }
 
 type Infra struct {
@@ -191,7 +199,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 	defer outputFile.Close()
 
 	// Read template.
-	tfFilePath := filepath.Join("terraform", fmt.Sprintf("%s.tf.template", node))
+	tfFilePath := filepath.Join("terraform", conf.Platform, fmt.Sprintf("%s.tf.template", node))
 	tfFile, err := data.Assets.Open(tfFilePath)
 	if err != nil {
 		return err
