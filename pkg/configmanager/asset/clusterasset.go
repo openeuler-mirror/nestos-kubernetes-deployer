@@ -38,11 +38,11 @@ func setStringValue(target *string, value string, defaultValue string) {
 }
 
 // Check whether the value is provided
-func checkStringValue(target *string, value string) error {
+func checkStringValue(target *string, value string, paramName string) error {
 	if value != "" {
 		*target = value
 	} else if *target == "" {
-		return errors.Errorf("%s is unprovided", *target)
+		return errors.Errorf("%s is unprovided", paramName)
 	}
 
 	return nil
@@ -155,11 +155,15 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		setStringValue(&master_node.UserName, opts.Master.UserName, "root")
 		setStringValue(&master_node.Password, opts.Master.Password, "")
 		setStringValue(&master_node.SSHKey, opts.Master.SSHKey, "")
-		if len(opts.Master.IP) != 0 {
-			checkStringValue(&master_node.IP, opts.Master.IP[i])
+
+		opts.Master.IP = make([]string, len(clusterAsset.Master))
+		if err := checkStringValue(&master_node.IP, opts.Master.IP[i], fmt.Sprintf("master-ip[%d]", i)); err != nil {
+			return nil, err
 		}
-		if len(opts.Master.IgnFilePath) != 0 {
-			checkStringValue(&master_node.Ign_Path, opts.Master.IgnFilePath[i])
+
+		opts.Master.IgnFilePath = make([]string, len(clusterAsset.Master))
+		if err := checkStringValue(&master_node.Ign_Path, opts.Master.IgnFilePath[i], fmt.Sprintf("master-ign[%d]", i)); err != nil {
+			return nil, err
 		}
 	}
 	// worker node
@@ -176,13 +180,16 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		setStringValue(&worker_node.UserName, opts.Worker.UserName, "root")
 		setStringValue(&worker_node.Password, opts.Worker.Password, "")
 		setStringValue(&worker_node.SSHKey, opts.Worker.SSHKey, "")
-		if len(opts.Worker.IP) != 0 {
-			checkStringValue(&worker_node.IP, opts.Worker.IP[i])
-		}
-		if len(opts.Worker.IgnFilePath) != 0 {
-			checkStringValue(&worker_node.Ign_Path, opts.Worker.IgnFilePath[i])
+
+		opts.Worker.IP = make([]string, len(clusterAsset.Worker))
+		if err := checkStringValue(&worker_node.IP, opts.Master.IP[i], fmt.Sprintf("worker-ip[%d]", i)); err != nil {
+			return nil, err
 		}
 
+		opts.Worker.IgnFilePath = make([]string, len(clusterAsset.Worker))
+		if err := checkStringValue(&worker_node.Ign_Path, opts.Worker.IgnFilePath[i], fmt.Sprintf("worker-ign[%d]", i)); err != nil {
+			return nil, err
+		}
 	}
 
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")
@@ -203,14 +210,22 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, "")
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
-		checkStringValue(&clusterAsset.Housekeeper.Operator_Image_URL, opts.Housekeeper.OperatorImageUrl)
-		checkStringValue(&clusterAsset.Housekeeper.Controller_Image_URL, opts.Housekeeper.ControllerImageUrl)
-		checkStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion)
+		if err := checkStringValue(&clusterAsset.Housekeeper.Operator_Image_URL, opts.Housekeeper.OperatorImageUrl, "operator-image-url"); err != nil {
+			return nil, err
+		}
+		if err := checkStringValue(&clusterAsset.Housekeeper.Controller_Image_URL, opts.Housekeeper.ControllerImageUrl, "controller-image-url"); err != nil {
+			return nil, err
+		}
+		if err := checkStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "kubeversion"); err != nil {
+			return nil, err
+		}
 		if opts.Housekeeper.EvictPodForce {
 			clusterAsset.Housekeeper.EvictPodForce = true
 		}
 		setIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, 2)
-		checkStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL)
+		if err := checkStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "imageurl"); err != nil {
+			return nil, err
+		}
 	}
 
 	return clusterAsset, nil
