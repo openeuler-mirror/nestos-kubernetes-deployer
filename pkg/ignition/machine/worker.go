@@ -51,12 +51,6 @@ func (w *Worker) GenerateFiles() error {
 			return err
 		}
 
-		// Merge certificates into ignition.Config
-		for _, file := range worker.Certs {
-			ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
-			generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
-		}
-
 		// Assign the Ignition path to the Worker node
 		filePath := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
 		fileName := worker.Hostname + ".ign"

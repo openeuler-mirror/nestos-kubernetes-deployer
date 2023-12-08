@@ -128,52 +128,12 @@ func getClusterDeployConfig(conf *asset.ClusterAsset) error {
 
 func generateCerts(conf *asset.ClusterAsset) error {
 	// Generate CA certificates
-	caCerts, err := cert.GenerateCAFiles(conf.Cluster_ID)
+	masterCerts, err := cert.GenerateAllFiles(conf.Cluster_ID, &conf.Master[0])
 	if err != nil {
-		logrus.Errorf("Error generating CA files: %v", err)
+		logrus.Errorf("Error generating all certs files: %v", err)
 		return err
 	}
-
-	sameCerts, err := cert.GenerateCertFilesAllSame(conf.Cluster_ID)
-	if err != nil {
-		return err
-	}
-
-	// Generate certificates for each nodes
-	for i, master := range conf.Master {
-		var masterCerts []utils.StorageContent
-
-		certs, err := cert.GenerateCertFilesForNode(&master)
-		if err != nil {
-			logrus.Errorf("Error generating certificate files for Master %d: %v", i, err)
-			return err
-		}
-		kubeletCert, err := cert.GenerateKubeletConfigForNode(&master, conf.Cluster_ID)
-		if err != nil {
-			logrus.Errorf("Error generating kubelet certificate for Master %d: %v", i, err)
-			return err
-		}
-
-		masterCerts = append(masterCerts, caCerts...)
-		masterCerts = append(masterCerts, sameCerts...)
-		masterCerts = append(masterCerts, certs...)
-		masterCerts = append(masterCerts, kubeletCert...)
-
-		// Assign the certificates to the corresponding Master nodes
-		conf.Master[i].Certs = masterCerts
-	}
-
-	for i, worker := range conf.Worker {
-		kubeletCert, err := cert.GenerateKubeletConfigForNode(&worker, conf.Cluster_ID)
-		if err != nil {
-			logrus.Errorf("Error generating kubelet certificate for Master %d: %v", i, err)
-			return err
-		}
-
-		// Assign the certificates to the corresponding Worker nodes
-		conf.Worker[i].Certs = kubeletCert
-	}
-
+	conf.Master[0].Certs = masterCerts
 	return nil
 }
 
