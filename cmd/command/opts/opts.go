@@ -41,6 +41,7 @@ type OptionsList struct {
 	ReleaseImageUrl   string
 	KubeVersion       string
 	Token             string
+	CertificateKey    string
 
 	NetWork NetworkConfig
 	Housekeeper

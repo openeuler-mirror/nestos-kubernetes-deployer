@@ -26,7 +26,7 @@ type NodeAsset struct {
 	SSHKey   string
 	IP       string
 	Ign_Path string
-	Certs    []utils.StorageContent
+	Certs    []utils.StorageContent `json:"-" yaml:"-"` // Certificates content (not printed in JSON and YAML)
 }
 
 type HardwareInfo struct {
