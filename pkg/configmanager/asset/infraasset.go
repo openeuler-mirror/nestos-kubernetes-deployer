@@ -72,7 +72,11 @@ func convertMap(inputMap interface{}, platform string) (map[string]interface{}, 
 				"availability_zone": "",
 			}, true
 		case "libvirt", "Libvirt":
-			return map[string]interface{}{}, true
+			return map[string]interface{}{
+				"username":     "",
+				"remote_ip":    "",
+				"osimage_path": "",
+			}, true
 		default:
 			return resultMap, false
 		}
@@ -134,10 +138,23 @@ func initOpenStackAssetFromMap(openstackMap map[string]interface{}, opts *opts.O
 }
 
 type LibvirtAsset struct {
+	UserName     string
+	Remote_IP    string
+	OSImage_Path string
 }
 
 func initLibvirtAssetFromMap(libvirtMap map[string]interface{}, opts *opts.OptionsList) (InfraAsset, error) {
-	return &LibvirtAsset{}, nil
+	libvirtAsset := &LibvirtAsset{
+		UserName:     opts.InfraPlatform.Libvirt.UserName,
+		Remote_IP:    opts.InfraPlatform.Libvirt.RemoteIP,
+		OSImage_Path: opts.InfraPlatform.Libvirt.OSImagePath,
+	}
+
+	updateFieldFromMap("username", &libvirtAsset.UserName, libvirtMap)
+	updateFieldFromMap("remote_ip", &libvirtAsset.Remote_IP, libvirtMap)
+	updateFieldFromMap("osimage_path", &libvirtAsset.OSImage_Path, libvirtMap)
+
+	return libvirtAsset, nil
 }
 
 func updateFieldFromMap(fieldName string, fieldValue *string, inputMap map[string]interface{}) {

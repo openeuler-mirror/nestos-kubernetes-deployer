@@ -69,6 +69,9 @@ type OpenStack struct {
 }
 
 type Libvirt struct {
+	UserName    string
+	RemoteIP    string
+	OSImagePath string
 }
 
 type NodeConfig struct {
