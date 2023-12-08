@@ -23,6 +23,7 @@ import (
 	"crypto/x509/pkix"
 	"io/ioutil"
 	"net"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -67,7 +68,7 @@ func GenerateAllCA(userCACertPath, userCAKeyPath, commonname string, dnsname []s
 		cfg := &CertConfig{
 			Subject:   pkix.Name{CommonName: commonname},
 			KeyUsages: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-			Validity:  3650,
+			Validity:  time.Hour * 36500 * 24,
 			IsCA:      true,
 			DNSNames:  dnsname,
 		}
@@ -110,7 +111,7 @@ func GenerateAllSignedCert(commonname string, org, dnsname []string, extkeyusage
 		Subject:      pkix.Name{CommonName: commonname, Organization: org},
 		KeyUsages:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsages: extkeyusage,
-		Validity:     3650,
+		Validity:     time.Hour * 36500 * 24,
 		IsCA:         false,
 		DNSNames:     dnsname,
 		IPAddresses:  ip,
