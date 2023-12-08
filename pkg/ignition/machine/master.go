@@ -55,9 +55,11 @@ func (m *Master) GenerateFiles() error {
 		}
 
 		// Merge certificates into ignition.Config
-		for _, file := range master.Certs {
-			ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
-			generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
+		if i == 0 {
+			for _, file := range master.Certs {
+				ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
+				generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
+			}
 		}
 
 		//Assign the Ignition path to the Master node
