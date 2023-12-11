@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "libvirt" {
-  uri = "qemu+ssh://{{.Platform.Username}}@{{.Platform.Remote_IP}}/system"
+  uri = "{{.Platform.URI}}"
 }
 
 variable "instance_count" {

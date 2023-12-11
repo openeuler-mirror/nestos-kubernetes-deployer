@@ -75,8 +75,7 @@ func convertMap(inputMap interface{}, platform string) (map[string]interface{}, 
 			}, true
 		case "libvirt", "Libvirt":
 			return map[string]interface{}{
-				"username":     "",
-				"remote_ip":    "",
+				"uri":          "",
 				"osimage_path": "",
 				"cidr":         "",
 				"gateway":      "",
@@ -116,17 +115,7 @@ type OpenStackAsset struct {
 }
 
 func initOpenStackAssetFromMap(openstackMap map[string]interface{}, opts *opts.OptionsList) (InfraAsset, error) {
-	openstackAsset := &OpenStackAsset{
-		UserName:          opts.InfraPlatform.OpenStack.UserName,
-		Password:          opts.InfraPlatform.OpenStack.Password,
-		Tenant_Name:       opts.InfraPlatform.OpenStack.Tenant_Name,
-		Auth_URL:          opts.InfraPlatform.OpenStack.Auth_URL,
-		Region:            opts.InfraPlatform.OpenStack.Region,
-		Internal_Network:  opts.InfraPlatform.OpenStack.Internal_Network,
-		External_Network:  opts.InfraPlatform.OpenStack.External_Network,
-		Glance_Name:       opts.InfraPlatform.OpenStack.Glance_Name,
-		Availability_Zone: opts.InfraPlatform.OpenStack.Availability_Zone,
-	}
+	openstackAsset := &OpenStackAsset{}
 
 	updateFieldFromMap("username", &openstackAsset.UserName, openstackMap)
 	updateFieldFromMap("password", &openstackAsset.Password, openstackMap)
@@ -138,31 +127,58 @@ func initOpenStackAssetFromMap(openstackMap map[string]interface{}, opts *opts.O
 	updateFieldFromMap("glance_name", &openstackAsset.Glance_Name, openstackMap)
 	updateFieldFromMap("availability_zone", &openstackAsset.Availability_Zone, openstackMap)
 
+	if err := checkStringValue(&openstackAsset.UserName, opts.InfraPlatform.OpenStack.UserName, "username"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Password, opts.InfraPlatform.OpenStack.Password, "password"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Tenant_Name, opts.InfraPlatform.OpenStack.Tenant_Name, "tenant_name"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Auth_URL, opts.InfraPlatform.OpenStack.Auth_URL, "auth_url"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Region, opts.InfraPlatform.OpenStack.Region, "region"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Internal_Network, opts.InfraPlatform.OpenStack.Internal_Network, "internal_network"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.External_Network, opts.InfraPlatform.OpenStack.External_Network, "external_network"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Glance_Name, opts.InfraPlatform.OpenStack.Glance_Name, "glance_name"); err != nil {
+		return nil, err
+	}
+	if err := checkStringValue(&openstackAsset.Availability_Zone, opts.InfraPlatform.OpenStack.Availability_Zone, "availability_zone"); err != nil {
+		return nil, err
+	}
+
 	return openstackAsset, nil
 }
 
 type LibvirtAsset struct {
-	UserName     string
-	Remote_IP    string
+	URI          string
 	OSImage_Path string
 	CIDR         string
 	Gateway      string
 }
 
 func initLibvirtAssetFromMap(libvirtMap map[string]interface{}, opts *opts.OptionsList) (InfraAsset, error) {
-	libvirtAsset := &LibvirtAsset{
-		UserName:     opts.InfraPlatform.Libvirt.UserName,
-		Remote_IP:    opts.InfraPlatform.Libvirt.RemoteIP,
-		OSImage_Path: opts.InfraPlatform.Libvirt.OSImagePath,
-		CIDR:         opts.InfraPlatform.Libvirt.CIDR,
-		Gateway:      opts.InfraPlatform.Libvirt.Gateway,
-	}
+	libvirtAsset := &LibvirtAsset{}
 
-	updateFieldFromMap("username", &libvirtAsset.UserName, libvirtMap)
-	updateFieldFromMap("remote_ip", &libvirtAsset.Remote_IP, libvirtMap)
+	updateFieldFromMap("uri", &libvirtAsset.URI, libvirtMap)
 	updateFieldFromMap("osimage_path", &libvirtAsset.OSImage_Path, libvirtMap)
 	updateFieldFromMap("cidr", &libvirtAsset.CIDR, libvirtMap)
 	updateFieldFromMap("gateway", &libvirtAsset.Gateway, libvirtMap)
+
+	setStringValue(&libvirtAsset.URI, opts.InfraPlatform.Libvirt.URI, "qemu:///system")
+	if err := checkStringValue(&libvirtAsset.OSImage_Path, opts.InfraPlatform.Libvirt.OSImagePath, "osimage_path"); err != nil {
+		return nil, err
+	}
+	setStringValue(&libvirtAsset.CIDR, opts.InfraPlatform.Libvirt.CIDR, "192.168.132.0/24")
+	setStringValue(&libvirtAsset.Gateway, opts.InfraPlatform.Libvirt.Gateway, "192.168.132.1")
 
 	return libvirtAsset, nil
 }

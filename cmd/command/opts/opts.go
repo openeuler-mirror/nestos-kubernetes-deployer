@@ -69,8 +69,7 @@ type OpenStack struct {
 }
 
 type Libvirt struct {
-	UserName    string
-	RemoteIP    string
+	URI         string
 	OSImagePath string
 	CIDR        string
 	Gateway     string
