@@ -162,9 +162,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		}
 
 		opts.Master.IgnFilePath = make([]string, len(clusterAsset.Master))
-		if err := checkStringValue(&master_node.Ign_Path, opts.Master.IgnFilePath[i], fmt.Sprintf("master-ign[%d]", i)); err != nil {
-			return nil, err
-		}
+		setStringValue(&master_node.Ign_Path, opts.Master.IgnFilePath[i], "")
 	}
 	// worker node
 	if len(clusterAsset.Worker) == 0 {
@@ -187,9 +185,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		}
 
 		opts.Worker.IgnFilePath = make([]string, len(clusterAsset.Worker))
-		if err := checkStringValue(&worker_node.Ign_Path, opts.Worker.IgnFilePath[i], fmt.Sprintf("worker-ign[%d]", i)); err != nil {
-			return nil, err
-		}
+		checkStringValue(&worker_node.Ign_Path, opts.Worker.IgnFilePath[i], "")
 	}
 
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")

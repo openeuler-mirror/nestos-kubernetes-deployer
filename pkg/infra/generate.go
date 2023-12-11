@@ -62,8 +62,7 @@ func (openstack *OpenStack) SetPlatform(infraAsset asset.InfraAsset) {
 }
 
 type Libvirt struct {
-	Username     string
-	Remote_IP    string
+	URI          string
 	OSImage_Path string
 	CIDR         string
 	Gateway      string
@@ -71,8 +70,7 @@ type Libvirt struct {
 
 func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
 	if libvirtAsset, ok := infraAsset.(*asset.LibvirtAsset); ok {
-		libvirt.Username = libvirtAsset.UserName
-		libvirt.Remote_IP = libvirtAsset.Remote_IP
+		libvirt.URI = libvirtAsset.URI
 		libvirt.OSImage_Path = libvirtAsset.OSImage_Path
 		libvirt.CIDR = libvirtAsset.CIDR
 		libvirt.Gateway = libvirtAsset.Gateway
