@@ -40,7 +40,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	ipaddress := node.IP
 
 	//用于后续kubeconfig生成
-	apiserverEndpoint := clusterconfig.Kubernetes.ApiServer_Endpoint
+	apiserverEndpoint := "https://" + clusterconfig.Kubernetes.ApiServer_Endpoint
 
 	/* **********生成root CA 证书和密钥********** */
 
