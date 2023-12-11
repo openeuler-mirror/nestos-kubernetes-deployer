@@ -78,6 +78,7 @@ func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
 }
 
 type Infra struct {
+	ClusterID string
 	Platform
 	Master Node
 	Worker Node
@@ -109,6 +110,8 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		worker_ip       []string
 		worker_ignPath  []string
 	)
+
+	infra.ClusterID = conf.Cluster_ID
 
 	switch conf.Platform {
 	case "openstack", "Openstack", "OpenStack":
