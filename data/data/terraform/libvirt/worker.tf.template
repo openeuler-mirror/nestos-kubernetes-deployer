@@ -33,27 +33,6 @@ resource "libvirt_ignition" "ignition" {
   content = file(element({{.Worker.Ign_Path}}, count.index))
 }
 
-resource "libvirt_network" "network" {
-  name      = "nkd-net"
-  mode      = "nat"
-  domain    = "k8s.local"
-  addresses = ["{{.Platform.CIDR}}"]
-
-  dhcp {
-    enabled = false
-  }
-
-  dns {
-    enabled = true
-    local_only = false
-  }
-  
-  routes {
-    cidr = "{{.Platform.CIDR}}"
-    gateway = "{{.Platform.Gateway}}"
-  }
-}
-
 resource "libvirt_domain" "nestos" {
   count           = var.instance_count
   name            = element({{.Worker.Hostname}}, count.index)
@@ -67,7 +46,7 @@ resource "libvirt_domain" "nestos" {
   }
 
   network_interface {
-    network_name   = libvirt_network.network.name
+    network_name   = "{{.ClusterID}}-net"
     hostname       = element({{.Worker.Hostname}}, count.index)
     addresses      = [var.ip[count.index]]
     wait_for_lease = true
