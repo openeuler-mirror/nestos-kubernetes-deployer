@@ -211,6 +211,7 @@ func GetTmplData(c *asset.ClusterAsset) *TmplData {
 		temp := c.Master[i].IP + " " + c.Master[i].Hostname + "\n"
 		hsip = hsip + temp
 	}
+
 	return &TmplData{
 		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
 		ImageRegistry:   c.Kubernetes.Image_Registry,
@@ -220,6 +221,7 @@ func GetTmplData(c *asset.ClusterAsset) *TmplData {
 		PodSubnet:       c.Network.Pod_Subnet,
 		Token:           c.Kubernetes.Token,
 		CorednsImageTag: c.Network.CoreDNS_Image_Version,
+		IpSegment:       ipSegment.String(),
 		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
 		CertificateKey:  c.Kubernetes.CertificateKey,
 		Hsip:            hsip,
