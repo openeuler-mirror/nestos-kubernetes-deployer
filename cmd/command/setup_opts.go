@@ -54,8 +54,8 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.NetWork.ServiceSubnet, "service-subnet", "", "10.96.0.0/16", "Specify the subnet for Kubernetes services")
 	flags.StringVarP(&opts.Opts.NetWork.PodSubnet, "pod-subnet", "", "", "Specify the subnet for Kubernetes Pods.")
 	flags.StringVarP(&opts.Opts.NetWork.DNS.ImageVersion, "image-version", "", "", "Specify the version of the CoreDNS container image")
-	flags.StringVarP(&opts.Opts.Housekeeper.ControllerImageUrl, "controller-image-url", "", "hub.oepkgs.net/nestos/nkd/{arch}/housekeeper-controller-manager:{tag}", "Specify the URL of the container image for the housekeeper controller component")
-	flags.StringVarP(&opts.Opts.Housekeeper.OperatorImageUrl, "operator-image-url", "", "hub.oepkgs.net/nestos/nkd/{arch}/housekeeper-operator-manager:{tag}", "Specify the URL of the container image for the housekeeper operator component")
+	flags.StringVarP(&opts.Opts.Housekeeper.ControllerImageUrl, "controller-image-url", "", "", "Specify the URL of the container image for the housekeeper controller component")
+	flags.StringVarP(&opts.Opts.Housekeeper.OperatorImageUrl, "operator-image-url", "", "", "Specify the URL of the container image for the housekeeper operator component")
 	flags.BoolVarP(&opts.Opts.DeployHousekeeper, "deploy-housekeeper", "", false, "Deploy the Housekeeper Operator.")
 }
 

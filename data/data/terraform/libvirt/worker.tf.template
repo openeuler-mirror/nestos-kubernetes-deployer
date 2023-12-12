@@ -46,7 +46,7 @@ resource "libvirt_domain" "nestos" {
   }
 
   network_interface {
-    network_name   = "{{.ClusterID}}-net"
+    network_name   = "nkd-net-{{.ClusterID}}"
     hostname       = element({{.Worker.Hostname}}, count.index)
     addresses      = [var.ip[count.index]]
     wait_for_lease = true

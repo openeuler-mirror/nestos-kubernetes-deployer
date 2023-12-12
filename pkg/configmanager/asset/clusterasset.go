@@ -123,13 +123,13 @@ type Network struct {
 }
 
 type Housekeeper struct {
-	DeployHousekeeper    bool
-	Operator_Image_URL   string
-	Controller_Image_URL string
-	KubeVersion          string
-	EvictPodForce        bool
-	MaxUnavailable       uint
-	OSImageURL           string
+	DeployHousekeeper  bool
+	OperatorImageUrl   string
+	ControllerImageUrl string
+	KubeVersion        string
+	EvictPodForce      bool
+	MaxUnavailable     uint
+	OSImageURL         string
 }
 
 func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
@@ -206,10 +206,10 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, "")
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
-		if err := checkStringValue(&clusterAsset.Housekeeper.Operator_Image_URL, opts.Housekeeper.OperatorImageUrl, "operator-image-url"); err != nil {
+		if err := checkStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, "operator-image-url"); err != nil {
 			return nil, err
 		}
-		if err := checkStringValue(&clusterAsset.Housekeeper.Controller_Image_URL, opts.Housekeeper.ControllerImageUrl, "controller-image-url"); err != nil {
+		if err := checkStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, "controller-image-url"); err != nil {
 			return nil, err
 		}
 		if err := checkStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "kubeversion"); err != nil {
