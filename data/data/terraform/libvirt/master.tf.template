@@ -34,7 +34,7 @@ resource "libvirt_ignition" "ignition" {
 }
 
 resource "libvirt_network" "network" {
-  name      = "{{.ClusterID}}-net"
+  name      = "nkd-net-{{.ClusterID}}"
   mode      = "nat"
   domain    = "k8s.local"
   addresses = ["{{.Platform.CIDR}}"]

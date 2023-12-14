@@ -19,6 +19,7 @@ import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/data"
 	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
@@ -26,7 +27,6 @@ import (
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/utils"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -75,7 +75,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 }
 
 func deployCluster(conf *asset.ClusterAsset) error {
-	if err := getClusterDeployConfig(conf); err != nil {
+	if err := generateDeployConfig(conf); err != nil {
 		logrus.Errorf("Failed to get cluster deploy config: %v", err)
 		return err
 	}
@@ -87,27 +87,33 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	configPath := conf.Kubernetes.AdminKubeConfig
 	kubeClient, err := kubeclient.CreateClient(configPath)
 	if err != nil {
-		logrus.Errorf("failed to create kubernetes client %v", err)
+		logrus.Errorf("Failed to create kubernetes client %v", err)
 		return err
 	}
-	if err := checkClusterState(kubeClient); err != nil {
-		logrus.Error("Cluster deploy timeout!")
+
+	if err := waitForAPIReady(kubeClient); err != nil {
+		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
 	}
 
 	if conf.Housekeeper.DeployHousekeeper {
 		logrus.Info("Starting deployment of Housekeeper...")
-		if err := deployOperator(conf.Housekeeper, kubeClient); err != nil {
+		if err := deployHousekeeper(conf.Housekeeper, configPath); err != nil {
 			logrus.Errorf("Failed to deploy operator: %v", err)
 			return err
 		}
 		logrus.Info("Housekeeper deployment completed successfully.")
 	}
 
+	if err := waitForPodsReady(kubeClient); err != nil {
+		logrus.Errorf("Failed while waiting for pods to be in 'Ready' state: %v", err)
+		return err
+	}
+	logrus.Info("Cluster deployment completed successfully!")
 	return nil
 }
 
-func getClusterDeployConfig(conf *asset.ClusterAsset) error {
+func generateDeployConfig(conf *asset.ClusterAsset) error {
 	if err := generateCerts(conf); err != nil {
 		logrus.Errorf("Error generating certificate files: %v", err)
 		return err
@@ -189,43 +195,8 @@ func createCluster(conf *asset.ClusterAsset) error {
 	return nil
 }
 
-func checkClusterState(client *kubernetes.Clientset) error {
-	if err := waitForAPIReady(client); err != nil {
-		logrus.Errorf("failed while waiting for Kubernetes API to be ready: %v", err)
-		return err
-	}
-	if err := waitForPodsRunning(client); err != nil {
-		logrus.Errorf("failed while waiting for pods to be in 'Running' state: %v", err)
-		return err
-	}
-	return nil
-}
-
-func deployOperator(tmplData interface{}, client *kubernetes.Clientset) error {
-	folderPath := "housekeeper/"
-	files, err := os.ReadDir(folderPath)
-	if err != nil {
-		logrus.Errorf("Error reading folder: %v", err)
-		return err
-	}
-	for _, file := range files {
-		filePath := filepath.Join(folderPath, file.Name())
-		data, err := utils.FetchAndUnmarshalUrl(filePath, tmplData)
-		if err != nil {
-			logrus.Errorf("Error to get file content: %v", err)
-			return err
-		}
-		if err := kubeclient.ApplyResource(client, "", string(data)); err != nil {
-			logrus.Errorf("Error to apply crd resource: %v", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
 func waitForAPIReady(client *kubernetes.Clientset) error {
-	apiTimeout := 10 * time.Minute
+	apiTimeout := 60 * time.Minute
 	ctx := context.Background()
 	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
 	logrus.Infof("Waiting up to %v for the Kubernetes API ready...", apiTimeout)
@@ -247,40 +218,94 @@ func waitForAPIReady(client *kubernetes.Clientset) error {
 		logrus.Errorf("Failed to waiting for kubernetes API: %v", err)
 		return err
 	}
-
 	return nil
 }
 
-func waitForPodsRunning(client *kubernetes.Clientset) error {
-	waitDuration := 10 * time.Minute
+func waitForPodsReady(client *kubernetes.Clientset) error {
+	waitDuration := 20 * time.Minute
+	namespace := "kube-system"
 	waitCtx, cancel := context.WithTimeout(context.Background(), waitDuration)
-	logrus.Infof("Waiting up to %v for the Kubernetes Pods running ...", waitDuration)
 	defer cancel()
+	logrus.Infof("Waiting up to %v for the Kubernetes Pods ready ...", waitDuration)
 
-	wait.Until(func() {
-		pods, err := client.CoreV1().Pods("kube-system").List(waitCtx, metav1.ListOptions{})
+	err := wait.PollImmediate(10*time.Second, waitDuration, func() (bool, error) {
+		pods, err := client.CoreV1().Pods(namespace).List(waitCtx, metav1.ListOptions{})
 		if err != nil {
 			logrus.Errorf("Failed to list Pods: %v", err)
-			return
+			return false, nil
 		}
-		allRunning := true
+		allReady := true
 		for _, pod := range pods.Items {
-			if pod.Status.Phase != corev1.PodRunning {
-				allRunning = false
-				logrus.Infof("Pod %s is not running. Current phase: %s", pod.Name, pod.Status.Phase)
-				break
+			for _, condition := range pod.Status.Conditions {
+				if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
+					allReady = false
+					logrus.Infof("Pod %s in namespace %s is not in Ready state", pod.Name, pod.Namespace)
+					break
+				}
 			}
 		}
-		if allRunning {
-			logrus.Info("All Pods are running")
-			cancel()
-		}
-	}, 5*time.Second, waitCtx.Done())
 
-	err := waitCtx.Err()
-	if err != nil && err != context.Canceled {
-		logrus.Errorf("Failed to wait for Pods to be running: %v", err)
+		if allReady {
+			logrus.Infof("All Pods in namespace %s are in Ready state", namespace)
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		logrus.Errorf("Failed to wait for Pods to be Ready: %v", err)
 		return err
+	}
+	return nil
+}
+
+func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
+	const Namespace = "housekeeper-system"
+	dir, err := data.Assets.Open("housekeeper")
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	child, err := dir.Readdir(0)
+	if err != nil {
+		return err
+	}
+	for _, childInfo := range child {
+		filePath := filepath.Join("housekeeper", childInfo.Name())
+		data, err := utils.FetchAndUnmarshalUrl(filePath, tmplData)
+		if err != nil {
+			logrus.Errorf("error getting file content: %v", err)
+			return err
+		}
+		if childInfo.Name() == "1housekeeper.io_updates.yaml" {
+			if err := kubeclient.DeployCRD(string(data), kubeconfig); err != nil {
+				return err
+			}
+		}
+		if childInfo.Name() == "2namespace.yaml" {
+			if err := kubeclient.DeployNamespace(string(data), kubeconfig); err != nil {
+				return err
+			}
+		}
+		if childInfo.Name() == "3role.yaml" {
+			if err := kubeclient.DeployClusterRole(string(data), kubeconfig); err != nil {
+				return err
+			}
+		}
+		if childInfo.Name() == "4role_binding.yaml" {
+			if err := kubeclient.DeployClusterRoleBinding(string(data), kubeconfig); err != nil {
+				return err
+			}
+		}
+		if childInfo.Name() == "5deployment.yaml.template" {
+			if err := kubeclient.DeployDeployment(string(data), kubeconfig, Namespace); err != nil {
+				return err
+			}
+		}
+		if childInfo.Name() == "6daemonset.yaml.template" {
+			if err := kubeclient.DeployDaemonSet(string(data), kubeconfig, Namespace); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
