@@ -1,9 +1,0 @@
-apiVersion: housekeeper.io/v1alpha1
-kind: Update
-metadata:
-  name: housekeeper-upgrade
-spec:
-  osImageURL: image.url
-  kubeVersion: kubernetes.version
-  evictPodForce: false
-  maxUnavailable: 2
