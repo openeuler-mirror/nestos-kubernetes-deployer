@@ -32,6 +32,7 @@ func main() {
 		// TODO: 当前extend是指扩展到的worker节点个数，后续应改成想扩展的worker节点个数。
 		cmd.NewExtendCommand(),
 		cmd.NewVersionCommand(),
+		cmd.NewTemplateCommand(),
 	} {
 		rootCmd.AddCommand(subCmd)
 	}

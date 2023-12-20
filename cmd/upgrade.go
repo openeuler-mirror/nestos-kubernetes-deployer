@@ -72,7 +72,7 @@ func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 
 func upgradeCluster(clusterConfig *asset.ClusterAsset) error {
 	loopTimeout := 2 * time.Minute
-	dynamicClient, err := kubeclient.CreateDynamicClient("/***/")
+	dynamicClient, err := kubeclient.CreateDynamicClient(clusterConfig.AdminKubeConfig)
 
 	// Define the YAML data for the Custom Resource (CR)
 	yamlData := fmt.Sprintf(`
