@@ -46,7 +46,7 @@ func newRootCmd() *cobra.Command {
 		Use:   "nkd",
 		Short: "Creates Kubernetes Clusters",
 	}
-	cmd.PersistentFlags().StringVar(&opts.RootOptDir, "dir", ".", "assets directory")
+	cmd.PersistentFlags().StringVar(&opts.Opts.RootOptDir, "dir", "/etc/nkd", "assets directory")
 
 	return cmd
 }
