@@ -126,10 +126,10 @@ type Housekeeper struct {
 	DeployHousekeeper  bool
 	OperatorImageUrl   string
 	ControllerImageUrl string
-	KubeVersion        string
-	EvictPodForce      bool
-	MaxUnavailable     uint
-	OSImageURL         string
+	KubeVersion        string `json:"-" yaml:"-"`
+	EvictPodForce      bool   `json:"-" yaml:"-"`
+	MaxUnavailable     uint   `json:"-" yaml:"-"`
+	OSImageURL         string `json:"-" yaml:"-"`
 }
 
 func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
