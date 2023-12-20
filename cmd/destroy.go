@@ -17,9 +17,9 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/cmd/command"
-	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/infra"
+	"os"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -39,37 +39,31 @@ func NewDestroyCommand() *cobra.Command {
 func runDestroyCmd(cmd *cobra.Command, args []string) error {
 	clusterID, err := cmd.Flags().GetString("cluster-id")
 	if err != nil {
-		logrus.Errorf("Failed to get cluster-id: %v", err)
+		logrus.Errorf("Failed to get cluster id: %v", err)
 		return err
 	}
-
-	if err := configmanager.Initial(&opts.Opts); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
-		return err
-	}
-	config, err := configmanager.GetClusterConfig(clusterID)
+	persistDir, err := cmd.Flags().GetString("dir")
 	if err != nil {
-		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		logrus.Errorf("Failed to get assets directory: %v", err)
 		return err
 	}
 
-	persistDir := configmanager.GetPersistDir()
-
-	workerInfra := infra.InstanceCluster(persistDir, clusterID, "worker", len(config.Worker))
+	workerInfra := infra.InstanceCluster(persistDir, clusterID, "worker", 0)
 	if err := workerInfra.Destroy(); err != nil {
 		logrus.Errorf("Failed to perform the extended worker nodes:%v", err)
 		return err
 	}
-	masterInfra := infra.InstanceCluster(persistDir, clusterID, "master", len(config.Master))
+	masterInfra := infra.InstanceCluster(persistDir, clusterID, "master", 0)
 	if err := masterInfra.Destroy(); err != nil {
 		logrus.Errorf("Failed to perform the extended master nodes:%v", err)
 		return err
 	}
 
-	if err := configmanager.Delete(clusterID); err != nil {
-		logrus.Errorf("Failed to perform delete config: %v", err)
+	// delete asset files
+	filepath := filepath.Join(persistDir, clusterID)
+	if err := os.RemoveAll(filepath); err != nil {
+		logrus.Errorf("Failed to clean the asset files")
 		return err
 	}
-
 	return nil
 }

@@ -21,8 +21,6 @@ import (
 	"os"
 )
 
-const persistDir string = "/etc/nkd"
-
 func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 	globalAsset := &GlobalConfig{}
 
@@ -31,7 +29,7 @@ func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 	} else {
 		globalAsset.Log_Level = "default log level"
 	}
-
+	persistDir := opts.RootOptDir
 	if err := os.MkdirAll(persistDir, 0644); err != nil {
 		return nil, err
 	}

@@ -16,13 +16,10 @@ limitations under the License.
 
 package opts
 
-var (
-	RootOptDir string
-)
-
 var Opts OptionsList
 
 type OptionsList struct {
+	RootOptDir        string
 	ClusterConfigFile string
 	KubeConfigFile    string
 	NKD               NKDConfig
