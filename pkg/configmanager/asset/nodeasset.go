@@ -21,9 +21,6 @@ import "nestos-kubernetes-deployer/pkg/utils"
 type NodeAsset struct {
 	Hostname string
 	HardwareInfo
-	UserName string
-	Password string
-	SSHKey   string
 	IP       string
 	Ign_Path string
 	Certs    []utils.StorageContent `json:"-" yaml:"-"` // Certificates content (not printed in JSON and YAML)

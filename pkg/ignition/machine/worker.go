@@ -19,6 +19,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
+	"os"
 	"path/filepath"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -30,34 +31,36 @@ type Worker struct {
 }
 
 func (w *Worker) GenerateFiles() error {
-	wtd := ignition.GetTmplData(w.ClusterAsset)
-
-	for i, worker := range w.ClusterAsset.Worker {
-		config := &igntypes.Config{}
-		wtd.NodeName = worker.Hostname
-		generateFile := ignition.Common{
-			NodeType:        "worker",
-			TmplData:        wtd,
-			EnabledServices: ignition.EnabledServices,
-			Config:          config,
-			UserName:        worker.UserName,
-			SSHKey:          worker.SSHKey,
-			PassWord:        worker.Password,
-		}
-
-		// Generate Ignition data
-		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", worker.UserName, err)
-			return err
-		}
-
-		// Assign the Ignition path to the Worker node
-		filePath := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
-		fileName := worker.Hostname + ".ign"
-		w.ClusterAsset.Worker[i].Ign_Path = filepath.Join(filePath, fileName)
-
-		ignition.SaveFile(generateFile.Config, filePath, fileName)
+	sshkeyContent, err := os.ReadFile(w.ClusterAsset.SSHKey)
+	if err != nil {
+		logrus.Debug("Error to read sshkey content")
 	}
+	wtd := ignition.GetTmplData(w.ClusterAsset)
+	generateFile := ignition.Common{
+		UserName:        w.ClusterAsset.UserName,
+		SSHKey:          string(sshkeyContent),
+		PassWord:        w.ClusterAsset.Password,
+		NodeType:        "worker",
+		TmplData:        wtd,
+		EnabledServices: ignition.EnabledServices,
+		Config:          &igntypes.Config{},
+	}
+
+	// Generate Ignition data
+	if err := generateFile.Generate(); err != nil {
+		logrus.Errorf("failed to generate %s ignition file: %v", w.ClusterAsset.Worker[0].Hostname, err)
+		return err
+	}
+
+	// Assign the Ignition path to the Worker node
+	filePath := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
+	fileName := "k8s-worker.ign"
+
+	for _, na := range w.ClusterAsset.Worker {
+		na.Ign_Path = filepath.Join(filePath, fileName)
+	}
+
+	ignition.SaveFile(generateFile.Config, filePath, fileName)
 
 	return nil
 }

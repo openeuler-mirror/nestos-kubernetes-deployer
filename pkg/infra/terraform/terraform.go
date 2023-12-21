@@ -103,7 +103,7 @@ func TFApply(tfFileDir string, persistDir string, applyOpts ...tfexec.ApplyOptio
 }
 
 // terraform apply for nkd extend
-func TFExtend(tfFileDir string, persistDir string, count int) error {
+func TFExtend(tfFileDir string, persistDir string, count uint) error {
 	if err := TFInit(tfFileDir, persistDir); err != nil {
 		return errors.Wrap(err, "failed to init terraform")
 	}

@@ -20,6 +20,7 @@ var Opts OptionsList
 
 type OptionsList struct {
 	RootOptDir        string
+	Arch              string
 	ClusterConfigFile string
 	KubeConfigFile    string
 	NKD               NKDConfig
@@ -28,6 +29,9 @@ type OptionsList struct {
 	ClusterID string
 	Platform  string
 
+	UserName    string
+	Password    string
+	SSHKey      string
 	Master      NodeConfig
 	Worker      NodeConfig
 	ExtendCount uint
@@ -66,10 +70,10 @@ type OpenStack struct {
 }
 
 type Libvirt struct {
-	URI         string
-	OSImagePath string
-	CIDR        string
-	Gateway     string
+	URI     string
+	OSImage string
+	CIDR    string
+	Gateway string
 }
 
 type NodeConfig struct {
@@ -77,9 +81,6 @@ type NodeConfig struct {
 	CPU         uint
 	RAM         uint
 	Disk        uint
-	UserName    string
-	Password    string
-	SSHKey      string
 	IP          []string
 	IgnFilePath []string
 }

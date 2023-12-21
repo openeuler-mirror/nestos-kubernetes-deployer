@@ -28,7 +28,7 @@ type Cluster struct {
 	PersistDir string
 	ClusterID  string
 	Node       string
-	Count      int
+	Count      uint
 }
 
 func (c *Cluster) Deploy() (err error) {
@@ -64,7 +64,7 @@ func (c *Cluster) Destroy() (err error) {
 	return nil
 }
 
-func InstanceCluster(persistDir string, clusterID string, nodeType string, count int) *Cluster {
+func InstanceCluster(persistDir string, clusterID string, nodeType string, count uint) *Cluster {
 	return &Cluster{
 		PersistDir: persistDir,
 		ClusterID:  clusterID,

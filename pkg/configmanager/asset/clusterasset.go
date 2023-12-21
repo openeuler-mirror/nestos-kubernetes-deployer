@@ -21,6 +21,8 @@ import (
 	mrand "math/rand"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"os"
+	"os/user"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -59,7 +61,7 @@ func setIntValue(target *uint, value uint, defaultValue uint) {
 }
 
 // Generate token
-func generateToken() (string, error) {
+func generateToken() string {
 	// Generate a character set for lowercase letters and numbers.
 	charset := "abcdefghijklmnopqrstuvwxyz0123456789"
 	charsetLength := len(charset)
@@ -83,18 +85,36 @@ func generateToken() (string, error) {
 	}
 
 	token = append(token, randomPart...)
-	return string(token), nil
+	return string(token)
+}
+
+func getSysHome() string {
+	if user, err := user.Current(); err == nil {
+		return user.HomeDir
+	}
+	return "/root"
+}
+
+func getDefaultPubKeyPath() string {
+	return filepath.Join(getSysHome(), ".ssh", "id_rsa.pub")
+}
+
+func getApiServerEndpoint(ip string) string {
+	return fmt.Sprintf("%s:%s", ip, "6443")
 }
 
 // ========== Structure method ==========
 
 type ClusterAsset struct {
-	Cluster_ID string
-	Platform   string
-
+	Cluster_ID   string
+	Architecture string
+	Platform     string
 	InfraPlatform
-	Master []NodeAsset
-	Worker []NodeAsset
+	UserName string
+	Password string
+	SSHKey   string
+	Master   []NodeAsset
+	Worker   []NodeAsset
 	Kubernetes
 	Housekeeper
 	CertAsset
@@ -110,7 +130,7 @@ type Kubernetes struct {
 	Pause_Image        string
 	Release_Image_URL  string
 	Token              string
-	AdminKubeConfig    string
+	AdminKubeConfig    string `json:"-" yaml:"-"`
 	CertificateKey     string
 
 	Network
@@ -133,95 +153,61 @@ type Housekeeper struct {
 }
 
 func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
-	// cluster info
-	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, "cluster")
-
 	// bind info
 	// infra platform
 	clusterAsset.InfraPlatform = infraAsset
+	cf := GetDefaultClusterConfig(clusterAsset.Architecture)
 
-	// subordinate info
-	// master node
-	if len(clusterAsset.Master) == 0 {
-		clusterAsset.Master = make([]NodeAsset, 3)
+	// cluster info
+	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, cf.Cluster_ID)
+
+	for i, v := range opts.Master.IP {
+		clusterAsset.Master[i].IP = v
 	}
-	for i := 0; i < len(clusterAsset.Master); i++ {
-		master_node := &clusterAsset.Master[i]
-
-		setStringValue(&master_node.Hostname, opts.Master.Hostname[i], fmt.Sprintf("master%.2d", i))
-		setIntValue(&master_node.HardwareInfo.CPU, opts.Master.CPU, 4)
-		setIntValue(&master_node.HardwareInfo.RAM, opts.Master.RAM, 8)
-		setIntValue(&master_node.HardwareInfo.Disk, opts.Master.Disk, 100)
-		setStringValue(&master_node.UserName, opts.Master.UserName, "root")
-		setStringValue(&master_node.Password, opts.Master.Password, "")
-		setStringValue(&master_node.SSHKey, opts.Master.SSHKey, "")
-
-		opts.Master.IP = make([]string, len(clusterAsset.Master))
-		if err := checkStringValue(&master_node.IP, opts.Master.IP[i], fmt.Sprintf("master-ip[%d]", i)); err != nil {
-			return nil, err
-		}
-
-		opts.Master.IgnFilePath = make([]string, len(clusterAsset.Master))
-		setStringValue(&master_node.Ign_Path, opts.Master.IgnFilePath[i], "")
+	for i, v := range opts.Master.Hostname {
+		clusterAsset.Master[i].Hostname = v
 	}
-	// worker node
-	if len(clusterAsset.Worker) == 0 {
-		clusterAsset.Worker = make([]NodeAsset, 3)
+	for i, v := range opts.Master.IgnFilePath {
+		clusterAsset.Master[i].Ign_Path = v
 	}
-	for i := 0; i < len(clusterAsset.Worker); i++ {
-		worker_node := &clusterAsset.Worker[i]
-
-		setStringValue(&worker_node.Hostname, opts.Worker.Hostname[i], fmt.Sprintf("worker%.2d", i))
-		setIntValue(&worker_node.HardwareInfo.CPU, opts.Worker.CPU, 4)
-		setIntValue(&worker_node.HardwareInfo.RAM, opts.Worker.RAM, 8)
-		setIntValue(&worker_node.HardwareInfo.Disk, opts.Worker.Disk, 100)
-		setStringValue(&worker_node.UserName, opts.Worker.UserName, "root")
-		setStringValue(&worker_node.Password, opts.Worker.Password, "")
-		setStringValue(&worker_node.SSHKey, opts.Worker.SSHKey, "")
-
-		opts.Worker.IP = make([]string, len(clusterAsset.Worker))
-		if err := checkStringValue(&worker_node.IP, opts.Master.IP[i], fmt.Sprintf("worker-ip[%d]", i)); err != nil {
-			return nil, err
-		}
-
-		opts.Worker.IgnFilePath = make([]string, len(clusterAsset.Worker))
-		checkStringValue(&worker_node.Ign_Path, opts.Worker.IgnFilePath[i], "")
+	for i, _ := range clusterAsset.Master {
+		setIntValue(&clusterAsset.Master[i].CPU, opts.Master.CPU, cf.Master[0].CPU)
+		setIntValue(&clusterAsset.Master[i].RAM, opts.Master.RAM, cf.Master[0].RAM)
+		setIntValue(&clusterAsset.Master[i].Disk, opts.Master.Disk, cf.Master[0].Disk)
 	}
 
-	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, "")
-	setStringValue(&clusterAsset.Kubernetes.ApiServer_Endpoint, opts.ApiServerEndpoint, "")
-	setStringValue(&clusterAsset.Kubernetes.Image_Registry, opts.ImageRegistry, "")
-	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, "")
-	setStringValue(&clusterAsset.Kubernetes.Release_Image_URL, opts.ReleaseImageUrl, "")
-	setStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, "")
-
-	token, err := generateToken()
-	if err != nil {
-		return nil, err
+	for i, v := range opts.Worker.IP {
+		clusterAsset.Worker[i].IP = v
 	}
-	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, token)
+	for i, v := range opts.Worker.Hostname {
+		clusterAsset.Worker[i].Hostname = v
+	}
+	for i, v := range opts.Worker.IgnFilePath {
+		clusterAsset.Worker[i].Ign_Path = v
+	}
+	for i, _ := range clusterAsset.Worker {
+		setIntValue(&clusterAsset.Worker[i].CPU, opts.Worker.CPU, cf.Worker[0].CPU)
+		setIntValue(&clusterAsset.Worker[i].RAM, opts.Worker.RAM, cf.Worker[0].RAM)
+		setIntValue(&clusterAsset.Worker[i].Disk, opts.Worker.Disk, cf.Worker[0].Disk)
+	}
 
-	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, "")
-	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, "")
-	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, "")
+	setStringValue(&clusterAsset.UserName, opts.UserName, cf.UserName)
+	setStringValue(&clusterAsset.Password, opts.Password, cf.Password)
+	setStringValue(&clusterAsset.Password, opts.SSHKey, cf.SSHKey)
+	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, cf.Kubernetes_Version)
+	setStringValue(&clusterAsset.Kubernetes.ApiServer_Endpoint, opts.ApiServerEndpoint, cf.ApiServer_Endpoint)
+	setStringValue(&clusterAsset.Kubernetes.Image_Registry, opts.ImageRegistry, cf.Image_Registry)
+	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, cf.Pause_Image)
+	setStringValue(&clusterAsset.Kubernetes.Release_Image_URL, opts.ReleaseImageUrl, cf.Release_Image_URL)
+	setStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, opts.CertificateKey)
+	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
+	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, cf.Service_Subnet)
+	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, cf.Network.Pod_Subnet)
+	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, cf.Network.CoreDNS_Image_Version)
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
-		if err := checkStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, "operator-image-url"); err != nil {
-			return nil, err
-		}
-		if err := checkStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, "controller-image-url"); err != nil {
-			return nil, err
-		}
-		if err := checkStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "kubeversion"); err != nil {
-			return nil, err
-		}
-		if opts.Housekeeper.EvictPodForce {
-			clusterAsset.Housekeeper.EvictPodForce = true
-		}
-		setIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, 2)
-		if err := checkStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "imageurl"); err != nil {
-			return nil, err
-		}
+		setStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
+		setStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, cf.ControllerImageUrl)
 	}
 
 	return clusterAsset, nil
@@ -246,4 +232,67 @@ func (clusterAsset *ClusterAsset) Persist(dir string) error {
 	}
 
 	return nil
+}
+
+func GetDefaultClusterConfig(arch string) *ClusterAsset {
+
+	OperatorImageUrl := "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-operator-manager:0.1.0"
+	ControllerImageUrl := "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-controller-manager:0.1.0"
+	Release_Image_URL := "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-x86_64-k8s-v1.23.10"
+	if arch == "arm64" || arch == "aarch64" {
+		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-operator-manager:0.1.0"
+		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-controller-manager:0.1.0"
+		Release_Image_URL = "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-aarch64-k8s-v1.23.10"
+	}
+
+	return &ClusterAsset{
+		Cluster_ID:   "cluster",
+		Architecture: arch,
+		Platform:     "libvirt",
+		UserName:     "root",
+		Password:     "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/",
+		SSHKey:       getDefaultPubKeyPath(),
+		Master: []NodeAsset{
+			{
+				Hostname: "k8s-master01",
+				HardwareInfo: HardwareInfo{
+					CPU:  4,
+					RAM:  8,
+					Disk: 50,
+				},
+				IP:       "192.168.132.11",
+				Ign_Path: "",
+			},
+		},
+		Worker: []NodeAsset{
+			{
+				Hostname: "k8s-worker01",
+				HardwareInfo: HardwareInfo{
+					CPU:  4,
+					RAM:  8,
+					Disk: 50,
+				},
+				IP:       "192.168.132.21",
+				Ign_Path: "",
+			},
+		},
+		Kubernetes: Kubernetes{
+			Kubernetes_Version: "v1.23.10",
+			ApiServer_Endpoint: getApiServerEndpoint("192.168.132.11"),
+			Image_Registry:     "k8s.gcr.io",
+			Pause_Image:        "pause:3.6",
+			Release_Image_URL:  Release_Image_URL,
+			Token:              generateToken(),
+			CertificateKey:     "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
+			Network: Network{
+				Service_Subnet:        "10.96.0.0/16",
+				Pod_Subnet:            "10.100.0.0/16",
+				CoreDNS_Image_Version: "v1.8.6",
+			},
+		},
+		Housekeeper: Housekeeper{
+			OperatorImageUrl:   OperatorImageUrl,
+			ControllerImageUrl: ControllerImageUrl,
+		},
+	}
 }

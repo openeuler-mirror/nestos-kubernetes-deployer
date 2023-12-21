@@ -19,6 +19,7 @@ package asset
 import (
 	"errors"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"runtime"
 )
 
 type InfraAsset interface {
@@ -28,7 +29,7 @@ func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAs
 	if err := checkStringValue(&clusterAsset.Platform, opts.Platform, "platform"); err != nil {
 		return nil, err
 	}
-
+	setStringValue(&clusterAsset.Architecture, opts.Arch, runtime.GOARCH)
 	switch clusterAsset.Platform {
 	case "openstack", "Openstack", "OpenStack":
 		openstackAsset, ok := convertMap(clusterAsset.InfraPlatform, "openstack")
@@ -45,7 +46,7 @@ func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAs
 		if !ok {
 			return nil, errors.New("failed to get libvirt asset")
 		}
-		infraAsset, err := initLibvirtAssetFromMap(libvirtAsset, opts)
+		infraAsset, err := initLibvirtAssetFromMap(libvirtAsset, opts, clusterAsset.Architecture)
 		if err != nil {
 			return nil, err
 		}
@@ -127,31 +128,31 @@ func initOpenStackAssetFromMap(openstackMap map[string]interface{}, opts *opts.O
 	updateFieldFromMap("glance_name", &openstackAsset.Glance_Name, openstackMap)
 	updateFieldFromMap("availability_zone", &openstackAsset.Availability_Zone, openstackMap)
 
-	if err := checkStringValue(&openstackAsset.UserName, opts.InfraPlatform.OpenStack.UserName, "username"); err != nil {
+	if err := checkStringValue(&openstackAsset.UserName, opts.InfraPlatform.OpenStack.UserName, "openstack_username"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.Password, opts.InfraPlatform.OpenStack.Password, "password"); err != nil {
+	if err := checkStringValue(&openstackAsset.Password, opts.InfraPlatform.OpenStack.Password, "openstack_password"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.Tenant_Name, opts.InfraPlatform.OpenStack.Tenant_Name, "tenant_name"); err != nil {
+	if err := checkStringValue(&openstackAsset.Tenant_Name, opts.InfraPlatform.OpenStack.Tenant_Name, "openstack_tenant_name"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.Auth_URL, opts.InfraPlatform.OpenStack.Auth_URL, "auth_url"); err != nil {
+	if err := checkStringValue(&openstackAsset.Auth_URL, opts.InfraPlatform.OpenStack.Auth_URL, "openstack_auth_url"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.Region, opts.InfraPlatform.OpenStack.Region, "region"); err != nil {
+	if err := checkStringValue(&openstackAsset.Region, opts.InfraPlatform.OpenStack.Region, "openstack_region"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.Internal_Network, opts.InfraPlatform.OpenStack.Internal_Network, "internal_network"); err != nil {
+	if err := checkStringValue(&openstackAsset.Internal_Network, opts.InfraPlatform.OpenStack.Internal_Network, "openstack_internal_network"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.External_Network, opts.InfraPlatform.OpenStack.External_Network, "external_network"); err != nil {
+	if err := checkStringValue(&openstackAsset.External_Network, opts.InfraPlatform.OpenStack.External_Network, "openstack_external_network"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.Glance_Name, opts.InfraPlatform.OpenStack.Glance_Name, "glance_name"); err != nil {
+	if err := checkStringValue(&openstackAsset.Glance_Name, opts.InfraPlatform.OpenStack.Glance_Name, "openstack_glance_name"); err != nil {
 		return nil, err
 	}
-	if err := checkStringValue(&openstackAsset.Availability_Zone, opts.InfraPlatform.OpenStack.Availability_Zone, "availability_zone"); err != nil {
+	if err := checkStringValue(&openstackAsset.Availability_Zone, opts.InfraPlatform.OpenStack.Availability_Zone, "openstack_availability_zone"); err != nil {
 		return nil, err
 	}
 
@@ -159,24 +160,27 @@ func initOpenStackAssetFromMap(openstackMap map[string]interface{}, opts *opts.O
 }
 
 type LibvirtAsset struct {
-	URI          string
-	OSImage_Path string
-	CIDR         string
-	Gateway      string
+	URI     string
+	OSImage string
+	CIDR    string
+	Gateway string
 }
 
-func initLibvirtAssetFromMap(libvirtMap map[string]interface{}, opts *opts.OptionsList) (InfraAsset, error) {
+func initLibvirtAssetFromMap(libvirtMap map[string]interface{}, opts *opts.OptionsList, arch string) (InfraAsset, error) {
 	libvirtAsset := &LibvirtAsset{}
 
 	updateFieldFromMap("uri", &libvirtAsset.URI, libvirtMap)
-	updateFieldFromMap("osimage_path", &libvirtAsset.OSImage_Path, libvirtMap)
+	updateFieldFromMap("osimage", &libvirtAsset.OSImage, libvirtMap)
 	updateFieldFromMap("cidr", &libvirtAsset.CIDR, libvirtMap)
 	updateFieldFromMap("gateway", &libvirtAsset.Gateway, libvirtMap)
 
-	setStringValue(&libvirtAsset.URI, opts.InfraPlatform.Libvirt.URI, "qemu:///system")
-	if err := checkStringValue(&libvirtAsset.OSImage_Path, opts.InfraPlatform.Libvirt.OSImagePath, "osimage_path"); err != nil {
-		return nil, err
+	osImage := "https://nestos.org.cn/nestos20230928/nestos-for-container/x86_64/NestOS-For-Container-22.03-LTS-SP2.20230928.0-qemu.x86_64.qcow2"
+	if arch == "arm64" || arch == "aarch64" {
+		osImage = "https://nestos.org.cn/nestos20230928/nestos-for-container/aarch64/NestOS-For-Container-22.03-LTS-SP2.20230928.0-qemu.aarch64.qcow2"
 	}
+
+	setStringValue(&libvirtAsset.URI, opts.InfraPlatform.Libvirt.URI, "qemu:///system")
+	setStringValue(&libvirtAsset.OSImage, opts.InfraPlatform.Libvirt.OSImage, osImage)
 	setStringValue(&libvirtAsset.CIDR, opts.InfraPlatform.Libvirt.CIDR, "192.168.132.0/24")
 	setStringValue(&libvirtAsset.Gateway, opts.InfraPlatform.Libvirt.Gateway, "192.168.132.1")
 

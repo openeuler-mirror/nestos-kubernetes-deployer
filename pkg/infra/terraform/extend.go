@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 )
 
-func ExtendTerraform(tfFileDir string, persistDir string, count int) ([]byte, error) {
+func ExtendTerraform(tfFileDir string, persistDir string, count uint) ([]byte, error) {
 	applyErr := TFExtend(tfFileDir, persistDir, count)
 	if applyErr != nil {
 		return nil, applyErr

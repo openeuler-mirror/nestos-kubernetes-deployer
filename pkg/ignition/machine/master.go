@@ -19,6 +19,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
+	"os"
 	"path/filepath"
 
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -30,6 +31,10 @@ type Master struct {
 }
 
 func (m *Master) GenerateFiles() error {
+	sshkeyContent, err := os.ReadFile(m.ClusterAsset.SSHKey)
+	if err != nil {
+		logrus.Debug("Error to read sshkey content")
+	}
 	//Get template dependency configuration
 	mtd := ignition.GetTmplData(m.ClusterAsset)
 	for i, master := range m.ClusterAsset.Master {
@@ -39,9 +44,9 @@ func (m *Master) GenerateFiles() error {
 		}
 		mtd.NodeName = master.Hostname
 		generateFile := ignition.Common{
-			UserName:        master.UserName,
-			SSHKey:          master.SSHKey,
-			PassWord:        master.Password,
+			UserName:        m.ClusterAsset.UserName,
+			SSHKey:          string(sshkeyContent),
+			PassWord:        m.ClusterAsset.Password,
 			NodeType:        nodeType,
 			TmplData:        mtd,
 			EnabledServices: ignition.EnabledServices,
@@ -50,7 +55,7 @@ func (m *Master) GenerateFiles() error {
 
 		// Generate Ignition data
 		if err := generateFile.Generate(); err != nil {
-			logrus.Errorf("failed to generate %s ignition file: %v", master.UserName, err)
+			logrus.Errorf("failed to generate %s ignition file: %v", master.Hostname, err)
 			return err
 		}
 

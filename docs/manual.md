@@ -4,6 +4,15 @@
 
 * 环境要求
   * Linux x86_64/aarch64
+  * 安装tofu软件包
+  ``` shell
+  # 安装amd64版本
+  wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_amd64.rpm
+  rpm -ivh tofu_1.6.0-rc1_amd64.rpm
+  # 安装
+  wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_arm.rpm
+  rpm -ivh tofu_1.6.0-rc1_arm.rpm
+  ``` 
   * 选择openstack平台部署集群，需要提前搭建好openstack环境
   * 选择libvirt平台部署集群，需要提前安装libvirt虚拟化环境
 

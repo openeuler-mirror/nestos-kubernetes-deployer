@@ -17,12 +17,12 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/utils"
+	"runtime"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -42,67 +42,15 @@ func NewTemplateCommand() *cobra.Command {
 }
 
 func createTemplate(cmd *cobra.Command, args []string) error {
-	return createDeployConfigTemplate(opts.Opts.ClusterConfigFile, opts.Opts.Platform)
+	arch := runtime.GOARCH
+	if opts.Opts.Arch != "" {
+		arch = opts.Opts.Arch
+	}
+	return createDeployConfigTemplate(opts.Opts.ClusterConfigFile, opts.Opts.Platform, arch)
 }
 
-func createDeployConfigTemplate(file string, platform string) error {
-	conf := &asset.ClusterAsset{
-		Cluster_ID: opts.Opts.ClusterID,
-		Kubernetes: asset.Kubernetes{
-			Kubernetes_Version: opts.Opts.KubeVersion,
-			ApiServer_Endpoint: fmt.Sprintf("%s:%s", opts.Opts.Master.IP[0], "6443"),
-			Image_Registry:     opts.Opts.ImageRegistry,
-			Pause_Image:        opts.Opts.PauseImage,
-			Release_Image_URL:  opts.Opts.ReleaseImageUrl,
-			Token:              opts.Opts.Token,
-			CertificateKey:     opts.Opts.CertificateKey,
-			Network: asset.Network{
-				Service_Subnet:        opts.Opts.NetWork.ServiceSubnet,
-				Pod_Subnet:            opts.Opts.NetWork.PodSubnet,
-				CoreDNS_Image_Version: opts.Opts.NetWork.DNS.ImageVersion,
-			},
-		},
-		Housekeeper: asset.Housekeeper{
-			DeployHousekeeper:  opts.Opts.DeployHousekeeper,
-			OperatorImageUrl:   opts.Opts.OperatorImageUrl,
-			ControllerImageUrl: opts.Opts.ControllerImageUrl,
-		},
-	}
-	if opts.Opts.Master.IP != nil {
-		for i, v := range opts.Opts.Master.IP {
-			nodeAsset := asset.NodeAsset{
-				Hostname: opts.Opts.Master.Hostname[i],
-				HardwareInfo: asset.HardwareInfo{
-					CPU:  opts.Opts.Master.CPU,
-					RAM:  opts.Opts.Master.RAM,
-					Disk: opts.Opts.Master.Disk,
-				},
-				UserName: opts.Opts.Master.UserName,
-				Password: opts.Opts.Master.Password,
-				SSHKey:   opts.Opts.Master.SSHKey,
-				IP:       v,
-			}
-			conf.Master = append(conf.Master, nodeAsset)
-		}
-	}
-	if opts.Opts.Worker.IP != nil {
-		for i, v := range opts.Opts.Worker.IP {
-			nodeAsset := asset.NodeAsset{
-				Hostname: opts.Opts.Worker.Hostname[i],
-				HardwareInfo: asset.HardwareInfo{
-					CPU:  opts.Opts.Worker.CPU,
-					RAM:  opts.Opts.Worker.RAM,
-					Disk: opts.Opts.Worker.Disk,
-				},
-				UserName: opts.Opts.Worker.UserName,
-				Password: opts.Opts.Worker.Password,
-				SSHKey:   opts.Opts.Worker.SSHKey,
-				IP:       v,
-			}
-			conf.Worker = append(conf.Worker, nodeAsset)
-		}
-	}
-
+func createDeployConfigTemplate(file string, platform string, arch string) error {
+	conf := asset.GetDefaultClusterConfig(arch)
 	d, err := yaml.Marshal(conf)
 	if err != nil {
 		logrus.Errorf("faild to marshal template config: %v", err)
