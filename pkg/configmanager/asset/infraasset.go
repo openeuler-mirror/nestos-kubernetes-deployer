@@ -30,6 +30,7 @@ func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAs
 		return nil, err
 	}
 	setStringValue(&clusterAsset.Architecture, opts.Arch, runtime.GOARCH)
+	setStringValue(&clusterAsset.Platform, opts.Platform, "libvirt")
 	switch clusterAsset.Platform {
 	case "openstack", "Openstack", "OpenStack":
 		openstackAsset, ok := convertMap(clusterAsset.InfraPlatform, "openstack")

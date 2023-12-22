@@ -51,6 +51,9 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 
 func createDeployConfigTemplate(file string, platform string, arch string) error {
 	conf := asset.GetDefaultClusterConfig(arch)
+	if platform != "" {
+		conf.Platform = platform
+	}
 	d, err := yaml.Marshal(conf)
 	if err != nil {
 		logrus.Errorf("faild to marshal template config: %v", err)
