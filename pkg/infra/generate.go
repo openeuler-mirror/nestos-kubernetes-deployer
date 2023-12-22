@@ -71,7 +71,7 @@ type Libvirt struct {
 func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
 	if libvirtAsset, ok := infraAsset.(*asset.LibvirtAsset); ok {
 		libvirt.URI = libvirtAsset.URI
-		libvirt.OSImage_Path = libvirtAsset.OSImage_Path
+		libvirt.OSImage_Path = libvirtAsset.OSImage
 		libvirt.CIDR = libvirtAsset.CIDR
 		libvirt.Gateway = libvirtAsset.Gateway
 	}

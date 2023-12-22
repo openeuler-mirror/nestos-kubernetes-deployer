@@ -17,8 +17,6 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/cmd/command"
-	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/infra"
 
 	"github.com/sirupsen/logrus"
@@ -43,17 +41,19 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := configmanager.Initial(&opts.Opts); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
-		return err
-	}
-	config, err := configmanager.GetClusterConfig(clusterId)
+	persistDir, err := cmd.Flags().GetString("dir")
 	if err != nil {
-		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		logrus.Errorf("Failed to get assets directory: %v", err)
 		return err
 	}
-	persistDir := configmanager.GetPersistDir()
-	cluster := infra.InstanceCluster(persistDir, config.Cluster_ID, "worker", len(config.Worker))
+
+	num, err := cmd.Flags().GetUint("num")
+	if err != nil {
+		logrus.Errorf("Failed to get assets directory: %v", err)
+		return err
+	}
+
+	cluster := infra.InstanceCluster(persistDir, clusterId, "worker", num)
 	if err := cluster.Extend(); err != nil {
 		logrus.Errorf("Failed to perform the extended nodes:%v", err)
 		return err

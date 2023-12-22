@@ -181,12 +181,12 @@ func generateTF(conf *asset.ClusterAsset) error {
 
 func createCluster(conf *asset.ClusterAsset) error {
 	persistDir := configmanager.GetPersistDir()
-	masterInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "master", len(conf.Master))
+	masterInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "master", uint(len(conf.Master)))
 	if err := masterInfra.Deploy(); err != nil {
 		logrus.Errorf("Failed to deploy master nodes:%v", err)
 		return err
 	}
-	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", len(conf.Worker))
+	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", uint(len(conf.Worker)))
 	if err := workerInfra.Deploy(); err != nil {
 		logrus.Errorf("Failed to deploy worker nodes:%v", err)
 		return err
