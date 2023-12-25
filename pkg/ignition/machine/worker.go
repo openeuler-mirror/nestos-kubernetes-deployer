@@ -56,8 +56,8 @@ func (w *Worker) GenerateFiles() error {
 	filePath := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
 	fileName := "k8s-worker.ign"
 
-	for _, na := range w.ClusterAsset.Worker {
-		na.Ign_Path = filepath.Join(filePath, fileName)
+	for i, _ := range w.ClusterAsset.Worker {
+		w.ClusterAsset.Worker[i].Ign_Path = filepath.Join(filePath, fileName)
 	}
 
 	ignition.SaveFile(generateFile.Config, filePath, fileName)

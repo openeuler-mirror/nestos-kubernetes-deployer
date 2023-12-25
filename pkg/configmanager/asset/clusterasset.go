@@ -52,7 +52,7 @@ func checkStringValue(target *string, value string, paramName string) error {
 
 // Sets a value of type integer, using the parameter value if the command line argument exists,
 // otherwise using the default value.
-func setIntValue(target *uint, value uint, defaultValue uint) {
+func setUIntValue(target *uint, value uint, defaultValue uint) {
 	if value != 0 {
 		*target = value
 	} else if *target == 0 {
@@ -101,6 +101,66 @@ func getDefaultPubKeyPath() string {
 
 func getApiServerEndpoint(ip string) string {
 	return fmt.Sprintf("%s:%s", ip, "6443")
+}
+
+func setMasterConfigs(mc []NodeAsset, opts *opts.MasterConfig) []NodeAsset {
+	var confs []NodeAsset
+	if len(mc) >= len(opts.IP) {
+		confs = append(confs, mc...)
+		for i, v := range opts.IP {
+			confs[i].IP = v
+			confs[i].Hostname = opts.Hostname[i]
+		}
+	} else {
+		confs = append(confs, mc...)
+		for i, _ := range opts.IP {
+			if i < len(mc) {
+				confs[i].IP = opts.IP[i]
+				confs[i].Hostname = opts.Hostname[i]
+				continue
+			}
+			confs = append(confs, NodeAsset{
+				IP:       opts.IP[i],
+				Hostname: opts.Hostname[i],
+				HardwareInfo: HardwareInfo{
+					CPU:  4,
+					RAM:  8096,
+					Disk: 50,
+				},
+				Ign_Path: "",
+			})
+		}
+	}
+	return confs
+}
+
+func setWorkerHostname(wc []NodeAsset, opts *opts.WorkerConfig) []NodeAsset {
+	var confs []NodeAsset
+	if len(wc) >= len(opts.Hostname) {
+		confs = append(confs, wc...)
+		for i, v := range opts.Hostname {
+			confs[i].Hostname = v
+		}
+	} else {
+		confs = append(confs, wc...)
+		for i, _ := range opts.Hostname {
+			if i < len(wc) {
+				confs[i].Hostname = opts.Hostname[i]
+				continue
+			}
+			confs = append(confs, NodeAsset{
+				IP:       "",
+				Hostname: opts.Hostname[i],
+				HardwareInfo: HardwareInfo{
+					CPU:  4,
+					RAM:  8096,
+					Disk: 50,
+				},
+				Ign_Path: "",
+			})
+		}
+	}
+	return confs
 }
 
 // ========== Structure method ==========
@@ -156,44 +216,77 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	// bind info
 	// infra platform
 	clusterAsset.InfraPlatform = infraAsset
-	cf := GetDefaultClusterConfig(clusterAsset.Architecture)
+
+	cf, err := GetDefaultClusterConfig(clusterAsset.Architecture)
+	if err != nil {
+		return nil, err
+	}
+
+	// set node config
+	if len(clusterAsset.Master) == 0 {
+		clusterAsset.Master = append(clusterAsset.Master, cf.Master...)
+	}
+	if len(opts.Master.Hostname) != len(opts.Master.IP) {
+		return nil, fmt.Errorf("The number of configuration parameters master hostname and ip should be the same")
+	}
+	if len(opts.Master.IP) != 0 {
+		clusterAsset.Master = setMasterConfigs(clusterAsset.Master, &opts.Master)
+	}
+	if opts.Master.CPU != 0 {
+		for i, _ := range clusterAsset.Master {
+			clusterAsset.Master[i].HardwareInfo.CPU = opts.Master.CPU
+		}
+	}
+	if opts.Master.RAM != 0 {
+		for i, _ := range clusterAsset.Master {
+			clusterAsset.Master[i].HardwareInfo.RAM = opts.Master.RAM
+		}
+	}
+	if opts.Master.Disk != 0 {
+		for i, _ := range clusterAsset.Master {
+			clusterAsset.Master[i].HardwareInfo.Disk = opts.Master.Disk
+		}
+	}
+
+	// set worker node config
+	if len(clusterAsset.Worker) == 0 {
+		clusterAsset.Worker = append(clusterAsset.Worker, cf.Worker...)
+	}
+	// set worker hostname
+	if len(opts.Worker.Hostname) != 0 {
+		clusterAsset.Worker = setWorkerHostname(clusterAsset.Worker, &opts.Worker)
+	}
+	// set worker IPs
+	if len(opts.Worker.IP) != 0 {
+		if len(opts.Worker.Hostname) != len(opts.Worker.IP) {
+			return nil, fmt.Errorf("The number of configuration parameters worker hostname and ip should be the same")
+		}
+		for i, _ := range opts.Worker.IP {
+			clusterAsset.Worker[i].IP = opts.Worker.IP[i]
+		}
+	}
+
+	if opts.Worker.CPU != 0 {
+		for i, _ := range clusterAsset.Worker {
+			clusterAsset.Worker[i].HardwareInfo.CPU = opts.Worker.CPU
+		}
+	}
+	if opts.Worker.RAM != 0 {
+		for i, _ := range clusterAsset.Worker {
+			clusterAsset.Worker[i].HardwareInfo.RAM = opts.Worker.RAM
+		}
+	}
+	if opts.Worker.Disk != 0 {
+		for i, _ := range clusterAsset.Worker {
+			clusterAsset.Worker[i].HardwareInfo.Disk = opts.Worker.Disk
+		}
+	}
 
 	// cluster info
 	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, cf.Cluster_ID)
-
-	for i, v := range opts.Master.IP {
-		clusterAsset.Master[i].IP = v
-	}
-	for i, v := range opts.Master.Hostname {
-		clusterAsset.Master[i].Hostname = v
-	}
-	for i, v := range opts.Master.IgnFilePath {
-		clusterAsset.Master[i].Ign_Path = v
-	}
-	for i, _ := range clusterAsset.Master {
-		setIntValue(&clusterAsset.Master[i].CPU, opts.Master.CPU, cf.Master[0].CPU)
-		setIntValue(&clusterAsset.Master[i].RAM, opts.Master.RAM, cf.Master[0].RAM)
-		setIntValue(&clusterAsset.Master[i].Disk, opts.Master.Disk, cf.Master[0].Disk)
-	}
-
-	for i, v := range opts.Worker.IP {
-		clusterAsset.Worker[i].IP = v
-	}
-	for i, v := range opts.Worker.Hostname {
-		clusterAsset.Worker[i].Hostname = v
-	}
-	for i, v := range opts.Worker.IgnFilePath {
-		clusterAsset.Worker[i].Ign_Path = v
-	}
-	for i, _ := range clusterAsset.Worker {
-		setIntValue(&clusterAsset.Worker[i].CPU, opts.Worker.CPU, cf.Worker[0].CPU)
-		setIntValue(&clusterAsset.Worker[i].RAM, opts.Worker.RAM, cf.Worker[0].RAM)
-		setIntValue(&clusterAsset.Worker[i].Disk, opts.Worker.Disk, cf.Worker[0].Disk)
-	}
-
 	setStringValue(&clusterAsset.UserName, opts.UserName, cf.UserName)
 	setStringValue(&clusterAsset.Password, opts.Password, cf.Password)
-	setStringValue(&clusterAsset.Password, opts.SSHKey, cf.SSHKey)
+	setStringValue(&clusterAsset.SSHKey, opts.SSHKey, cf.SSHKey)
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, cf.Kubernetes_Version)
 	setStringValue(&clusterAsset.Kubernetes.ApiServer_Endpoint, opts.ApiServerEndpoint, cf.ApiServer_Endpoint)
 	setStringValue(&clusterAsset.Kubernetes.Image_Registry, opts.ImageRegistry, cf.Image_Registry)
@@ -234,15 +327,23 @@ func (clusterAsset *ClusterAsset) Persist(dir string) error {
 	return nil
 }
 
-func GetDefaultClusterConfig(arch string) *ClusterAsset {
-
-	OperatorImageUrl := "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-operator-manager:0.1.0"
-	ControllerImageUrl := "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-controller-manager:0.1.0"
-	Release_Image_URL := "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-x86_64-k8s-v1.23.10"
-	if arch == "arm64" || arch == "aarch64" {
+func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
+	var (
+		OperatorImageUrl   string
+		ControllerImageUrl string
+		Release_Image_URL  string
+	)
+	switch arch {
+	case "amd64", "x86_64":
+		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-operator-manager:0.1.0"
+		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-controller-manager:0.1.0"
+		Release_Image_URL = "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-x86_64-k8s-v1.23.10"
+	case "arm64", "aarch64":
 		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-operator-manager:0.1.0"
 		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-controller-manager:0.1.0"
 		Release_Image_URL = "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-aarch64-k8s-v1.23.10"
+	default:
+		return nil, errors.New("unsupported architecture")
 	}
 
 	return &ClusterAsset{
@@ -257,7 +358,7 @@ func GetDefaultClusterConfig(arch string) *ClusterAsset {
 				Hostname: "k8s-master01",
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
-					RAM:  8,
+					RAM:  8096,
 					Disk: 50,
 				},
 				IP:       "192.168.132.11",
@@ -269,10 +370,10 @@ func GetDefaultClusterConfig(arch string) *ClusterAsset {
 				Hostname: "k8s-worker01",
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
-					RAM:  8,
+					RAM:  8096,
 					Disk: 50,
 				},
-				IP:       "192.168.132.21",
+				IP:       "",
 				Ign_Path: "",
 			},
 		},
@@ -294,5 +395,5 @@ func GetDefaultClusterConfig(arch string) *ClusterAsset {
 			OperatorImageUrl:   OperatorImageUrl,
 			ControllerImageUrl: ControllerImageUrl,
 		},
-	}
+	}, nil
 }

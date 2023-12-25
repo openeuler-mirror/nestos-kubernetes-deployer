@@ -164,7 +164,6 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		worker_ram = append(worker_ram, worker.RAM)
 		worker_disk = append(worker_disk, worker.Disk)
 		worker_hostname = append(worker_hostname, worker.Hostname)
-		worker_ip = append(worker_ip, worker.IP)
 		worker_ignPath = append(worker_ignPath, worker.Ign_Path)
 	}
 	infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)

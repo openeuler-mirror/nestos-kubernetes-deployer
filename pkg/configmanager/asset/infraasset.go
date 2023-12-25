@@ -26,9 +26,7 @@ type InfraAsset interface {
 }
 
 func InitInfraAsset(clusterAsset *ClusterAsset, opts *opts.OptionsList) (InfraAsset, error) {
-	if err := checkStringValue(&clusterAsset.Platform, opts.Platform, "platform"); err != nil {
-		return nil, err
-	}
+
 	setStringValue(&clusterAsset.Architecture, opts.Arch, runtime.GOARCH)
 	setStringValue(&clusterAsset.Platform, opts.Platform, "libvirt")
 	switch clusterAsset.Platform {

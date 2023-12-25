@@ -51,19 +51,19 @@
   $ nkd deploy -f cluster_config.yaml
 
   # 销毁指定集群
-  $ nkd destroy --cluster-id < your-cluster-id >
+  $ nkd destroy --cluster-id [your-cluster-id]
 
   # 扩展指定集群节点数量
-  $ nkd extend --cluster-id < your-cluster-id > --num 10
+  $ nkd extend --cluster-id [your-cluster-id] --num 10
 
   # 升级指定集群
   # --cluster-id string: 指定要升级的集群的唯一标识符
   # --force: 强制驱逐Pod，这可能导致数据丢失或服务中断，请谨慎使用
   # --imageurl string: 指定用于升级的容器镜像的地址
   # --kube-version string: 选择特定的Kubernetes版本进行升级
-  # --kubeconfig string: 指定访问Kubeconfig文件的路径，默认为 "/etc/nkd/<your-cluster-id>/admin.config"
+  # --kubeconfig string: 指定访问Kubeconfig文件的路径，默认为 "/etc/nkd/[your-cluster-id]/admin.config"
   # --maxunavailable uint: 同时升级的节点的最大数量
-  $ nkd upgrade --cluster-id < your-cluster-id > --imageurl < your-image-url > --kube-version < your-k8s-version > 
+  $ nkd upgrade --cluster-id [your-cluster-id] --imageurl [your-image-url] --kube-version [your-k8s-version] 
   ```
 除了应用配置文件部署集群外，支持应用配置项参数部署集群
   ``` shell
@@ -82,10 +82,10 @@
     --password string               指定 ssh 登录所配置节点的密码
     --master-cpu uint               设置主节点的CPU（单位：核）
     --master-disk uint              设置主节点磁盘大小（单位：GB）
-    --master-hostname stringArray   设置主节点主机名，默认为：[k8s-master01, k8s-master02, k8s-master03]
+    --master-hostname stringArray   设置主节点主机名
     --master-igns stringArray       设置主节点的Ignition文件路径
     --master-ips stringArray        设置主节点IP地址
-    --master-ram uint               设置主节点的RAM（单位：GB）
+    --master-ram uint               设置主节点的RAM（单位：MB）
     --operator-image-url string     指定Housekeeper Operator组件的容器镜像地址
     --pause-image string            指定pause容器的镜像
     --platform string               选择用于部署集群的基础设施平台
@@ -95,10 +95,12 @@
     --token string                  指定用于访问资源的身份验证令牌
     --worker-cpu uint               设置工作节点的CPU（单位：核心）
     --worker-disk uint              设置工作节点磁盘大小（单位：GB）
-    --worker-hostname stringArray   设置工作节点主机名，默认为：[k8s-worker01, k8s-worker02, k8s-worker03]
+    --worker-hostname stringArray   设置工作节点主机名  
     --worker-igns stringArray       设置工作节点的Ignition文件路径
     --worker-ips stringArray        设置工作节点IP地址
-    --worker-ram uint               设置工作节点的RAM（单位：GB）
+    --worker-ram uint               设置工作节点的RAM（单位：MB）
+  # 应用可选配置项参数部署集群
+  $ nkd deploy --platform [platform] --master-ips [master-ip-01] --master-ips [master-ip-02] --master-hostname [master-hostname-01] --master-hostname [master-hostname-02] --master-cpu [master-cpu-cores] --worker-hostname [worker-hostname-01] --worker-disk [worker-disk-size]
   ```
 
 ## 部署过程展示
@@ -128,9 +130,15 @@
 
 ## 部署集群
 
-1. 准备安装配置文件，具体的配置项参数详见[配置文件说明](/docs/config_file_desc.md)
-2. 执行命令部署集群
+ - 不添加任何配置项，通过默认配置部署集群。默认选择libvirt平台，并创建1个master节点、1个worker节点
+    ``` shell
+    $ nkd deploy
     ```
-    nkd deploy -f cluster_config.yaml
+ - 添加可选参数项部署集群，命令示例：
+    ``` shell
+    $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50
     ```
-
+ - 此外更精细化的配置，可以通过配置文件部署集群，具体的配置项参数以及参数默认配置详见[配置文件说明](/docs/config_file_desc.md)
+    ``` shell
+    $ nkd deploy -f cluster_config.yaml
+    ```
