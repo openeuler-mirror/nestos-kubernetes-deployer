@@ -124,7 +124,7 @@ func setMasterConfigs(mc []NodeAsset, opts *opts.MasterConfig) []NodeAsset {
 				Hostname: opts.Hostname[i],
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
-					RAM:  8096,
+					RAM:  8192,
 					Disk: 50,
 				},
 				Ign_Path: "",
@@ -153,7 +153,7 @@ func setWorkerHostname(wc []NodeAsset, opts *opts.WorkerConfig) []NodeAsset {
 				Hostname: opts.Hostname[i],
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
-					RAM:  8096,
+					RAM:  8192,
 					Disk: 50,
 				},
 				Ign_Path: "",
@@ -358,7 +358,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 				Hostname: "k8s-master01",
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
-					RAM:  8096,
+					RAM:  8192,
 					Disk: 50,
 				},
 				IP:       "192.168.132.11",
@@ -370,7 +370,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 				Hostname: "k8s-worker01",
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
-					RAM:  8096,
+					RAM:  8192,
 					Disk: 50,
 				},
 				IP:       "",

@@ -17,6 +17,8 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"os"
 	"path/filepath"
@@ -42,20 +44,24 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("Failed to get cluster id: %v", err)
 		return err
 	}
-	persistDir, err := cmd.Flags().GetString("dir")
-	if err != nil {
-		logrus.Errorf("Failed to get assets directory: %v", err)
+	if clusterID == "" {
+		logrus.Errorf("cluster-id is not provided: %v", err)
+	}
+
+	if err := configmanager.Initial(&opts.Opts); err != nil {
+		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
+	persistDir := configmanager.GetPersistDir()
 
 	workerInfra := infra.InstanceCluster(persistDir, clusterID, "worker", 0)
 	if err := workerInfra.Destroy(); err != nil {
-		logrus.Errorf("Failed to perform the extended worker nodes:%v", err)
+		logrus.Errorf("Failed to perform the destroy worker nodes:%v", err)
 		return err
 	}
 	masterInfra := infra.InstanceCluster(persistDir, clusterID, "master", 0)
 	if err := masterInfra.Destroy(); err != nil {
-		logrus.Errorf("Failed to perform the extended master nodes:%v", err)
+		logrus.Errorf("Failed to perform the destroy master nodes:%v", err)
 		return err
 	}
 

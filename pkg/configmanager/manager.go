@@ -41,19 +41,41 @@ func Initial(opts *opts.OptionsList) error {
 	}
 	GlobalConfig = globalConfig
 
-	fileData := &asset.ClusterAsset{}
+	files, err := filepath.Glob(filepath.Join(globalConfig.PersistDir, "*", "cluster_config.yaml"))
+	if err != nil {
+		return err
+	}
+
 	if opts.ClusterConfigFile != "" {
-		// Parse configuration file.
-		configData, err := os.ReadFile(opts.ClusterConfigFile)
+		files = append(files, opts.ClusterConfigFile)
+	}
+
+	if len(files) == 0 {
+		if len(files) == 0 {
+			return initializeClusterAsset(&asset.ClusterAsset{}, opts)
+		}
+	}
+
+	for _, file := range files {
+		configData, err := os.ReadFile(file)
 		if err != nil {
 			return err
 		}
 
+		fileData := &asset.ClusterAsset{}
 		if err := yaml.Unmarshal(configData, fileData); err != nil {
+			return err
+		}
+
+		if err := initializeClusterAsset(fileData, opts); err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func initializeClusterAsset(fileData *asset.ClusterAsset, opts *opts.OptionsList) error {
 	// Init infra asset
 	infraAsset, err := asset.InitInfraAsset(fileData, opts)
 	if err != nil {
@@ -65,8 +87,8 @@ func Initial(opts *opts.OptionsList) error {
 	if err != nil {
 		return err
 	}
-	ClusterAsset[fileData.Cluster_ID] = clusterAsset
 
+	ClusterAsset[fileData.Cluster_ID] = clusterAsset
 	return nil
 }
 

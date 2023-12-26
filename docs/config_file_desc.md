@@ -17,7 +17,7 @@ master:                                             # 配置master节点的列�
 - hostname: k8s-master01                            # 该节点的名称
   hardwareinfo:                                     # 该节点配置的硬件资源信息
     cpu: 4                                          # 该节点CPU的核数
-    ram: 8096                                       # 该节点的内存大小
+    ram: 8192                                       # 该节点的内存大小
     disk: 50                                        # 该节点的磁盘大小
   ip: "192.168.132.11"                              # 该节点的IP地址
   ign_data:                                         # 该节点的Ignition文件的路径
@@ -25,7 +25,7 @@ worker:                                             # 配置worker节点的列�
 - hostname: k8s-worker01            
   hardwareinfo:
     cpu: 4
-    ram: 8096
+    ram: 8192
     disk: 50
   ip: ""                                            # 如果不设置worker节点IP地址，则由dhcp自动分配，默认为空
   ign_data: "/etc/nkd/cluster/ignition"

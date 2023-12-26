@@ -75,7 +75,7 @@ func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
 func SetupExtendCmdOpts(extendCmd *cobra.Command) {
 	flags := extendCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Cluster ID")
-	flags.UintVarP(&opts.Opts.ExtendCount, "num", "n", 0, "The number of expanded worker nodes")
+	flags.UintVarP(&opts.Opts.ExtendCount, "num", "n", 0, "The number of extend worker nodes")
 }
 
 func SetupTemplateCmdOpts(templateCmd *cobra.Command) {
