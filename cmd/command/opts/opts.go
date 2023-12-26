@@ -32,8 +32,8 @@ type OptionsList struct {
 	UserName    string
 	Password    string
 	SSHKey      string
-	Master      NodeConfig
-	Worker      NodeConfig
+	Master      MasterConfig
+	Worker      WorkerConfig
 	ExtendCount uint
 
 	ApiServerEndpoint string
@@ -76,13 +76,22 @@ type Libvirt struct {
 	Gateway string
 }
 
-type NodeConfig struct {
+type MasterConfig struct {
 	Hostname    []string
 	CPU         uint
 	RAM         uint
 	Disk        uint
 	IP          []string
 	IgnFilePath []string
+}
+
+type WorkerConfig struct {
+	Hostname    []string
+	CPU         uint
+	RAM         uint
+	Disk        uint
+	IP          []string
+	IgnFilePath string
 }
 
 type NetworkConfig struct {

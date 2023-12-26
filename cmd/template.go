@@ -46,22 +46,25 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 	if opts.Opts.Arch != "" {
 		arch = opts.Opts.Arch
 	}
-	return createDeployConfigTemplate(opts.Opts.ClusterConfigFile, opts.Opts.Platform, arch)
-}
-
-func createDeployConfigTemplate(file string, platform string, arch string) error {
-	conf := asset.GetDefaultClusterConfig(arch)
-	if platform != "" {
-		conf.Platform = platform
-	}
-	d, err := yaml.Marshal(conf)
+	conf, err := asset.GetDefaultClusterConfig(arch)
 	if err != nil {
-		logrus.Errorf("faild to marshal template config: %v", err)
 		return err
 	}
-
-	if err := ioutil.WriteFile(file, d, utils.DeployConfigFileMode); err != nil {
-		logrus.Errorf("faild to write template config file: %v", err)
+	data, err := yaml.Marshal(conf)
+	if err != nil {
+		logrus.Errorf("Faild to marshal template config: %v", err)
+		return err
+	}
+	file, err := cmd.Flags().GetString("file")
+	if err != nil {
+		logrus.Errorf("Failed to create template file: %v", err)
+		return err
+	}
+	if file == "" {
+		file = "./template.yaml"
+	}
+	if err := ioutil.WriteFile(file, data, utils.DeployConfigFileMode); err != nil {
+		logrus.Errorf("Faild to write template config file: %v", err)
 		return err
 	}
 

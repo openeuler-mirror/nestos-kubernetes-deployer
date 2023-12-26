@@ -70,6 +70,7 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("Failed to persist the cluster asset: %v", err)
 		return err
 	}
+	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 
 	return nil
 }
