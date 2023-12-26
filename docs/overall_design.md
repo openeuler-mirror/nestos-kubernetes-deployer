@@ -22,6 +22,10 @@
 NKD模块交互关系图
 ![detailed_design](/docs/figures/detailed_design.jpg)
 
+### Ignition模块设计
+NKD在创建基础设施时，需要通过ignition点火机制传入系统部署后所需的动态配置，详细内容见[设计文档](/docs/ignition_design.md)。并且支持通过命令行参数或配置文件将用户配置转换为ignition文件。节点在部署完成操作系统引导后，通过Ignition机制在操作系统引导阶段自动完成集群创建，无需手动干预。集群各节点的Ignition文件创建流程如图
+![ignition_design](/docs/figures/ignition_design.jpg)
+
 ### housekeeper模块设计
 在集群部署阶段，用户可以选择是否部署housekeeper
 详细内容见[设计文档](/docs/housekeeper_design.md)
