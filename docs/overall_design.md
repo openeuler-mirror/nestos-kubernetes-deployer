@@ -16,14 +16,24 @@
 - 配置仓库：存储和管理配置信息的数据库
 - 容器镜像仓库：用于存储和管理私有化部署的容器镜像，保障应用程序的可靠性和安全性
 
-备注：http server、healthz-worker暂未支持
+备注：http server、healthz-worker、配置仓库暂未支持
 
 ## 详细设计
 NKD模块交互关系图
 ![detailed_design](/docs/figures/detailed_design.jpg)
 
+### config-manager模块设计
+NKD部署集群提供了不同的应用配置方式，以方便不同的用户使用这款部署工具。
+ - 体验部署一个基础集群，仅部署一个master和worker节点的小型集群，配置项参数使用默认配置，这样可以直接执行部署命令，且不用添加任何配置项；
+ - 更精细化的配置各项参数，通过应用配置文件部署高可用集群；
+ - 更灵活方便的配置集群，通过添加命令行参数部署高可用集群。
+
+命令行参数的优先级最高，配置文件次之。如果部署集群同时应用了配置文件和命令行参数，在配置参数项相同时，命令行参数会将配置文件内容覆盖。
+如果用户没有配置参数，NKD会自动生成该项参数或者使用默认配置，例如集群证书、Ignition文件等。config-manager模块会纳管集群的所有配置项参数，并存储在磁盘中。NKD部署集群依赖项如图：
+![config_manager_design](/docs/figures/config_manager_design.jpg)
+
 ### Ignition模块设计
-NKD在创建基础设施时，需要通过ignition点火机制传入系统部署后所需的动态配置，详细内容见[设计文档](/docs/ignition_design.md)。并且支持通过命令行参数或配置文件将用户配置转换为ignition文件。节点在部署完成操作系统引导后，通过Ignition机制在操作系统引导阶段自动完成集群创建，无需手动干预。集群各节点的Ignition文件创建流程如图
+NKD在创建基础设施时，需要通过ignition点火机制传入系统部署后所需的动态配置，详细内容见[设计文档](/docs/ignition_design.md)。并且支持通过命令行参数或配置文件将用户配置转换为ignition文件。节点在部署完成操作系统引导后，通过Ignition机制在操作系统引导阶段自动完成集群创建，无需手动干预。集群各节点的Ignition文件创建流程如图：
 ![ignition_design](/docs/figures/ignition_design.jpg)
 
 ### housekeeper模块设计
