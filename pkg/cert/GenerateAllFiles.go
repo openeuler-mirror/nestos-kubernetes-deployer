@@ -62,7 +62,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		return nil, err
 	}
 
-	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/ca.key", rootCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/ca.key", rootCACert.KeyRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		return nil, err
 	}
 
-	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/etcd/ca.key", etcdCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/etcd/ca.key", etcdCACert.KeyRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		return nil, err
 	}
 
-	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.key", frontProxyCACert.CertRaw)
+	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.key", frontProxyCACert.KeyRaw)
 	if err != nil {
 		return nil, err
 	}
