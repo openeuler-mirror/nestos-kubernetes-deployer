@@ -95,22 +95,6 @@ type Node struct {
 }
 
 func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) {
-	var (
-		master_cpu      []uint
-		master_ram      []uint
-		master_disk     []uint
-		master_hostname []string
-		master_ip       []string
-		master_ignPath  []string
-
-		worker_cpu      []uint
-		worker_ram      []uint
-		worker_disk     []uint
-		worker_hostname []string
-		worker_ip       []string
-		worker_ignPath  []string
-	)
-
 	infra.ClusterID = conf.Cluster_ID
 
 	switch conf.Platform {
@@ -124,71 +108,91 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 
 	infra.Platform.SetPlatform(conf.InfraPlatform)
 
-	infra.Master.Count = len(conf.Master)
-	for _, master := range conf.Master {
-		master_cpu = append(master_cpu, master.CPU)
-		master_ram = append(master_ram, master.RAM)
-		master_disk = append(master_disk, master.Disk)
-		master_hostname = append(master_hostname, master.Hostname)
-		master_ip = append(master_ip, master.IP)
-		master_ignPath = append(master_ignPath, master.Ign_Path)
-	}
-	infra.Master.CPU, err = convertSliceToStrings(master_cpu)
-	if err != nil {
-		return err
-	}
-	infra.Master.RAM, err = convertSliceToStrings(master_ram)
-	if err != nil {
-		return err
-	}
-	infra.Master.Disk, err = convertSliceToStrings(master_disk)
-	if err != nil {
-		return err
-	}
-	infra.Master.Hostname, err = convertSliceToStrings(master_hostname)
-	if err != nil {
-		return err
-	}
-	infra.Master.IP, err = convertSliceToStrings(master_ip)
-	if err != nil {
-		return err
-	}
-	infra.Master.Ign_Path, err = convertSliceToStrings(master_ignPath)
-	if err != nil {
-		return err
-	}
+	if node == "master" {
+		var (
+			master_cpu      []uint
+			master_ram      []uint
+			master_disk     []uint
+			master_hostname []string
+			master_ip       []string
+			master_ignPath  []string
+		)
 
-	infra.Worker.Count = len(conf.Worker)
-	for _, worker := range conf.Worker {
-		worker_cpu = append(worker_cpu, worker.CPU)
-		worker_ram = append(worker_ram, worker.RAM)
-		worker_disk = append(worker_disk, worker.Disk)
-		worker_hostname = append(worker_hostname, worker.Hostname)
-		worker_ignPath = append(worker_ignPath, worker.Ign_Path)
-	}
-	infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
-	if err != nil {
-		return err
-	}
-	infra.Worker.RAM, err = convertSliceToStrings(worker_ram)
-	if err != nil {
-		return err
-	}
-	infra.Worker.Disk, err = convertSliceToStrings(worker_disk)
-	if err != nil {
-		return err
-	}
-	infra.Worker.Hostname, err = convertSliceToStrings(worker_hostname)
-	if err != nil {
-		return err
-	}
-	infra.Worker.IP, err = convertSliceToStrings(worker_ip)
-	if err != nil {
-		return err
-	}
-	infra.Worker.Ign_Path, err = convertSliceToStrings(worker_ignPath)
-	if err != nil {
-		return err
+		infra.Master.Count = len(conf.Master)
+		for _, master := range conf.Master {
+			master_cpu = append(master_cpu, master.CPU)
+			master_ram = append(master_ram, master.RAM)
+			master_disk = append(master_disk, master.Disk*1<<30)
+			master_hostname = append(master_hostname, master.Hostname)
+			master_ip = append(master_ip, master.IP)
+			master_ignPath = append(master_ignPath, master.Ign_Path)
+		}
+		infra.Master.CPU, err = convertSliceToStrings(master_cpu)
+		if err != nil {
+			return err
+		}
+		infra.Master.RAM, err = convertSliceToStrings(master_ram)
+		if err != nil {
+			return err
+		}
+		infra.Master.Disk, err = convertSliceToStrings(master_disk)
+		if err != nil {
+			return err
+		}
+		infra.Master.Hostname, err = convertSliceToStrings(master_hostname)
+		if err != nil {
+			return err
+		}
+		infra.Master.IP, err = convertSliceToStrings(master_ip)
+		if err != nil {
+			return err
+		}
+		infra.Master.Ign_Path, err = convertSliceToStrings(master_ignPath)
+		if err != nil {
+			return err
+		}
+	} else if node == "worker" {
+		var (
+			worker_cpu      []uint
+			worker_ram      []uint
+			worker_disk     []uint
+			worker_hostname []string
+			worker_ip       []string
+			worker_ignPath  []string
+		)
+
+		infra.Worker.Count = len(conf.Worker)
+		for _, worker := range conf.Worker {
+			worker_cpu = append(worker_cpu, worker.CPU)
+			worker_ram = append(worker_ram, worker.RAM)
+			worker_disk = append(worker_disk, worker.Disk*1<<30)
+			worker_hostname = append(worker_hostname, worker.Hostname)
+			worker_ignPath = append(worker_ignPath, worker.Ign_Path)
+		}
+		infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
+		if err != nil {
+			return err
+		}
+		infra.Worker.RAM, err = convertSliceToStrings(worker_ram)
+		if err != nil {
+			return err
+		}
+		infra.Worker.Disk, err = convertSliceToStrings(worker_disk)
+		if err != nil {
+			return err
+		}
+		infra.Worker.Hostname, err = convertSliceToStrings(worker_hostname)
+		if err != nil {
+			return err
+		}
+		infra.Worker.IP, err = convertSliceToStrings(worker_ip)
+		if err != nil {
+			return err
+		}
+		infra.Worker.Ign_Path, err = convertSliceToStrings(worker_ignPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	persistDir := configmanager.GetPersistDir()

@@ -15,16 +15,18 @@ variable "instance_count" {
   default = "{{.Worker.Count}}"
 }
 
-variable "ip" {
-  type    = list(string)
-  default = {{.Worker.IP}}
-}
-
 resource "libvirt_volume" "volume" {
-  count  = var.instance_count
-  name   =  "${format("%s-volume", element({{.Worker.Hostname}}, count.index))}"
+  name   =  "nkd-volume-{{.ClusterID}}"
   pool   = "default"
   source = "{{.Platform.OSImage_Path}}"
+}
+
+resource "libvirt_volume" "disk" {
+  count  = var.instance_count
+  name   =  "${format("%s-disk", element({{.Worker.Hostname}}, count.index))}"
+  base_volume_id = libvirt_volume.volume.id
+  pool   = "default"
+  size   = element({{.Worker.Disk}}, count.index)
 }
 
 resource "libvirt_ignition" "ignition" {
@@ -42,13 +44,12 @@ resource "libvirt_domain" "nestos" {
   autostart       = true
 
   disk {
-    volume_id = libvirt_volume.volume.*.id[count.index]
+    volume_id = libvirt_volume.disk.*.id[count.index]
   }
 
   network_interface {
     network_name   = "nkd-net-{{.ClusterID}}"
     hostname       = element({{.Worker.Hostname}}, count.index)
-    addresses      = [var.ip[count.index]]
     wait_for_lease = true
   }
 

@@ -44,7 +44,7 @@ func (c *Cluster) Deploy() (err error) {
 
 func (c *Cluster) Extend() (err error) {
 	tfFileDir := filepath.Join(c.PersistDir, c.ClusterID, c.Node)
-	outputs, err := terraform.ExtendTerraform(tfFileDir, c.PersistDir, c.Count)
+	outputs, err := terraform.ExecuteApplyTerraform(tfFileDir, c.PersistDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute terraform apply")
 	}

@@ -102,25 +102,6 @@ func TFApply(tfFileDir string, persistDir string, applyOpts ...tfexec.ApplyOptio
 	return nil
 }
 
-// terraform apply for nkd extend
-func TFExtend(tfFileDir string, persistDir string, count uint) error {
-	if err := TFInit(tfFileDir, persistDir); err != nil {
-		return errors.Wrap(err, "failed to init terraform")
-	}
-
-	tf, err := newTFExec(tfFileDir)
-	if err != nil {
-		return errors.Wrap(err, "failed to create a new tfexec")
-	}
-
-	err = tf.Apply(context.Background(), tfexec.Var(fmt.Sprintf("instance_count=%d", count)))
-	if err != nil {
-		return errors.Wrap(err, "failed to extend Terraform")
-	}
-
-	return nil
-}
-
 // terraform destroy
 func TFDestroy(tfFileDir string, persistDir string, destroyOpts ...tfexec.DestroyOption) error {
 	if err := TFInit(tfFileDir, persistDir); err != nil {

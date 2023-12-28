@@ -21,10 +21,17 @@ variable "ip" {
 }
 
 resource "libvirt_volume" "volume" {
-  count  = var.instance_count
-  name   =  "${format("%s-volume", element({{.Master.Hostname}}, count.index))}"
+  name   =  "nkd-volume-{{.ClusterID}}"
   pool   = "default"
   source = "{{.Platform.OSImage_Path}}"
+}
+
+resource "libvirt_volume" "disk" {
+  count  = var.instance_count
+  name   =  "${format("%s-disk", element({{.Master.Hostname}}, count.index))}"
+  base_volume_id = libvirt_volume.volume.id
+  pool   = "default"
+  size   = element({{.Master.Disk}}, count.index)
 }
 
 resource "libvirt_ignition" "ignition" {
@@ -40,7 +47,7 @@ resource "libvirt_network" "network" {
   addresses = ["{{.Platform.CIDR}}"]
 
   dhcp {
-    enabled = false
+    enabled = true
   }
 
   dns {
@@ -63,7 +70,7 @@ resource "libvirt_domain" "nestos" {
   autostart       = true
 
   disk {
-    volume_id = libvirt_volume.volume.*.id[count.index]
+    volume_id = libvirt_volume.disk.*.id[count.index]
   }
 
   network_interface {
