@@ -1,0 +1,156 @@
+terraform {
+  required_providers {
+    openstack = {
+      source = "terraform-provider-openstack/openstack"
+      version = "1.52.1"
+    }
+  }
+}
+
+provider "openstack" {
+  user_name   = "{{.Platform.Username}}"
+  password    = "{{.Platform.Password}}"
+  tenant_name = "{{.Platform.Tenant_Name}}"
+  auth_url    = "{{.Platform.Auth_URL}}"
+  region      = "{{.Platform.Region}}"
+}
+
+variable "instance_count" {
+  default = "{{.Worker.Count}}"
+}
+
+resource "openstack_compute_flavor_v2" "flavor" {
+  count     = var.instance_count
+  name      = element({{.Worker.Hostname}}, count.index)
+  vcpus     = element({{.Worker.CPU}}, count.index)
+  ram       = element({{.Worker.RAM}}, count.index)
+  disk      = element({{.Worker.Disk}}, count.index)
+  is_public = "true"
+}
+
+resource "openstack_blockstorage_volume_v3" "volume" {
+  count = var.instance_count
+  name  = element({{.Worker.Hostname}}, count.index)
+  size  = element({{.Worker.Disk}}, count.index)
+}
+
+resource "openstack_compute_secgroup_v2" "secgroup" {
+  name        = "k8s_worker"
+  description = "secgroup for k8s worker"
+
+  rule {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = -1
+    to_port     = -1
+    ip_protocol = "icmp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 80
+    to_port     = 80
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 443
+    to_port     = 443
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 2379
+    to_port     = 2380
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 179
+    to_port     = 179
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 6443
+    to_port     = 6443
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 10248
+    to_port     = 10248
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 10250
+    to_port     = 10250
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 30000
+    to_port     = 32767
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 30000
+    to_port     = 32767
+    ip_protocol = "udp"
+    cidr        = "0.0.0.0/0"
+  }
+}
+
+resource "openstack_compute_instance_v2" "instance" {
+  count              = var.instance_count
+  name               = element({{.Worker.Hostname}}, count.index)
+  image_name         = "{{.Platform.Glance_Name}}"
+  flavor_name        = element({{.Worker.Hostname}}, count.index)
+  security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
+  availability_zone  = "{{.Platform.Availability_Zone}}"
+  user_data          = file(element({{.Worker.Ign_Path}}, count.index))
+
+  network {
+    name        = "{{.Platform.Internal_Network}}"
+    fixed_ip_v4 = element({{.Worker.IP}}, count.index)
+  }
+}
+
+resource "openstack_networking_floatingip_v2" "floatip" {
+  count = length(openstack_compute_instance_v2.instance)
+  pool  = "{{.Platform.External_Network}}"
+}
+
+resource "openstack_compute_floatingip_associate_v2" "fip_associate" {
+  count       = length(openstack_compute_instance_v2.instance)
+  floating_ip = openstack_networking_floatingip_v2.floatip.*.address[count.index]
+  instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
+}
+
+resource "openstack_compute_volume_attach_v2" "volume_attach" {
+  count       = length(openstack_compute_instance_v2.instance)
+  instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
+  volume_id   = openstack_blockstorage_volume_v3.volume.*.id[count.index]
+}
+
+output "instance_info" {
+  value = {
+    instance_status = openstack_compute_instance_v2.instance.*.power_state
+    floating_ip     = openstack_networking_floatingip_v2.floatip.*.address
+  }
+}

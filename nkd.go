@@ -15,8 +15,37 @@ limitations under the License.
 */
 package main
 
-import "nestos-kubernetes-deployer/app"
+import (
+	"nestos-kubernetes-deployer/cmd"
+	"nestos-kubernetes-deployer/cmd/command/opts"
+
+	"github.com/spf13/cobra"
+)
 
 func main() {
-	app.Run()
+	rootCmd := newRootCmd()
+
+	for _, subCmd := range []*cobra.Command{
+		cmd.NewDeployCommand(),
+		cmd.NewDestroyCommand(),
+		cmd.NewUpgradeCommand(),
+		cmd.NewExtendCommand(),
+		cmd.NewVersionCommand(),
+		cmd.NewTemplateCommand(),
+	} {
+		rootCmd.AddCommand(subCmd)
+	}
+
+	if err := rootCmd.Execute(); err != nil {
+		return
+	}
+}
+
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "nkd",
+		Short: "Creates Kubernetes Clusters",
+	}
+	cmd.PersistentFlags().StringVar(&opts.Opts.RootOptDir, "dir", "/etc/nkd", "Assets directory")
+	return cmd
 }

@@ -1,0 +1,69 @@
+terraform {
+  required_providers {
+    libvirt = {
+      source = "dmacvicar/libvirt"
+      version = "0.7.6"
+    }
+  }
+}
+
+provider "libvirt" {
+  uri = "{{.Platform.URI}}"
+}
+
+variable "instance_count" {
+  default = "{{.Worker.Count}}"
+}
+
+resource "libvirt_volume" "volume" {
+  name   =  "nkd-volume-{{.ClusterID}}"
+  pool   = "default"
+  source = "{{.Platform.OSImage_Path}}"
+}
+
+resource "libvirt_volume" "disk" {
+  count  = var.instance_count
+  name   =  "${format("%s-disk", element({{.Worker.Hostname}}, count.index))}"
+  base_volume_id = libvirt_volume.volume.id
+  pool   = "default"
+  size   = element({{.Worker.Disk}}, count.index)
+}
+
+resource "libvirt_ignition" "ignition" {
+  count   = var.instance_count
+  name    = "${format("%s-ignition", element({{.Worker.Hostname}}, count.index))}"
+  content = file(element({{.Worker.Ign_Path}}, count.index))
+}
+
+resource "libvirt_domain" "nestos" {
+  count           = var.instance_count
+  name            = element({{.Worker.Hostname}}, count.index)
+  vcpu            = element({{.Worker.CPU}}, count.index)
+  memory          = element({{.Worker.RAM}}, count.index)
+  coreos_ignition = libvirt_ignition.ignition.*.id[count.index]
+  autostart       = true
+
+  disk {
+    volume_id = libvirt_volume.disk.*.id[count.index]
+  }
+
+  network_interface {
+    network_name   = "nkd-net-{{.ClusterID}}"
+    hostname       = element({{.Worker.Hostname}}, count.index)
+    wait_for_lease = true
+  }
+
+  graphics {
+    type        = "vnc"
+    listen_type = "address"
+  }
+
+  console {
+    type        = "pty"
+    target_port = "0"
+  }
+}
+
+output "ipv4" {
+  value = libvirt_domain.nestos.*.network_interface.0.addresses
+}

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: housekeeper-controller-manager
+  namespace: housekeeper-system
+  labels:
+    control-plane: housekeeper-controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: housekeeper-controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: housekeeper-controller-manager
+    spec:
+      tolerations:
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/worker"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+       - name: housekeeper-controller-manager
+         command:
+          - /housekeeper-controller-manager
+         image: {{.ControllerImageUrl}}
+         imagePullPolicy: Always
+         volumeMounts:
+          - name: upgrade-daemon
+            mountPath: /var/nkd
+         env:
+          - name: NODE_NAME
+            valueFrom:
+             fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+      volumes:
+        - name: upgrade-daemon
+          hostPath:
+            path: /var/nkd

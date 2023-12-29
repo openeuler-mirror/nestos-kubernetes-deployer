@@ -22,7 +22,7 @@ controllerManager:
     flex-volume-plugin-dir: "/opt/libexec/kubernetes/kubelet-plugins/volume/exec/"
 kubernetesVersion: {{.KubeVersion}}
 imageRepository: {{.ImageRegistry}}
-controlPlaneEndpoint: "{{.APIServerURL}}:6443"
+controlPlaneEndpoint: "{{.APIServerURL}}"
 networking:
   serviceSubnet: "{{.ServiceSubnet}}"
   podSubnet: "{{.PodSubnet}}"
