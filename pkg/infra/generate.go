@@ -122,7 +122,11 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		for _, master := range conf.Master {
 			master_cpu = append(master_cpu, master.CPU)
 			master_ram = append(master_ram, master.RAM)
-			master_disk = append(master_disk, master.Disk*1<<30)
+			if strings.EqualFold(conf.Platform, "libvirt") {
+				master_disk = append(master_disk, master.Disk*1<<30)
+			} else {
+				master_disk = append(master_disk, master.Disk)
+			}
 			master_hostname = append(master_hostname, master.Hostname)
 			master_ip = append(master_ip, master.IP)
 			master_ignPath = append(master_ignPath, master.Ign_Path)
@@ -165,7 +169,12 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		for _, worker := range conf.Worker {
 			worker_cpu = append(worker_cpu, worker.CPU)
 			worker_ram = append(worker_ram, worker.RAM)
-			worker_disk = append(worker_disk, worker.Disk*1<<30)
+			if strings.EqualFold(conf.Platform, "libvirt") {
+				worker_disk = append(worker_disk, worker.Disk*1<<30)
+			} else {
+				worker_disk = append(worker_disk, worker.Disk)
+			}
+			worker_ip = append(worker_ip, worker.IP)
 			worker_hostname = append(worker_hostname, worker.Hostname)
 			worker_ignPath = append(worker_ignPath, worker.Ign_Path)
 		}
