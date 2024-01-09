@@ -16,23 +16,17 @@ limitations under the License.
 package cmd
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
-	"time"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	wait "k8s.io/apimachinery/pkg/util/wait"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func NewUpgradeCommand() *cobra.Command {
@@ -47,12 +41,30 @@ func NewUpgradeCommand() *cobra.Command {
 	return upgradeCmd
 }
 
-func runUpgradeCmd(cmd *cobra.Command, args []string) error {
-	clusterId, err := cmd.Flags().GetString("cluster-id")
+func getFlagString(cmd *cobra.Command, flagName string) string {
+	flagValue, err := cmd.Flags().GetString(flagName)
 	if err != nil {
-		logrus.Errorf("Failed to get cluster-id: %v", err)
-		return err
+		logrus.Errorf("Failed to get %s parameter: %v", flagName, err)
 	}
+	return flagValue
+}
+
+func runUpgradeCmd(cmd *cobra.Command, args []string) error {
+	clusterId := getFlagString(cmd, "cluster-id")
+	kubeVersion := getFlagString(cmd, "kube-version")
+	imageURL := getFlagString(cmd, "imageurl")
+	if clusterId == "" {
+		return errors.New("cluster-id is required")
+	}
+
+	if kubeVersion == "" {
+		return errors.New("kube-version is required")
+	}
+
+	if imageURL == "" {
+		return errors.New("imageurl is required")
+	}
+
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
@@ -71,65 +83,27 @@ func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 }
 
 func upgradeCluster(clusterConfig *asset.ClusterAsset) error {
-	loopTimeout := 2 * time.Minute
-	dynamicClient, err := kubeclient.CreateDynamicClient(clusterConfig.AdminKubeConfig)
 
 	// Define the YAML data for the Custom Resource (CR)
 	yamlData := fmt.Sprintf(`
 apiVersion: housekeeper.io/v1alpha1
 kind: Update
 metadata:
-name: housekeeper-upgrade
-namespace: housekeeper-system
+  name: housekeeper-upgrade
+  namespace: housekeeper-system
 spec:
-osImageURL: %s
-kubeVersion: %s
-evictPodForce: %t
-maxUnavailable: %d
+  osImageURL: %s
+  kubeVersion: %s
+  evictPodForce: %t
+  maxUnavailable: %d
 `, clusterConfig.Housekeeper.OSImageURL, clusterConfig.Housekeeper.KubeVersion, clusterConfig.Housekeeper.EvictPodForce, clusterConfig.Housekeeper.MaxUnavailable)
 
-	var unstructuredObj unstructured.Unstructured
-	err = yaml.Unmarshal([]byte(yamlData), &unstructuredObj)
-	if err != nil {
-		logrus.Errorf("Error unmarshalling YAML: %v\n", err)
+	adminconfig := filepath.Join(configmanager.GetPersistDir(), clusterConfig.Cluster_ID, "admin.config")
+	if err := kubeclient.DeployCR(yamlData, adminconfig); err != nil {
+		logrus.Errorf("Failed to deploy Custom Resource: %v", err)
 		return err
 	}
 
-	// Create or Update CR
-	resource := schema.GroupVersionResource{
-		Group:    "housekeeper.io",
-		Version:  "v1alpha1",
-		Resource: "updates", // Pluralized resource name
-	}
-
-	// The loop attempts to create or update a CR until it succeeds or times out
-	if err := wait.PollImmediate(2*time.Second, loopTimeout, func() (bool, error) {
-		gvk := unstructuredObj.GroupVersionKind()
-		dynamicResource := dynamicClient.Resource(gvk.GroupVersion().WithResource(resource.Resource)).Namespace(unstructuredObj.GetNamespace())
-
-		//Attempts to get the specified Custom Resource from the Kubernetes API Server.
-		obj, err := dynamicResource.Get(context.Background(), unstructuredObj.GetName(), metav1.GetOptions{})
-		if err != nil {
-			// Not found, create the resource
-			_, err = dynamicResource.Create(context.Background(), &unstructuredObj, metav1.CreateOptions{})
-			if err == nil {
-				logrus.Infof("Custom Resource created successfully!")
-				return true, nil
-			}
-		} else {
-			// Found, update the resource
-			unstructuredObj.SetResourceVersion(obj.GetResourceVersion())
-			_, err = dynamicResource.Update(context.Background(), &unstructuredObj, metav1.UpdateOptions{})
-			if err == nil {
-				logrus.Infof("Custom Resource updated successfully!")
-				return true, nil
-			}
-		}
-		logrus.Errorf("Error creating or updating CR: %v\n", err)
-		return false, nil
-	}); err != nil {
-		logrus.Errorf("Timeout while waiting for Custom Resource to be created or updated.")
-	}
-
+	logrus.Info("Custom Resource deployed successfully.")
 	return nil
 }

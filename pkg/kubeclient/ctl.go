@@ -20,6 +20,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,29 +78,6 @@ func CreateDynamicClient(kubeconfig string) (dynamic.Interface, error) {
 	return dynamicClient, nil
 }
 
-// Apply a Kubernetes resource of the specified type using the provided content.
-// Parameters:
-//   - clientset: Kubernetes clientset for cluster interaction.
-//     Input: *kubernetes.Clientset - configured Kubernetes client.
-//   - resourceType: Type of Kubernetes resource (e.g., "pods", "services").
-//     Input: string - type of the Kubernetes resource.
-//   - content: YAML or JSON content for creating/updating the resource.
-//     Input: string - content of the Kubernetes resource.
-func ApplyResource(clientset *kubernetes.Clientset, resourceType, content string) error {
-	_, err := clientset.RESTClient().
-		Post().
-		Resource(resourceType).
-		Body([]byte(content)).
-		Do(context.TODO()).
-		Get()
-
-	if err != nil {
-		logrus.Errorf("Error applying content: %v", err)
-		return err
-	}
-	return nil
-}
-
 func DeployCRD(yamlContent string, kubeconfig string) error {
 	client, err := CreateDynamicClient(kubeconfig)
 	if err != nil {
@@ -118,7 +96,7 @@ func DeployCRD(yamlContent string, kubeconfig string) error {
 	apiVersion := "v1"
 	resource := "customresourcedefinitions"
 
-	// Create or update the CRD using the dynamic client
+	// Create the CRD using the dynamic client
 	_, err = client.Resource(schema.GroupVersionResource{
 		Group:    apiGroup,
 		Version:  apiVersion,
@@ -149,7 +127,7 @@ func DeployNamespace(yamlContent string, kubeconfig string) error {
 	// Specify the API group, version, and resource for Namespaces
 	apiGroup, apiVersion, resource := "", "v1", "namespaces"
 
-	// Create or update the Namespace using the dynamic client
+	// Create the Namespace using the dynamic client
 	_, err = client.Resource(schema.GroupVersionResource{
 		Group:    apiGroup,
 		Version:  apiVersion,
@@ -240,7 +218,7 @@ func DeployDeployment(yamlContent string, kubeconfig string, namespace string) e
 		return err
 	}
 
-	// Create or update the Deployment using the Kubernetes clientset
+	// Create the Deployment using the Kubernetes clientset
 	_, err = clientset.AppsV1().Deployments(namespace).Create(context.TODO(), deployment, metav1.CreateOptions{})
 	if err != nil {
 		logrus.Errorf("error creating Deployment: %v", err)
@@ -270,10 +248,80 @@ func DeployDaemonSet(yamlContent string, kubeconfig string, namespace string) er
 		return err
 	}
 
-	// Create or update the DaemonSet using the Kubernetes clientset
+	// Create the DaemonSet using the Kubernetes clientset
 	_, err = clientset.AppsV1().DaemonSets(namespace).Create(context.TODO(), daemonSet, metav1.CreateOptions{})
 	if err != nil {
 		logrus.Errorf("error creating DaemonSet: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func DeployCR(yamlContent string, kubeconfig string) error {
+	// Create a dynamic client for interacting with the Kubernetes API server
+	client, err := CreateDynamicClient(kubeconfig)
+	if err != nil {
+		return err
+	}
+
+	// Parse the YAML content into an Unstructured object
+	unstructuredObj := &unstructured.Unstructured{}
+	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
+		logrus.Errorf("Error parsing YAML as Unstructured: %v", err)
+		return err
+	}
+
+	// Specify the API group, version, and resource for the custom resource
+	apiGroup := "housekeeper.io"
+	apiVersion := "v1alpha1"
+	resource := "updates"
+
+	// Try to get the existing custom resource
+	existingObj, err := client.
+		Resource(schema.GroupVersionResource{
+			Group:    apiGroup,
+			Version:  apiVersion,
+			Resource: resource,
+		}).
+		Namespace(unstructuredObj.GetNamespace()).
+		Get(context.TODO(), unstructuredObj.GetName(), metav1.GetOptions{})
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Custom resource doesn't exist, create it
+			_, err = client.
+				Resource(schema.GroupVersionResource{
+					Group:    apiGroup,
+					Version:  apiVersion,
+					Resource: resource,
+				}).
+				Namespace(unstructuredObj.GetNamespace()).
+				Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
+			if err != nil {
+				logrus.Errorf("Error creating custom resource: %v", err)
+				return err
+			}
+			return nil
+		}
+
+		// Error other than "not found" occurred
+		logrus.Errorf("Error checking custom resource existence: %v", err)
+		return err
+	}
+
+	// Custom resource already exists, update it with new configuration
+	unstructuredObj.SetResourceVersion(existingObj.GetResourceVersion())
+	_, err = client.
+		Resource(schema.GroupVersionResource{
+			Group:    apiGroup,
+			Version:  apiVersion,
+			Resource: resource,
+		}).
+		Namespace(unstructuredObj.GetNamespace()).
+		Update(context.TODO(), unstructuredObj, metav1.UpdateOptions{})
+	if err != nil {
+		logrus.Errorf("Error updating custom resource: %v", err)
 		return err
 	}
 
