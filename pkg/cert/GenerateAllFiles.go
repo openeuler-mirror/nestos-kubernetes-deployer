@@ -42,6 +42,9 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	//用于后续kubeconfig生成
 	apiserverEndpoint := "https://" + clusterconfig.Kubernetes.ApiServer_Endpoint
 
+	//读取用户自定义服务子网IP
+	serviceSubnet := clusterconfig.Network.Service_Subnet
+
 	/* **********生成root CA 证书和密钥********** */
 
 	rootCACert, err := GenerateAllCA(clusterconfig.CertAsset.RootCaCertPath,
@@ -259,7 +262,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	dnsNames = []string{hostname, "kubernetes", "kubernetes.default",
 		"kubernetes.default.svc", "kubernetes.default.svc.cluster", "kubernetes.default.svc.cluster.local"}
 	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-	ipAddresses = []net.IP{net.ParseIP(ipaddress), net.ParseIP("127.0.0.1"), net.ParseIP("0.0.0.0")}
+	ipAddresses = []net.IP{net.ParseIP(ipaddress), net.ParseIP("127.0.0.1"), net.ParseIP(serviceSubnet)}
 
 	apiservercrt, err := GenerateAllSignedCert(commonName,
 		nil, dnsNames, extKeyUsage, ipAddresses, rootCACert.CertRaw, rootCACert.KeyRaw)
