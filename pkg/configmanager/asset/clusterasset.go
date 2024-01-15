@@ -301,6 +301,10 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
 		setStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
 		setStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, cf.ControllerImageUrl)
+		setStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "")
+		setStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "")
+		setUIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, cf.MaxUnavailable)
+		clusterAsset.Housekeeper.EvictPodForce = opts.Housekeeper.EvictPodForce
 	}
 
 	return clusterAsset, nil
@@ -394,6 +398,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 		Housekeeper: Housekeeper{
 			OperatorImageUrl:   OperatorImageUrl,
 			ControllerImageUrl: ControllerImageUrl,
+			MaxUnavailable:     2,
 		},
 	}, nil
 }
