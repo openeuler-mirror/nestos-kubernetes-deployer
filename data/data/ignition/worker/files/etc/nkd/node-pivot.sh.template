@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# 管理服务的启动和开机自启动
+# Function to manage service startup and enable on boot
 manage_service() {
     service_name="$1"
     if systemctl is-active --quiet $service_name ; then
@@ -18,19 +18,22 @@ manage_service() {
     fi
 }
 
-# 启用 isulad 服务，如果不存在则跳过
 if systemctl list-unit-files | grep -q "isulad.service" ; then
     manage_service "isulad"
 else
     echo "isulad service does not exist, skipping..."
 fi
 
-# 启用 housekeeper-daemon 服务，如果不存在则跳过
 if systemctl list-unit-files | grep -q "housekeeper-daemon.service" ; then
     manage_service "housekeeper-daemon"
 else
     echo "housekeeper-daemon service does not exist, skipping..."
 fi
 
-# 执行rebase
-rpm-ostree rebase --experimental ostree-unverified-image:docker://{{.ReleaseImageURl}} --bypass-driver
+# Check if ReleaseImageURl is empty
+if [ -n "{{.ReleaseImageURl}}" ]; then
+    # Execute rebase
+    rpm-ostree rebase --experimental ostree-unverified-image:docker://{{.ReleaseImageURl}} --bypass-driver
+else
+    echo "ReleaseImageURl is empty, skipping rpm-ostree rebase."
+fi
