@@ -335,17 +335,14 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 	var (
 		OperatorImageUrl   string
 		ControllerImageUrl string
-		Release_Image_URL  string
 	)
 	switch arch {
 	case "amd64", "x86_64":
 		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-operator-manager:0.1.0"
 		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-controller-manager:0.1.0"
-		Release_Image_URL = "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-x86_64-k8s-v1.23.10"
 	case "arm64", "aarch64":
 		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-operator-manager:0.1.0"
 		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-controller-manager:0.1.0"
-		Release_Image_URL = "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-aarch64-k8s-v1.23.10"
 	default:
 		return nil, errors.New("unsupported architecture")
 	}
@@ -386,7 +383,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 			ApiServer_Endpoint: getApiServerEndpoint("192.168.132.11"),
 			Image_Registry:     "k8s.gcr.io",
 			Pause_Image:        "pause:3.6",
-			Release_Image_URL:  Release_Image_URL,
+			Release_Image_URL:  "",
 			Token:              generateToken(),
 			CertificateKey:     "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
 			Network: Network{
