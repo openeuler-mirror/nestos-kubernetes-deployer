@@ -17,6 +17,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/data"
@@ -27,7 +29,10 @@ import (
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/utils"
+	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -61,6 +66,9 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
+	if !kubeclient.IsKubectlInstalled() {
+		return fmt.Errorf("kubectl is not installed")
+	}
 
 	if err := deployCluster(config); err != nil {
 		logrus.Errorf("Failed to deploy %s cluster: %v", clusterID, err)
@@ -80,6 +88,7 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		logrus.Errorf("Failed to get cluster deploy config: %v", err)
 		return err
 	}
+
 	if err := createCluster(conf); err != nil {
 		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
@@ -96,6 +105,14 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
 	}
+
+	os.Setenv("KUBECONFIG", configPath) // set kubeconfig environment variable
+	// apply network plugin
+	if err := applyNetworkPlugin(conf.Network.Plugin); err != nil {
+		logrus.Errorf("Failed to apply network plugin: %v", err)
+		return err
+	}
+	logrus.Info("Network plugin deployment completed successfully.")
 
 	if conf.Housekeeper.DeployHousekeeper {
 		logrus.Info("Starting deployment of Housekeeper...")
@@ -308,5 +325,67 @@ func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
 			}
 		}
 	}
+	return nil
+}
+
+func applyNetworkPlugin(pluginConfigPath string) error {
+	var content []byte
+	var err error
+
+	// Check if the pluginConfigPath is an HTTP(S) link or a local file path
+	if strings.HasPrefix(pluginConfigPath, "http://") || strings.HasPrefix(pluginConfigPath, "https://") {
+		response, err := http.Get(pluginConfigPath)
+		if err != nil {
+			logrus.Errorf("Failed to fetch network plugin configuration from URL: %v", err)
+			return err
+		}
+		defer response.Body.Close()
+
+		content, err = ioutil.ReadAll(response.Body)
+		if err != nil {
+			logrus.Errorf("Failed to read content from HTTP response: %v", err)
+			return err
+		}
+	} else {
+		// Read the content from the local file
+		content, err = ioutil.ReadFile(pluginConfigPath)
+		if err != nil {
+			logrus.Errorf("Failed to read network plugin configuration file: %v", err)
+			return err
+		}
+	}
+
+	// 在类似NestOS 或者 Fedora CoreOS 这类不可变基础设施中，目录/usr为只读目录。在支持FlexVolume时，默认路径为
+	// "/usr/libexec/kubernetes/kubelet-plugins"，而 FlexVolume 的目录必须是可写入的，
+	// 该功能特性才能正常工作，为了解决这个问题将/usr目录修改为可写目录/opt.
+	// Check if the content contains "/usr/libexec/kubernetes/kubelet-plugins"
+	if strings.Contains(string(content), "/usr/libexec/kubernetes/kubelet-plugins") {
+		content = []byte(strings.ReplaceAll(string(content),
+			"/usr/libexec/kubernetes/kubelet-plugins",
+			"/opt/libexec/kubernetes/kubelet-plugins"))
+	}
+
+	// Save the modified content to a file in the "/tmp" directory with a fixed name
+	tmpFilePath := "/tmp/modified-plugin-config.yaml"
+
+	err = ioutil.WriteFile(tmpFilePath, content, 0644)
+	if err != nil {
+		logrus.Errorf("Failed to write content to file: %v", err)
+		return err
+	}
+
+	// Apply the modified configuration using kubeclient
+	if err := kubeclient.RunKubectlApplyWithYaml(tmpFilePath); err != nil {
+		logrus.Errorf("Failed to apply network plugin configuration: %v", err)
+		return err
+	}
+
+	// removal of the temporary file
+	defer func() {
+		if err := os.Remove(tmpFilePath); err != nil {
+			logrus.Errorf("Failed to remove temporary file: %v", err)
+		}
+	}()
+
 	return nil
 }

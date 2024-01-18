@@ -199,6 +199,7 @@ type Kubernetes struct {
 type Network struct {
 	Service_Subnet        string
 	Pod_Subnet            string
+	Plugin                string
 	CoreDNS_Image_Version string
 }
 
@@ -296,6 +297,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
 	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, cf.Service_Subnet)
 	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, cf.Network.Pod_Subnet)
+	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
 	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, cf.Network.CoreDNS_Image_Version)
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
@@ -388,7 +390,8 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 			CertificateKey:     "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
 			Network: Network{
 				Service_Subnet:        "10.96.0.0/16",
-				Pod_Subnet:            "10.100.0.0/16",
+				Pod_Subnet:            "10.244.0.0/16",
+				Plugin:                "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
 				CoreDNS_Image_Version: "v1.8.6",
 			},
 		},

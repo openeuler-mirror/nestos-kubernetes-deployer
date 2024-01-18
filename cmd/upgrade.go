@@ -99,7 +99,7 @@ spec:
 `, clusterConfig.Housekeeper.OSImageURL, clusterConfig.Housekeeper.KubeVersion, clusterConfig.Housekeeper.EvictPodForce, clusterConfig.Housekeeper.MaxUnavailable)
 
 	adminconfig := filepath.Join(configmanager.GetPersistDir(), clusterConfig.Cluster_ID, "admin.config")
-	if err := kubeclient.DeployCR(yamlData, adminconfig); err != nil {
+	if err := kubeclient.ApplyHousekeeperCR(yamlData, adminconfig); err != nil {
 		logrus.Errorf("Failed to deploy Custom Resource: %v", err)
 		return err
 	}

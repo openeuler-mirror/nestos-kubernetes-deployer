@@ -97,6 +97,7 @@ type WorkerConfig struct {
 type NetworkConfig struct {
 	ServiceSubnet string
 	PodSubnet     string
+	Plugin        string
 	DNS           DnsConfig
 }
 
