@@ -20,7 +20,6 @@ master:                                             # 配置master节点的列�
     ram: 8192                                       # 该节点的内存大小
     disk: 50                                        # 该节点的磁盘大小
   ip: "192.168.132.11"                              # 该节点的IP地址
-  ign_data:                                         # 该节点的Ignition文件的路径
 worker:                                             # 配置worker节点的列表
 - hostname: k8s-worker01            
   hardwareinfo:
@@ -28,7 +27,6 @@ worker:                                             # 配置worker节点的列�
     ram: 8192
     disk: 50
   ip: ""                                            # 如果不设置worker节点IP地址，则由dhcp自动分配，默认为空
-  ign_data: "/etc/nkd/cluster/ignition"
 kubernetes:                                         # 集群相关配置列表
   kubernetes_version: "v1.23.10"                    # 部署集群的版本
   apiserver_endpoint: "192.168.132.11:6443"         # 对外暴露的APISERVER服务的地址或域名   

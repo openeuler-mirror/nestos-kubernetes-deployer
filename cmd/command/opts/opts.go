@@ -77,21 +77,19 @@ type Libvirt struct {
 }
 
 type MasterConfig struct {
-	Hostname    []string
-	CPU         uint
-	RAM         uint
-	Disk        uint
-	IP          []string
-	IgnFilePath []string
+	Hostname []string
+	CPU      uint
+	RAM      uint
+	Disk     uint
+	IP       []string
 }
 
 type WorkerConfig struct {
-	Hostname    []string
-	CPU         uint
-	RAM         uint
-	Disk        uint
-	IP          []string
-	IgnFilePath string
+	Hostname []string
+	CPU      uint
+	RAM      uint
+	Disk     uint
+	IP       []string
 }
 
 type NetworkConfig struct {
