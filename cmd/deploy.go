@@ -57,6 +57,13 @@ func NewDeployCommand() *cobra.Command {
 func runDeployCmd(cmd *cobra.Command, args []string) error {
 	var clusterID = "cluster"
 	opts.Opts.ClusterID = clusterID
+
+	// Check if clusterConfigFile already exists
+	clusterConfigFile := filepath.Join(opts.Opts.RootOptDir, opts.Opts.ClusterID, "cluster_config.yaml")
+	if _, err := os.Stat(clusterConfigFile); err == nil {
+		return fmt.Errorf("cluster ID: %s is already exists", opts.Opts.ClusterID)
+	}
+
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
