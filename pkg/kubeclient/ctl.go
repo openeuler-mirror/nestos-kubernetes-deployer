@@ -17,6 +17,7 @@ package kubeclient
 
 import (
 	"context"
+	"os/exec"
 
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -30,6 +31,28 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
+)
+
+const (
+	// Constants for CRD API groups, versions, and resources
+	CRDAPIGroup   = "apiextensions.k8s.io"
+	CRDAPIVersion = "v1"
+	CRDResource   = "customresourcedefinitions"
+
+	// custom resource
+	HousekeeperAPIGroup   = "housekeeper.io"
+	HousekeeperAPIVersion = "v1alpha1"
+	HousekeeperResource   = "updates"
+
+	// NAMESPACE
+	NSResource   = "namespaces"
+	NSAPIVersion = "v1"
+
+	// RBAC
+	RBACAPIGroup                = "rbac.authorization.k8s.io"
+	RBACAPIVersion              = "v1"
+	ClusterRolesResource        = "clusterroles"
+	ClusterRoleBindingsResource = "clusterrolebindings"
 )
 
 // CreateClient creates a Kubernetes clientset.
@@ -78,136 +101,70 @@ func CreateDynamicClient(kubeconfig string) (dynamic.Interface, error) {
 	return dynamicClient, nil
 }
 
+// parseYAMLToUnstructured parses YAML into Unstructured object
+func parseYAMLToUnstructured(yamlContent string) (*unstructured.Unstructured, error) {
+	unstructuredObj := &unstructured.Unstructured{}
+	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
+		logrus.Errorf("Error parsing YAML as Unstructured: %v", err)
+		return nil, err
+	}
+	return unstructuredObj, nil
+}
+
+// deployResource deploys a resource using dynamic client
+func deployResource(yamlContent, kubeconfig string, apiGroup, apiVersion, resource string) error {
+	client, err := CreateDynamicClient(kubeconfig)
+	if err != nil {
+		return err
+	}
+
+	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Resource(schema.GroupVersionResource{
+		Group:    apiGroup,
+		Version:  apiVersion,
+		Resource: resource,
+	}).Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
+	if err != nil {
+		logrus.Errorf("Error creating resource %s: %v", resource, err)
+		return err
+	}
+
+	return nil
+}
+
+// DeployCRD deploys a CustomResourceDefinition.
 func DeployCRD(yamlContent string, kubeconfig string) error {
-	client, err := CreateDynamicClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	// Parse YAML into CustomResourceDefinition
-	unstructuredObj := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
-		logrus.Errorf("Error parsing YAML as Unstructured: %v", err)
-		return err
-	}
-
-	// Specify the API group, version, and resource for CustomResourceDefinitions
-	apiGroup := "apiextensions.k8s.io"
-	apiVersion := "v1"
-	resource := "customresourcedefinitions"
-
-	// Create the CRD using the dynamic client
-	_, err = client.Resource(schema.GroupVersionResource{
-		Group:    apiGroup,
-		Version:  apiVersion,
-		Resource: resource,
-	}).Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
-	if err != nil {
-		logrus.Errorf("error creating CRD: %v", err)
-		return err
-	}
-
-	return nil
+	return deployResource(yamlContent, kubeconfig, CRDAPIGroup, CRDAPIVersion, CRDResource)
 }
 
+// DeployNamespace deploys a Namespace.
 func DeployNamespace(yamlContent string, kubeconfig string) error {
-	client, err := CreateDynamicClient(kubeconfig)
-	if err != nil {
-		logrus.Errorf("error creating dynamic client: %v", err)
-		return err
-	}
-
-	// Parse YAML content into Unstructured object
-	unstructuredObj := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
-		logrus.Errorf("error converting YAML to Unstructured: %v", err)
-		return err
-	}
-
-	// Specify the API group, version, and resource for Namespaces
-	apiGroup, apiVersion, resource := "", "v1", "namespaces"
-
-	// Create the Namespace using the dynamic client
-	_, err = client.Resource(schema.GroupVersionResource{
-		Group:    apiGroup,
-		Version:  apiVersion,
-		Resource: resource,
-	}).Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
-	if err != nil {
-		logrus.Errorf("error creating Namespace: %v", err)
-		return err
-	}
-
-	return nil
+	return deployResource(yamlContent, kubeconfig, "", NSAPIVersion, NSResource)
 }
 
+// DeployClusterRole deploys a ClusterRole.
 func DeployClusterRole(yamlContent string, kubeconfig string) error {
-	client, err := CreateDynamicClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	unstructuredObj := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
-		logrus.Errorf("Error parsing YAML as Unstructured: %v", err)
-		return err
-	}
-
-	apiGroup := "rbac.authorization.k8s.io"
-	apiVersion := "v1"
-	resource := "clusterroles"
-
-	_, err = client.Resource(schema.GroupVersionResource{
-		Group:    apiGroup,
-		Version:  apiVersion,
-		Resource: resource,
-	}).Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
-	if err != nil {
-		logrus.Errorf("error creating CRD: %v", err)
-		return err
-	}
-	return nil
+	return deployResource(yamlContent, kubeconfig, RBACAPIGroup, RBACAPIVersion, ClusterRolesResource)
 }
 
+// DeployClusterRoleBinding deploys a ClusterRoleBinding.
 func DeployClusterRoleBinding(yamlContent string, kubeconfig string) error {
-	client, err := CreateDynamicClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	unstructuredObj := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
-		logrus.Errorf("Error parsing YAML as Unstructured: %v", err)
-		return err
-	}
-
-	apiGroup := "rbac.authorization.k8s.io"
-	apiVersion := "v1"
-	resource := "clusterrolebindings"
-
-	_, err = client.Resource(schema.GroupVersionResource{
-		Group:    apiGroup,
-		Version:  apiVersion,
-		Resource: resource,
-	}).Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
-	if err != nil {
-		logrus.Errorf("error creating CRD: %v", err)
-		return err
-	}
-
-	return nil
+	return deployResource(yamlContent, kubeconfig, RBACAPIGroup, RBACAPIVersion, ClusterRoleBindingsResource)
 }
 
+// DeployDeployment deploys a Deployment.
 func DeployDeployment(yamlContent string, kubeconfig string, namespace string) error {
 	clientset, err := CreateClient(kubeconfig)
 	if err != nil {
 		return err
 	}
 
-	// Parse YAML content into Unstructured object
-	unstructuredObj := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
-		logrus.Errorf("error converting YAML to Unstructured: %v", err)
+	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
+	if err != nil {
 		return err
 	}
 
@@ -228,16 +185,15 @@ func DeployDeployment(yamlContent string, kubeconfig string, namespace string) e
 	return nil
 }
 
+// DeployDaemonSet deploys a DaemonSet.
 func DeployDaemonSet(yamlContent string, kubeconfig string, namespace string) error {
 	clientset, err := CreateClient(kubeconfig)
 	if err != nil {
 		return err
 	}
 
-	// Parse YAML content into Unstructured object
-	unstructuredObj := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
-		logrus.Errorf("error converting YAML to Unstructured: %v", err)
+	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
+	if err != nil {
 		return err
 	}
 
@@ -258,7 +214,7 @@ func DeployDaemonSet(yamlContent string, kubeconfig string, namespace string) er
 	return nil
 }
 
-func DeployCR(yamlContent string, kubeconfig string) error {
+func ApplyHousekeeperCR(yamlContent string, kubeconfig string) error {
 	// Create a dynamic client for interacting with the Kubernetes API server
 	client, err := CreateDynamicClient(kubeconfig)
 	if err != nil {
@@ -266,23 +222,17 @@ func DeployCR(yamlContent string, kubeconfig string) error {
 	}
 
 	// Parse the YAML content into an Unstructured object
-	unstructuredObj := &unstructured.Unstructured{}
-	if err := yaml.Unmarshal([]byte(yamlContent), unstructuredObj); err != nil {
-		logrus.Errorf("Error parsing YAML as Unstructured: %v", err)
+	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
+	if err != nil {
 		return err
 	}
-
-	// Specify the API group, version, and resource for the custom resource
-	apiGroup := "housekeeper.io"
-	apiVersion := "v1alpha1"
-	resource := "updates"
 
 	// Try to get the existing custom resource
 	existingObj, err := client.
 		Resource(schema.GroupVersionResource{
-			Group:    apiGroup,
-			Version:  apiVersion,
-			Resource: resource,
+			Group:    HousekeeperAPIGroup,
+			Version:  HousekeeperAPIVersion,
+			Resource: HousekeeperResource,
 		}).
 		Namespace(unstructuredObj.GetNamespace()).
 		Get(context.TODO(), unstructuredObj.GetName(), metav1.GetOptions{})
@@ -292,9 +242,9 @@ func DeployCR(yamlContent string, kubeconfig string) error {
 			// Custom resource doesn't exist, create it
 			_, err = client.
 				Resource(schema.GroupVersionResource{
-					Group:    apiGroup,
-					Version:  apiVersion,
-					Resource: resource,
+					Group:    HousekeeperAPIGroup,
+					Version:  HousekeeperAPIVersion,
+					Resource: HousekeeperResource,
 				}).
 				Namespace(unstructuredObj.GetNamespace()).
 				Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
@@ -314,9 +264,9 @@ func DeployCR(yamlContent string, kubeconfig string) error {
 	unstructuredObj.SetResourceVersion(existingObj.GetResourceVersion())
 	_, err = client.
 		Resource(schema.GroupVersionResource{
-			Group:    apiGroup,
-			Version:  apiVersion,
-			Resource: resource,
+			Group:    HousekeeperAPIGroup,
+			Version:  HousekeeperAPIVersion,
+			Resource: HousekeeperResource,
 		}).
 		Namespace(unstructuredObj.GetNamespace()).
 		Update(context.TODO(), unstructuredObj, metav1.UpdateOptions{})
@@ -326,4 +276,26 @@ func DeployCR(yamlContent string, kubeconfig string) error {
 	}
 
 	return nil
+}
+
+func RunKubectlApplyWithYaml(yamlFilePath string) error {
+	kubectlArgs := []string{"apply", "-f", yamlFilePath}
+	cmd := exec.Command("kubectl", kubectlArgs...)
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
+
+	// run kubectl apply
+	err := cmd.Run()
+	if err != nil {
+		logrus.Errorf("Error executing kubectl apply: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// isKubectlInstalled checks if kubectl is installed on the system.
+func IsKubectlInstalled() bool {
+	_, err := exec.LookPath("kubectl")
+	return err == nil
 }

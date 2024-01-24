@@ -40,7 +40,8 @@ kubernetes:                                         # 集群相关配置列表
   certificatekey: ""                                # 添加新的控制面节点时用来解密所下载的Secret中的证书的秘钥
   network:                                          # k8s集群网络配置
     service_subnet: "10.96.0.0/16"                  # k8s创建的service的IP地址网段
-    pod_subnet: "10.100.0.0/16"                     # k8s集群网络的IP地址网段
+    pod_subnet: "10.244.0.0/16"                     # k8s集群网络的IP地址网段
+    plugin: https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml # 网络插件
     coredns_image_version: "v1.8.6"                 # coredns镜像版本
 housekeeper:                                                                                          # housekeeper相关配置列表
   deployhousekeeper: false                                                                            # 是否部署housekeeper
