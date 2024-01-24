@@ -51,9 +51,7 @@ func Initial(opts *opts.OptionsList) error {
 	}
 
 	if len(files) == 0 {
-		if len(files) == 0 {
-			return initializeClusterAsset(&asset.ClusterAsset{}, opts)
-		}
+		return initializeClusterAsset(&asset.ClusterAsset{}, opts)
 	}
 
 	for _, file := range files {
