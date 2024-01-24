@@ -348,7 +348,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	apiserverKubeletClientKeyContent := utils.StorageContent{
 		Path:    utils.ApiserverKubeletClientKey,
 		Mode:    int(utils.CertFileMode),
-		Content: frontProxyClientcrt.KeyRaw,
+		Content: apiserverKubeletClientcrt.KeyRaw,
 	}
 
 	certs = append(certs, apiserverKubeletClientCertContent, apiserverKubeletClientKeyContent)
