@@ -50,6 +50,12 @@ type OptionsList struct {
 
 type NKDConfig struct {
 	Log_Level string
+	BootstrapUrl
+}
+
+type BootstrapUrl struct {
+	BootstrapIgnHost string
+	BootstrapIgnPort string
 }
 
 type InfraPlatform struct {

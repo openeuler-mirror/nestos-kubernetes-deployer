@@ -22,12 +22,18 @@ type NodeAsset struct {
 	Hostname string
 	IP       string
 	HardwareInfo
-	Ign_Path string
-	Certs    []utils.StorageContent `json:"-" yaml:"-"` // Certificates content (not printed in JSON and YAML)
+	Ignitions `json:"ignitions"`
+	Certs     []utils.StorageContent `json:"-" yaml:"-"` // Certificates content (not printed in JSON and YAML)
 }
 
 type HardwareInfo struct {
 	CPU  uint
 	RAM  uint
 	Disk uint
+}
+
+type Ignitions struct {
+	CreateIgnContent []byte `json:"-" yaml:"-"`
+	CreateIgnPath    string `json:"create_ign_path"`
+	MergeIgnPath     string `json:"merge_ign_path"`
 }

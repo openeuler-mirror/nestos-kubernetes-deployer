@@ -129,7 +129,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			}
 			master_hostname = append(master_hostname, master.Hostname)
 			master_ip = append(master_ip, master.IP)
-			master_ignPath = append(master_ignPath, master.Ign_Path)
+			master_ignPath = append(master_ignPath, master.MergeIgnPath)
 		}
 		infra.Master.CPU, err = convertSliceToStrings(master_cpu)
 		if err != nil {
@@ -176,7 +176,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			}
 			worker_ip = append(worker_ip, worker.IP)
 			worker_hostname = append(worker_hostname, worker.Hostname)
-			worker_ignPath = append(worker_ignPath, worker.Ign_Path)
+			worker_ignPath = append(worker_ignPath, worker.MergeIgnPath)
 		}
 		infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
 		if err != nil {
