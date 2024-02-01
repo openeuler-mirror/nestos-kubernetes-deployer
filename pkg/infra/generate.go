@@ -80,8 +80,9 @@ func (libvirt *Libvirt) SetPlatform(infraAsset asset.InfraAsset) {
 type Infra struct {
 	ClusterID string
 	Platform
-	Master Node
-	Worker Node
+	Master      Node
+	Worker      Node
+	MachineType string
 }
 
 type Node struct {
@@ -122,14 +123,10 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		for _, master := range conf.Master {
 			master_cpu = append(master_cpu, master.CPU)
 			master_ram = append(master_ram, master.RAM)
-			if strings.EqualFold(conf.Platform, "libvirt") {
-				master_disk = append(master_disk, master.Disk*1<<30)
-			} else {
-				master_disk = append(master_disk, master.Disk)
-			}
+			master_disk = append(master_disk, master.Disk)
 			master_hostname = append(master_hostname, master.Hostname)
 			master_ip = append(master_ip, master.IP)
-			master_ignPath = append(master_ignPath, master.MergeIgnPath)
+			master_ignPath = append(master_ignPath, master.Ignitions.MergeIgnPath)
 		}
 		infra.Master.CPU, err = convertSliceToStrings(master_cpu)
 		if err != nil {
@@ -169,14 +166,13 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		for _, worker := range conf.Worker {
 			worker_cpu = append(worker_cpu, worker.CPU)
 			worker_ram = append(worker_ram, worker.RAM)
-			if strings.EqualFold(conf.Platform, "libvirt") {
-				worker_disk = append(worker_disk, worker.Disk*1<<30)
-			} else {
-				worker_disk = append(worker_disk, worker.Disk)
+			worker_disk = append(worker_disk, worker.Disk)
+			if worker.IP == "" {
+				worker.IP = "null"
 			}
 			worker_ip = append(worker_ip, worker.IP)
 			worker_hostname = append(worker_hostname, worker.Hostname)
-			worker_ignPath = append(worker_ignPath, worker.MergeIgnPath)
+			worker_ignPath = append(worker_ignPath, worker.Ignitions.MergeIgnPath)
 		}
 		infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
 		if err != nil {
@@ -202,6 +198,15 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		if err != nil {
 			return err
 		}
+	}
+
+	switch conf.Architecture {
+	case "amd64", "x86_64":
+		infra.MachineType = "pc"
+	case "arm64", "aarch64":
+		infra.MachineType = "virt"
+	default:
+		return errors.New("unsupported architecture")
 	}
 
 	persistDir := configmanager.GetPersistDir()
