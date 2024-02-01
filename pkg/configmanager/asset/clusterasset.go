@@ -172,7 +172,7 @@ type Kubernetes struct {
 	Pause_Image        string
 	Release_Image_URL  string
 	Token              string
-	AdminKubeConfig    string `json:"-" yaml:"-"`
+	AdminKubeConfig    string
 	CertificateKey     string
 
 	Network

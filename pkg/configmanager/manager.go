@@ -33,6 +33,8 @@ var ClusterAsset = map[string]*asset.ClusterAsset{}
 
 // var InfraAsset = map[string]*asset.InfraAsset{}
 
+const clusterConfigFile string = "cluster_config.yaml"
+
 func Initial(opts *opts.OptionsList) error {
 	// Init global asset
 	globalConfig, err := globalconfig.InitGlobalConfig(opts)
@@ -41,7 +43,7 @@ func Initial(opts *opts.OptionsList) error {
 	}
 	GlobalConfig = globalConfig
 
-	files, err := filepath.Glob(filepath.Join(globalConfig.PersistDir, "*", "cluster_config.yaml"))
+	files, err := filepath.Glob(filepath.Join(globalConfig.PersistDir, "*", clusterConfigFile))
 	if err != nil {
 		return err
 	}
