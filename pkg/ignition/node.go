@@ -80,12 +80,12 @@ func SaveFile(config *igntypes.Config, filePath string, fileName string) error {
 		logrus.Errorf("failed to Marshal ignition config: %v", err)
 		return err
 	}
-	path := filepath.Join(filePath, fileName)
-	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+	fullPath := filepath.Join(filePath, fileName)
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0750); err != nil {
 		logrus.Errorf("failed to Mkdir: %v", err)
 		return err
 	}
-	if err := os.WriteFile(path, data, 0640); err != nil {
+	if err := os.WriteFile(fullPath, data, 0644); err != nil {
 		logrus.Errorf("failed to save ignition file: %v", err)
 		return err
 	}

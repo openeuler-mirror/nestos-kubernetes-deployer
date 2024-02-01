@@ -91,7 +91,7 @@ func extendArray(c *asset.ClusterAsset, count int) {
 				RAM:  c.Worker[i].RAM,
 				Disk: c.Worker[i].Disk,
 			},
-			Ign_Path: c.Worker[i].Ign_Path,
+			Ignitions: c.Worker[i].Ignitions,
 		})
 	}
 }

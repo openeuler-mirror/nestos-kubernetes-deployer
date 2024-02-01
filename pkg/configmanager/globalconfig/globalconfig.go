@@ -17,23 +17,46 @@ limitations under the License.
 package globalconfig
 
 import (
+	"fmt"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 )
 
 func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
-	globalAsset := &GlobalConfig{}
+	globalAsset := &GlobalConfig{
+		Log_Level: "default log level",
+	}
 
 	if opts.NKD.Log_Level != "" {
 		globalAsset.Log_Level = opts.NKD.Log_Level
-	} else {
-		globalAsset.Log_Level = "default log level"
 	}
+
 	persistDir := opts.RootOptDir
 	if err := os.MkdirAll(persistDir, 0644); err != nil {
 		return nil, err
 	}
 	globalAsset.PersistDir = persistDir
+
+	globalAsset.BootstrapIgnHost = opts.NKD.BootstrapIgnHost
+	globalAsset.BootstrapIgnPort = opts.NKD.BootstrapIgnPort
+
+	if globalAsset.BootstrapIgnHost == "" {
+		if ip, err := utils.GetLocalIP(); err != nil {
+			return nil, fmt.Errorf("failed to get local IP: %v", err)
+		} else {
+			globalAsset.BootstrapIgnHost = ip
+		}
+	}
+
+	if globalAsset.BootstrapIgnPort == "" {
+		// HTTP service default port
+		globalAsset.BootstrapIgnPort = "9080"
+	}
+
+	if !utils.IsPortOpen(globalAsset.BootstrapIgnPort) {
+		return nil, fmt.Errorf("The port %s is occupied.", globalAsset.BootstrapIgnPort)
+	}
 
 	return globalAsset, nil
 }
@@ -44,6 +67,12 @@ type GlobalConfig struct {
 	Log_Level          string
 	ClusterConfig_Path string
 	PersistDir         string // default: /etc/nkd
+	BootstrapUrl
+}
+
+type BootstrapUrl struct {
+	BootstrapIgnHost string `yaml:"bootstrap_ign_host"`
+	BootstrapIgnPort string `yaml:"bootstrap_ign_port"`
 }
 
 // TODO: Delete deletes the global asset.

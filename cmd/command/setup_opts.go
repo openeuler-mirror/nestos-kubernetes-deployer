@@ -54,6 +54,9 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.Housekeeper.ControllerImageUrl, "controller-image-url", "", "", "Specify the URL of the container image for the housekeeper controller component")
 	flags.StringVarP(&opts.Opts.Housekeeper.OperatorImageUrl, "operator-image-url", "", "", "Specify the URL of the container image for the housekeeper operator component")
 	flags.BoolVarP(&opts.Opts.DeployHousekeeper, "deploy-housekeeper", "", false, "Deploy the Housekeeper Operator.")
+	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnHost, "bootstrap-ign-host", "", "", "Specify the host for Bootstrap Ignition")
+	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnPort, "bootstrap-ign-port", "", "", "Specify the port for Bootstrap Ignition")
+
 }
 
 func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {

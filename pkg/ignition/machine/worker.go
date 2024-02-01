@@ -26,22 +26,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	WorkerIgnFilename      = "worker.ign"
+	workerMergeIgnFilename = "worker-merge.ign"
+)
+
 type Worker struct {
-	ClusterAsset *asset.ClusterAsset
+	ClusterAsset      *asset.ClusterAsset
+	Bootstrap_baseurl string
 }
 
 func (w *Worker) GenerateFiles() error {
 	sshkeyContent, err := os.ReadFile(w.ClusterAsset.SSHKey)
 	if err != nil {
-		logrus.Debug("Error to read sshkey content")
+		logrus.Debug("Failed to read sshkey content:", err)
+		return err
 	}
-	wtd := ignition.GetTmplData(w.ClusterAsset)
+
+	workerTemplateData := ignition.GetTmplData(w.ClusterAsset)
 	generateFile := ignition.Common{
 		UserName:        w.ClusterAsset.UserName,
 		SSHKey:          string(sshkeyContent),
 		PassWord:        w.ClusterAsset.Password,
 		NodeType:        "worker",
-		TmplData:        wtd,
+		TmplData:        workerTemplateData,
 		EnabledServices: ignition.EnabledServices,
 		Config:          &igntypes.Config{},
 	}
@@ -52,15 +60,28 @@ func (w *Worker) GenerateFiles() error {
 		return err
 	}
 
-	// Assign the Ignition path to the Worker node
-	filePath := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
-	fileName := "k8s-worker.ign"
+	ignitionDir := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
 
-	for i, _ := range w.ClusterAsset.Worker {
-		w.ClusterAsset.Worker[i].Ign_Path = filepath.Join(filePath, fileName)
+	if err := ignition.SaveFile(generateFile.Config, ignitionDir, WorkerIgnFilename); err != nil {
+		return err
 	}
 
-	ignition.SaveFile(generateFile.Config, filePath, fileName)
+	mergerConfig := ignition.GenerateMergeIgnition(w.Bootstrap_baseurl, WorkerIgnFilename)
+	if err := ignition.SaveFile(mergerConfig, ignitionDir, workerMergeIgnFilename); err != nil {
+		return err
+	}
+
+	data, err := ignition.Marshal(generateFile.Config)
+	if err != nil {
+		logrus.Errorf("failed to Marshal ignition config: %v", err)
+		return err
+	}
+
+	for i, _ := range w.ClusterAsset.Worker {
+		w.ClusterAsset.Worker[i].Ignitions.CreateIgnPath = filepath.Join(ignitionDir, WorkerIgnFilename)
+		w.ClusterAsset.Worker[i].Ignitions.MergeIgnPath = filepath.Join(ignitionDir, workerMergeIgnFilename)
+		w.ClusterAsset.Worker[i].CreateIgnContent = data
+	}
 
 	return nil
 }

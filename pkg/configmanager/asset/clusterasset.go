@@ -20,9 +20,8 @@ import (
 	"fmt"
 	mrand "math/rand"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
-	"os/user"
-	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -88,21 +87,6 @@ func generateToken() string {
 	return string(token)
 }
 
-func getSysHome() string {
-	if user, err := user.Current(); err == nil {
-		return user.HomeDir
-	}
-	return "/root"
-}
-
-func getDefaultPubKeyPath() string {
-	return filepath.Join(getSysHome(), ".ssh", "id_rsa.pub")
-}
-
-func getApiServerEndpoint(ip string) string {
-	return fmt.Sprintf("%s:%s", ip, "6443")
-}
-
 func setMasterConfigs(mc []NodeAsset, opts *opts.MasterConfig) []NodeAsset {
 	var confs []NodeAsset
 	if len(mc) >= len(opts.IP) {
@@ -127,7 +111,6 @@ func setMasterConfigs(mc []NodeAsset, opts *opts.MasterConfig) []NodeAsset {
 					RAM:  8192,
 					Disk: 50,
 				},
-				Ign_Path: "",
 			})
 		}
 	}
@@ -156,7 +139,6 @@ func setWorkerHostname(wc []NodeAsset, opts *opts.WorkerConfig) []NodeAsset {
 					RAM:  8192,
 					Disk: 50,
 				},
-				Ign_Path: "",
 			})
 		}
 	}
@@ -355,7 +337,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 		Platform:     "libvirt",
 		UserName:     "root",
 		Password:     "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/",
-		SSHKey:       getDefaultPubKeyPath(),
+		SSHKey:       utils.GetDefaultPubKeyPath(),
 		Master: []NodeAsset{
 			{
 				Hostname: "k8s-master01",
@@ -364,8 +346,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 					RAM:  8192,
 					Disk: 50,
 				},
-				IP:       "192.168.132.11",
-				Ign_Path: "",
+				IP: "192.168.132.11",
 			},
 		},
 		Worker: []NodeAsset{
@@ -376,13 +357,12 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 					RAM:  8192,
 					Disk: 50,
 				},
-				IP:       "",
-				Ign_Path: "",
+				IP: "",
 			},
 		},
 		Kubernetes: Kubernetes{
 			Kubernetes_Version: "v1.23.10",
-			ApiServer_Endpoint: getApiServerEndpoint("192.168.132.11"),
+			ApiServer_Endpoint: utils.GetApiServerEndpoint("192.168.132.11"),
 			Image_Registry:     "k8s.gcr.io",
 			Pause_Image:        "pause:3.6",
 			Release_Image_URL:  "",

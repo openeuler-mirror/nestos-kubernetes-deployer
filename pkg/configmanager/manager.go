@@ -98,6 +98,14 @@ func GetPersistDir() string {
 	return GlobalConfig.PersistDir
 }
 
+func GetBootstrapIgnPort() string {
+	return GlobalConfig.BootstrapIgnPort
+}
+
+func GetBootstrapIgnHost() string {
+	return GlobalConfig.BootstrapIgnHost
+}
+
 func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {
 	clusterConfig, ok := ClusterAsset[clusterID]
 	if !ok {
