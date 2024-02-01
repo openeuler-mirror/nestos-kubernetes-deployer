@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // service.go
-package fileserver
+package httpserver
 
 import (
 	"errors"

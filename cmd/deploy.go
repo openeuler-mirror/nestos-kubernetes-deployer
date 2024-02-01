@@ -25,7 +25,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
-	"nestos-kubernetes-deployer/pkg/fileserver"
+	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
@@ -117,8 +117,8 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 }
 
 // startHttpService initializes the HTTP file service, adds files to the cache, and starts the service.
-func startHttpService(conf *asset.ClusterAsset) (*fileserver.HttpFileService, error) {
-	fileService := fileserver.NewFileService(configmanager.GetBootstrapIgnPort())
+func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpFileService, error) {
+	fileService := httpserver.NewFileService(configmanager.GetBootstrapIgnPort())
 
 	// Ignition files are divided into three types:
 	// control plane ignition files for initializing the cluster,
