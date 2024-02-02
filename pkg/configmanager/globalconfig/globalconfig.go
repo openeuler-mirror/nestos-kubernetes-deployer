@@ -120,8 +120,7 @@ func (ga *GlobalConfig) Persist() error {
 		logrus.Errorf("failed to marshal global config: %v", err)
 		return err
 	}
-
-	if err := os.WriteFile(ga.PersistDir, globalConfigData, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(ga.PersistDir, GlobalConfigFile), globalConfigData, 0644); err != nil {
 		logrus.Errorf("failed to write global config file: %v", err)
 		return err
 	}

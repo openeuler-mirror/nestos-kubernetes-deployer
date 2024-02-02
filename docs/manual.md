@@ -12,15 +12,21 @@
     ``` 
     ``` shell
     # 安装arm64版本
-    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_arm.rpm
-    $ rpm -ivh tofu_1.6.0-rc1_arm.rpm
+    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_arm64.rpm
+    $ rpm -ivh tofu_1.6.0-rc1_arm64.rpm
     ``` 
-  * 选择openstack平台部署集群，需要提前搭建好openstack环境
-  * 选择libvirt平台部署集群，需要提前安装libvirt虚拟化环境
 
 * 安装NKD
   * 选择拷贝编译好的NKD二进制文件直接使用
   * 根据以下编译安装说明编译安装NKD
+
+## 支持平台
+
+### libvirt
+libvirt平台部署集群，需要提前安装libvirt虚拟化环境
+
+### openstack
+openstack平台部署集群，需要提前搭建好openstack环境
 
 ## 编译安装
 
@@ -39,6 +45,21 @@
   ``` shell
   $ sh hack/build.sh
   ```
+
+## 配置管理
+
+### 全局配置
+全局配置文件用于管理整个集群（多集群）的配置，具体的配置项参数和默认配置详见[全局配置文件说明](/docs/globalconfig_file_desc.md)
+
+全局配置项参数：
+    - bootstrap_ign_host：用于引导ignition文件的http服务的域名或者IP地址
+    - bootstrap_ign_port：用于引导ignition文件的http服务的端口
+
+备注：
+http服务默认监听的地址是0.0.0.0，这样能保障运行环境为多网卡时均能接收到请求。如果部署集群节点可直接访问NKD的运行环境，"bootstrap_ign_host"参数项可以为空，NKD默认会探测路由表默认最高优先级的IP地址；如果部署集群节点无法直接访问NKD的运行环境，"bootstrap_ign_host"参数项需要进行配置，并确保所指定的域名或IP地址能够被集群节点所在的网络环境的DNS服务解析到NKD的运行环境。
+
+### 集群配置
+集群配置文件用于对每个集群独立配置，具体的配置项参数和默认配置详见[集群配置文件说明](/docs/config_file_desc.md)
 
 ## 基本功能
 
@@ -138,7 +159,7 @@
     ``` shell
     $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50
     ```
- - 此外更精细化的配置，可以通过配置文件部署集群，具体的配置项参数以及参数默认配置详见[配置文件说明](/docs/config_file_desc.md)
+ - 此外更精细化的配置，可以通过集群配置文件部署集群，详情见配置管理。
     ``` shell
     $ nkd deploy -f cluster_config.yaml
     ```

@@ -17,7 +17,7 @@ limitations under the License.
 package httpserver_test
 
 import (
-	"io/ioutil"
+	"io"
 	"nestos-kubernetes-deployer/pkg/fileserver"
 	"net/http"
 	"testing"
@@ -45,7 +45,7 @@ func TestHttpFileService(t *testing.T) {
 	defer resp.Body.Close()
 
 	// Read the response body content
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %v", err)
 	}

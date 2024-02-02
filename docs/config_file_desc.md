@@ -1,4 +1,4 @@
-# 配置文件说明
+# 集群配置文件说明
 
 NestOS镜像下载地址见[官网](https://nestos.openeuler.org/)
 ``` shell
