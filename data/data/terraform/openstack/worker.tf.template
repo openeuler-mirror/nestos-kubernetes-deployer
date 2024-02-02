@@ -15,27 +15,82 @@ provider "openstack" {
   region      = "{{.Platform.Region}}"
 }
 
+variable "cluster_id" {
+  type    = string
+  default = "{{.ClusterID}}"
+}
+
 variable "instance_count" {
   default = "{{.Worker.Count}}"
 }
 
+variable "instance_hostname" {
+  type    = list(string)
+  default = {{.Worker.Hostname}}
+}
+
+variable "instance_cpu" {
+  type    = list(string)
+  default = {{.Worker.CPU}}
+}
+
+variable "instance_ram" {
+  type    = list(string)
+  default = {{.Worker.RAM}}
+}
+
+variable "instance_disk" {
+  type    = list(string)
+  default = {{.Worker.Disk}}
+}
+
+variable "instance_osimage" {
+  type    = string
+  default = "{{.Platform.Glance_Name}}"
+}
+
+variable "availability_zone" {
+  type    = string
+  default = "{{.Platform.Availability_Zone}}"
+}
+
+variable "instance_userdata" {
+  type    = list(string)
+  default = {{.Worker.Ign_Path}}
+}
+
+variable "internal_net" {
+  type    = string
+  default = "{{.Platform.Internal_Network}}"
+}
+
+variable "instance_ip" {
+  type    = list(string)
+  default = {{.Worker.IP}}
+}
+
+variable "external_net" {
+  type    = string
+  default = "{{.Platform.External_Network}}"
+}
+
 resource "openstack_compute_flavor_v2" "flavor" {
   count     = var.instance_count
-  name      = element({{.Worker.Hostname}}, count.index)
-  vcpus     = element({{.Worker.CPU}}, count.index)
-  ram       = element({{.Worker.RAM}}, count.index)
-  disk      = element({{.Worker.Disk}}, count.index)
+  name      = var.instance_hostname[count.index]
+  vcpus     = var.instance_cpu[count.index]
+  ram       = var.instance_ram[count.index]
+  disk      = var.instance_disk[count.index]
   is_public = "true"
 }
 
 resource "openstack_blockstorage_volume_v3" "volume" {
   count = var.instance_count
-  name  = element({{.Worker.Hostname}}, count.index)
-  size  = element({{.Worker.Disk}}, count.index)
+  name  = var.instance_hostname[count.index]
+  size  = var.instance_disk[count.index]
 }
 
 resource "openstack_compute_secgroup_v2" "secgroup" {
-  name        = "k8s_worker"
+  name        = "${var.cluster_id}-worker"
   description = "secgroup for k8s worker"
 
   rule {
@@ -118,39 +173,39 @@ resource "openstack_compute_secgroup_v2" "secgroup" {
 
 resource "openstack_compute_instance_v2" "instance" {
   count              = var.instance_count
-  name               = element({{.Worker.Hostname}}, count.index)
-  image_name         = "{{.Platform.Glance_Name}}"
-  flavor_name        = element({{.Worker.Hostname}}, count.index)
+  name               = var.instance_hostname[count.index]
+  image_name         = var.instance_osimage
+  flavor_name        = var.instance_hostname[count.index]
   security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
-  availability_zone  = "{{.Platform.Availability_Zone}}"
-  user_data          = file(element({{.Worker.Ign_Path}}, count.index))
+  availability_zone  = var.availability_zone
+  user_data          = templatefile(var.instance_userdata[count.index], { hostname = var.instance_hostname[count.index] })
 
   network {
-    name        = "{{.Platform.Internal_Network}}"
-    fixed_ip_v4 = element({{.Worker.IP}}, count.index)
+    name        = var.internal_net
+    fixed_ip_v4 = var.instance_ip[count.index] != "null" ? var.instance_ip[count.index] : null
   }
 }
 
 resource "openstack_networking_floatingip_v2" "floatip" {
-  count = length(openstack_compute_instance_v2.instance)
-  pool  = "{{.Platform.External_Network}}"
+  count = var.instance_count
+  pool  = var.external_net
 }
 
 resource "openstack_compute_floatingip_associate_v2" "fip_associate" {
-  count       = length(openstack_compute_instance_v2.instance)
+  count       = var.instance_count
   floating_ip = openstack_networking_floatingip_v2.floatip.*.address[count.index]
   instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
 }
 
 resource "openstack_compute_volume_attach_v2" "volume_attach" {
-  count       = length(openstack_compute_instance_v2.instance)
+  count       = var.instance_count
   instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
   volume_id   = openstack_blockstorage_volume_v3.volume.*.id[count.index]
 }
 
 output "instance_info" {
   value = {
-    instance_status = openstack_compute_instance_v2.instance.*.power_state
-    floating_ip     = openstack_networking_floatingip_v2.floatip.*.address
+    internal_ip = openstack_compute_instance_v2.instance.*.network.0.fixed_ip_v4
+    floating_ip = openstack_networking_floatingip_v2.floatip.*.address
   }
 }
