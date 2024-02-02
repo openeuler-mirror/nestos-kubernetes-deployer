@@ -1,0 +1,10 @@
+[Unit]
+Description=set hostname
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/hostnamectl set-hostname ${hostname}
+
+[Install]
+WantedBy=multi-user.target

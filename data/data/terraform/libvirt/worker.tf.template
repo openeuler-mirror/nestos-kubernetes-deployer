@@ -68,7 +68,7 @@ resource "libvirt_ignition" "ignition" {
   count   = var.instance_count
   name    = "${var.instance_hostname[count.index]}-ignition"
   pool    = "${var.cluster_id}-pool"
-  content = var.instance_ign[count.index]
+  content = templatefile(var.instance_ign[count.index], { hostname = var.instance_hostname[count.index] })
 }
 
 resource "libvirt_domain" "nestos" {

@@ -37,6 +37,7 @@ var (
 		"join-master.service",
 		"release-image-pivot.service",
 		"join-worker.service",
+		"set-hostname.service",
 	}
 )
 
