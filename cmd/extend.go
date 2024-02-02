@@ -18,7 +18,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
@@ -27,6 +26,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
+	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -119,7 +119,7 @@ func extendArray(c *asset.ClusterAsset, count int) []string {
 }
 
 func extendCluster(conf *asset.ClusterAsset, fileService *httpserver.HttpFileService) error {
-	data, err := ioutil.ReadFile(conf.Worker[0].CreateIgnPath)
+	data, err := os.ReadFile(conf.Worker[0].CreateIgnPath)
 	if err != nil {
 		logrus.Errorf("error reading Ignition file: %v", err)
 		return err

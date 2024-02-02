@@ -18,7 +18,7 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/data"
@@ -395,15 +395,14 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 			return err
 		}
 		defer response.Body.Close()
-
-		content, err = ioutil.ReadAll(response.Body)
+		content, err = io.ReadAll(response.Body)
 		if err != nil {
 			logrus.Errorf("Failed to read content from HTTP response: %v", err)
 			return err
 		}
 	} else {
 		// Read the content from the local file
-		content, err = ioutil.ReadFile(pluginConfigPath)
+		content, err = os.ReadFile(pluginConfigPath)
 		if err != nil {
 			logrus.Errorf("Failed to read network plugin configuration file: %v", err)
 			return err
@@ -423,7 +422,7 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 	// Save the modified content to a file in the "/tmp" directory with a fixed name
 	tmpFilePath := "/tmp/modified-plugin-config.yaml"
 
-	err = ioutil.WriteFile(tmpFilePath, content, 0644)
+	err = os.WriteFile(tmpFilePath, content, 0644)
 	if err != nil {
 		logrus.Errorf("Failed to write content to file: %v", err)
 		return err

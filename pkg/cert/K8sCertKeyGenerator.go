@@ -21,8 +21,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -30,12 +30,12 @@ import (
 
 // SetUserCA 读取用户提供的各类ca证书和密钥路径中的内容
 func setUserCA(a *SelfSignedCertKey, certPath, keyPath string) error {
-	cacert, err := ioutil.ReadFile(certPath)
+	cacert, err := os.ReadFile(certPath)
 	if err != nil {
 		return err
 	}
 
-	cakey, err := ioutil.ReadFile(keyPath)
+	cakey, err := os.ReadFile(keyPath)
 	if err != nil {
 		return err
 	}

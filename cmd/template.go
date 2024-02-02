@@ -17,11 +17,11 @@ limitations under the License.
 package cmd
 
 import (
-	"io/ioutil"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/utils"
+	"os"
 	"runtime"
 
 	"github.com/sirupsen/logrus"
@@ -63,7 +63,7 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 	if file == "" {
 		file = "./template.yaml"
 	}
-	if err := ioutil.WriteFile(file, data, utils.DeployConfigFileMode); err != nil {
+	if err := os.WriteFile(file, data, utils.DeployConfigFileMode); err != nil {
 		logrus.Errorf("Faild to write template config file: %v", err)
 		return err
 	}
