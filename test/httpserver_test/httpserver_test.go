@@ -18,14 +18,14 @@ package httpserver_test
 
 import (
 	"io"
-	"nestos-kubernetes-deployer/pkg/fileserver"
+	"nestos-kubernetes-deployer/pkg/httpserver"
 	"net/http"
 	"testing"
 )
 
 func TestHttpFileService(t *testing.T) {
 	// Create a new file service instance
-	fileService := fileserver.NewFileService("9080")
+	fileService := httpserver.NewFileService("9080")
 
 	// Start the file service
 	if err := fileService.Start(); err != nil {

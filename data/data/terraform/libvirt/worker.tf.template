@@ -91,6 +91,7 @@ resource "libvirt_domain" "nestos" {
   network_interface {
     network_name   = "${var.cluster_id}-net"
     hostname       = var.instance_hostname[count.index]
+    addresses      = var.instance_ip[count.index] != "null" ? [var.instance_ip[count.index]] : null
     wait_for_lease = true
   }
 
