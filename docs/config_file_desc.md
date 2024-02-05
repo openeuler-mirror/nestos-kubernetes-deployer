@@ -1,4 +1,4 @@
-# 配置文件说明
+# 集群配置文件说明
 
 NestOS镜像下载地址见[官网](https://nestos.openeuler.org/)
 ``` shell
@@ -20,7 +20,6 @@ master:                                             # 配置master节点的列�
     ram: 8192                                       # 该节点的内存大小
     disk: 50                                        # 该节点的磁盘大小
   ip: "192.168.132.11"                              # 该节点的IP地址
-  ign_data:                                         # 该节点的Ignition文件的路径
 worker:                                             # 配置worker节点的列表
 - hostname: k8s-worker01            
   hardwareinfo:
@@ -28,7 +27,6 @@ worker:                                             # 配置worker节点的列�
     ram: 8192
     disk: 50
   ip: ""                                            # 如果不设置worker节点IP地址，则由dhcp自动分配，默认为空
-  ign_data: "/etc/nkd/cluster/ignition"
 kubernetes:                                         # 集群相关配置列表
   kubernetes_version: "v1.23.10"                    # 部署集群的版本
   apiserver_endpoint: "192.168.132.11:6443"         # 对外暴露的APISERVER服务的地址或域名   
@@ -40,7 +38,8 @@ kubernetes:                                         # 集群相关配置列表
   certificatekey: ""                                # 添加新的控制面节点时用来解密所下载的Secret中的证书的秘钥
   network:                                          # k8s集群网络配置
     service_subnet: "10.96.0.0/16"                  # k8s创建的service的IP地址网段
-    pod_subnet: "10.100.0.0/16"                     # k8s集群网络的IP地址网段
+    pod_subnet: "10.244.0.0/16"                     # k8s集群网络的IP地址网段
+    plugin: https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml # 网络插件
     coredns_image_version: "v1.8.6"                 # coredns镜像版本
 housekeeper:                                                                                          # housekeeper相关配置列表
   deployhousekeeper: false                                                                            # 是否部署housekeeper

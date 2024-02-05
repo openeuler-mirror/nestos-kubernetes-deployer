@@ -20,7 +20,6 @@ import (
 	"nestos-kubernetes-deployer/data"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/utils"
-	"net"
 	"path"
 	"strings"
 
@@ -35,7 +34,6 @@ var (
 		"set-kernel-para.service",
 		"disable-selinux.service",
 		"init-cluster.service",
-		"install-cni-plugin.service",
 		"join-master.service",
 		"release-image-pivot.service",
 		"join-worker.service",
@@ -52,7 +50,6 @@ type TmplData struct {
 	PodSubnet       string
 	Token           string
 	CorednsImageTag string
-	IpSegment       string
 	ReleaseImageURl string
 	CertificateKey  string
 	Hsip            string //HostName + IP
@@ -203,10 +200,6 @@ func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{
 
 func GetTmplData(c *asset.ClusterAsset) *TmplData {
 	var hsip string
-	ip := net.ParseIP(c.Master[0].IP)
-	ipSegment := ip.To4()
-	ipSegment[2] = 0
-	ipSegment[3] = 0
 	for i := 0; i < len(c.Master); i++ {
 		temp := c.Master[i].IP + " " + c.Master[i].Hostname + "\n"
 		hsip = hsip + temp
@@ -221,7 +214,6 @@ func GetTmplData(c *asset.ClusterAsset) *TmplData {
 		PodSubnet:       c.Network.Pod_Subnet,
 		Token:           c.Kubernetes.Token,
 		CorednsImageTag: c.Network.CoreDNS_Image_Version,
-		IpSegment:       ipSegment.String(),
 		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
 		CertificateKey:  c.Kubernetes.CertificateKey,
 		Hsip:            hsip,

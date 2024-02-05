@@ -17,17 +17,23 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/data"
 	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/utils"
+	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -49,16 +55,20 @@ func NewDeployCommand() *cobra.Command {
 	return deployCmd
 }
 
+const (
+	clusterID         = "cluster"
+	clusterConfigFile = "cluster_config.yaml"
+	namespace         = "housekeeper-system"
+)
+
 func runDeployCmd(cmd *cobra.Command, args []string) error {
-	var clusterID = "cluster"
-	opts.Opts.ClusterID = clusterID
-	if err := configmanager.Initial(&opts.Opts); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+	if err := validateDeployConfig(); err != nil {
 		return err
 	}
-	config, err := configmanager.GetClusterConfig(clusterID)
+
+	// Initialize configuration parameters
+	config, err := getClusterConfig(&opts.Opts)
 	if err != nil {
-		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
@@ -70,9 +80,66 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("Failed to persist the cluster asset: %v", err)
 		return err
 	}
-	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 
+	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 	return nil
+}
+
+func validateDeployConfig() error {
+	opts.Opts.ClusterID = clusterID
+	clusterConfigFile := filepath.Join(opts.Opts.RootOptDir, opts.Opts.ClusterID, clusterConfigFile)
+	// Check if clusterConfigFile already exists
+	if _, err := os.Stat(clusterConfigFile); err == nil {
+		logrus.Debugf("cluster ID: %s already exists", opts.Opts.ClusterID)
+		return fmt.Errorf("cluster ID: %s already exists", opts.Opts.ClusterID)
+	}
+
+	// Check if kubectl is installed
+	if !kubeclient.IsKubectlInstalled() {
+		logrus.Debug("kubectl is not installed")
+		return fmt.Errorf("kubectl is not installed")
+	}
+	return nil
+}
+
+func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
+	if err := configmanager.Initial(options); err != nil {
+		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		return nil, err
+	}
+
+	config, err := configmanager.GetClusterConfig(clusterID)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		return nil, err
+	}
+	return config, nil
+}
+
+// startHttpService initializes the HTTP file service, adds files to the cache, and starts the service.
+func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpFileService, error) {
+	fileService := httpserver.NewFileService(configmanager.GetBootstrapIgnPort())
+
+	// Ignition files are divided into three types:
+	// control plane ignition files for initializing the cluster,
+	// master ignition files for master node joining the cluster,
+	// and worker ignition files for worker node joining the cluster.
+	if len(conf.Master) > 0 {
+		fileService.AddFileToCache(machine.ControlplaneIgnFilename, conf.Master[0].CreateIgnContent)
+	}
+	if len(conf.Master) > 1 {
+		fileService.AddFileToCache(machine.MasterIgnFilename, conf.Master[1].CreateIgnContent)
+	}
+	if len(conf.Worker) > 0 {
+		fileService.AddFileToCache(machine.WorkerIgnFilename, conf.Worker[0].CreateIgnContent)
+	}
+
+	// Start the HTTP file service
+	if err := fileService.Start(); err != nil {
+		return nil, fmt.Errorf("error starting file service: %v", err)
+	}
+
+	return fileService, nil
 }
 
 func deployCluster(conf *asset.ClusterAsset) error {
@@ -80,6 +147,14 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		logrus.Errorf("Failed to get cluster deploy config: %v", err)
 		return err
 	}
+
+	// Start HTTP service
+	fileService, err := startHttpService(conf)
+	if err != nil {
+		return err
+	}
+	defer fileService.Stop()
+
 	if err := createCluster(conf); err != nil {
 		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
@@ -96,6 +171,14 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
 	}
+
+	os.Setenv("KUBECONFIG", configPath) // set kubeconfig environment variable
+	// apply network plugin
+	if err := applyNetworkPlugin(conf.Network.Plugin); err != nil {
+		logrus.Errorf("Failed to apply network plugin: %v", err)
+		return err
+	}
+	logrus.Info("Network plugin deployment completed successfully.")
 
 	if conf.Housekeeper.DeployHousekeeper {
 		logrus.Info("Starting deployment of Housekeeper...")
@@ -145,8 +228,12 @@ func generateCerts(conf *asset.ClusterAsset) error {
 }
 
 func generateIgnition(conf *asset.ClusterAsset) error {
+
+	hostport := configmanager.GetBootstrapIgnHost() + ":" + configmanager.GetBootstrapIgnPort()
+
 	master := &machine.Master{
-		ClusterAsset: conf,
+		ClusterAsset:      conf,
+		Bootstrap_baseurl: hostport,
 	}
 	if err := master.GenerateFiles(); err != nil {
 		logrus.Errorf("Failed to generate master ignition file: %v", err)
@@ -154,7 +241,8 @@ func generateIgnition(conf *asset.ClusterAsset) error {
 	}
 
 	worker := &machine.Worker{
-		ClusterAsset: conf,
+		ClusterAsset:      conf,
+		Bootstrap_baseurl: hostport,
 	}
 	if err := worker.GenerateFiles(); err != nil {
 		logrus.Errorf("Failed to generate worker ignition file: %v", err)
@@ -260,7 +348,6 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 }
 
 func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
-	const Namespace = "housekeeper-system"
 	dir, err := data.Assets.Open("housekeeper")
 	if err != nil {
 		return err
@@ -273,40 +360,86 @@ func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
 	for _, childInfo := range child {
 		filePath := filepath.Join("housekeeper", childInfo.Name())
 		data, err := utils.FetchAndUnmarshalUrl(filePath, tmplData)
+
+		switch childInfo.Name() {
+		case "1housekeeper.io_updates.yaml":
+			err = kubeclient.DeployCRD(string(data), kubeconfig)
+		case "2namespace.yaml":
+			err = kubeclient.DeployNamespace(string(data), kubeconfig)
+		case "3role.yaml":
+			err = kubeclient.DeployClusterRole(string(data), kubeconfig)
+		case "4role_binding.yaml":
+			err = kubeclient.DeployClusterRoleBinding(string(data), kubeconfig)
+		case "5deployment.yaml.template":
+			err = kubeclient.DeployDeployment(string(data), kubeconfig, namespace)
+		case "6daemonset.yaml.template":
+			err = kubeclient.DeployDaemonSet(string(data), kubeconfig, namespace)
+		}
+
 		if err != nil {
-			logrus.Errorf("error getting file content: %v", err)
 			return err
 		}
-		if childInfo.Name() == "1housekeeper.io_updates.yaml" {
-			if err := kubeclient.DeployCRD(string(data), kubeconfig); err != nil {
-				return err
-			}
+	}
+	return nil
+}
+
+func applyNetworkPlugin(pluginConfigPath string) error {
+	var content []byte
+	var err error
+
+	// Check if the pluginConfigPath is an HTTP(S) link or a local file path
+	if strings.HasPrefix(pluginConfigPath, "http://") || strings.HasPrefix(pluginConfigPath, "https://") {
+		response, err := http.Get(pluginConfigPath)
+		if err != nil {
+			logrus.Errorf("Failed to fetch network plugin configuration from URL: %v", err)
+			return err
 		}
-		if childInfo.Name() == "2namespace.yaml" {
-			if err := kubeclient.DeployNamespace(string(data), kubeconfig); err != nil {
-				return err
-			}
+		defer response.Body.Close()
+		content, err = io.ReadAll(response.Body)
+		if err != nil {
+			logrus.Errorf("Failed to read content from HTTP response: %v", err)
+			return err
 		}
-		if childInfo.Name() == "3role.yaml" {
-			if err := kubeclient.DeployClusterRole(string(data), kubeconfig); err != nil {
-				return err
-			}
-		}
-		if childInfo.Name() == "4role_binding.yaml" {
-			if err := kubeclient.DeployClusterRoleBinding(string(data), kubeconfig); err != nil {
-				return err
-			}
-		}
-		if childInfo.Name() == "5deployment.yaml.template" {
-			if err := kubeclient.DeployDeployment(string(data), kubeconfig, Namespace); err != nil {
-				return err
-			}
-		}
-		if childInfo.Name() == "6daemonset.yaml.template" {
-			if err := kubeclient.DeployDaemonSet(string(data), kubeconfig, Namespace); err != nil {
-				return err
-			}
+	} else {
+		// Read the content from the local file
+		content, err = os.ReadFile(pluginConfigPath)
+		if err != nil {
+			logrus.Errorf("Failed to read network plugin configuration file: %v", err)
+			return err
 		}
 	}
+
+	// 在类似NestOS 或者 Fedora CoreOS 这类不可变基础设施中，目录/usr为只读目录。在支持FlexVolume时，默认路径为
+	// "/usr/libexec/kubernetes/kubelet-plugins"，而 FlexVolume 的目录必须是可写入的，
+	// 该功能特性才能正常工作，为了解决这个问题将/usr目录修改为可写目录/opt.
+	// Check if the content contains "/usr/libexec/kubernetes/kubelet-plugins"
+	if strings.Contains(string(content), "/usr/libexec/kubernetes/kubelet-plugins") {
+		content = []byte(strings.ReplaceAll(string(content),
+			"/usr/libexec/kubernetes/kubelet-plugins",
+			"/opt/libexec/kubernetes/kubelet-plugins"))
+	}
+
+	// Save the modified content to a file in the "/tmp" directory with a fixed name
+	tmpFilePath := "/tmp/modified-plugin-config.yaml"
+
+	err = os.WriteFile(tmpFilePath, content, 0644)
+	if err != nil {
+		logrus.Errorf("Failed to write content to file: %v", err)
+		return err
+	}
+
+	// Apply the modified configuration using kubeclient
+	if err := kubeclient.RunKubectlApplyWithYaml(tmpFilePath); err != nil {
+		logrus.Errorf("Failed to apply network plugin configuration: %v", err)
+		return err
+	}
+
+	// removal of the temporary file
+	defer func() {
+		if err := os.Remove(tmpFilePath); err != nil {
+			logrus.Errorf("Failed to remove temporary file: %v", err)
+		}
+	}()
+
 	return nil
 }

@@ -20,8 +20,6 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/infra"
-	"os"
-	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -66,10 +64,10 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// delete asset files
-	filepath := filepath.Join(persistDir, clusterID)
-	if err := os.RemoveAll(filepath); err != nil {
+	if err := configmanager.Delete(clusterID); err != nil {
 		logrus.Errorf("Failed to clean the asset files")
 		return err
 	}
+
 	return nil
 }

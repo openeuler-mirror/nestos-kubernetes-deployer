@@ -11,45 +11,87 @@ provider "libvirt" {
   uri = "{{.Platform.URI}}"
 }
 
+variable "cluster_id" {
+  type    = string
+  default = "{{.ClusterID}}"
+}
+
 variable "instance_count" {
   default = "{{.Worker.Count}}"
 }
 
+variable "instance_hostname" {
+  type    = list(string)
+  default = {{.Worker.Hostname}}
+}
+
+variable "instance_ip" {
+  type    = list(string)
+  default = {{.Worker.IP}}
+}
+
+variable "instance_cpu" {
+  type    = list(string)
+  default = {{.Worker.CPU}}
+}
+
+variable "instance_ram" {
+  type    = list(string)
+  default = {{.Worker.RAM}}
+}
+
+variable "instance_disk" {
+  type    = list(string)
+  default = {{.Worker.Disk}}
+}
+
+variable "instance_ign" {
+  type    = list(string)
+  default = {{.Worker.Ign_Path}}
+}
+
 resource "libvirt_volume" "volume" {
-  name   =  "nkd-volume-{{.ClusterID}}"
-  pool   = "default"
+  name   = "${var.cluster_id}-volume"
+  pool   = "${var.cluster_id}-pool"
   source = "{{.Platform.OSImage_Path}}"
 }
 
 resource "libvirt_volume" "disk" {
-  count  = var.instance_count
-  name   =  "${format("%s-disk", element({{.Worker.Hostname}}, count.index))}"
-  base_volume_id = libvirt_volume.volume.id
-  pool   = "default"
-  size   = element({{.Worker.Disk}}, count.index)
+  count            = var.instance_count
+  name             = "${var.instance_hostname[count.index]}-disk"
+  base_volume_name = "${var.cluster_id}-volume"
+  pool             = "${var.cluster_id}-pool"
+  size             = var.instance_disk[count.index] * 1024 * 1024 * 1024
 }
 
 resource "libvirt_ignition" "ignition" {
   count   = var.instance_count
-  name    = "${format("%s-ignition", element({{.Worker.Hostname}}, count.index))}"
-  content = file(element({{.Worker.Ign_Path}}, count.index))
+  name    = "${var.instance_hostname[count.index]}-ignition"
+  pool    = "${var.cluster_id}-pool"
+  content = templatefile(var.instance_ign[count.index], { hostname = var.instance_hostname[count.index] })
 }
 
 resource "libvirt_domain" "nestos" {
   count           = var.instance_count
-  name            = element({{.Worker.Hostname}}, count.index)
-  vcpu            = element({{.Worker.CPU}}, count.index)
-  memory          = element({{.Worker.RAM}}, count.index)
+  name            = var.instance_hostname[count.index]
+  cpu {
+    mode = "host-passthrough"
+  }
+  vcpu            = var.instance_cpu[count.index]
+  memory          = var.instance_ram[count.index]
   coreos_ignition = libvirt_ignition.ignition.*.id[count.index]
+  machine         = "{{.MachineType}}"
   autostart       = true
+  type            = "kvm"
 
   disk {
     volume_id = libvirt_volume.disk.*.id[count.index]
   }
 
   network_interface {
-    network_name   = "nkd-net-{{.ClusterID}}"
-    hostname       = element({{.Worker.Hostname}}, count.index)
+    network_name   = "${var.cluster_id}-net"
+    hostname       = var.instance_hostname[count.index]
+    addresses      = var.instance_ip[count.index] != "null" ? [var.instance_ip[count.index]] : null
     wait_for_lease = true
   }
 

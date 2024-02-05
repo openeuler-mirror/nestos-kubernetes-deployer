@@ -20,9 +20,8 @@ import (
 	"fmt"
 	mrand "math/rand"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
-	"os/user"
-	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -88,21 +87,6 @@ func generateToken() string {
 	return string(token)
 }
 
-func getSysHome() string {
-	if user, err := user.Current(); err == nil {
-		return user.HomeDir
-	}
-	return "/root"
-}
-
-func getDefaultPubKeyPath() string {
-	return filepath.Join(getSysHome(), ".ssh", "id_rsa.pub")
-}
-
-func getApiServerEndpoint(ip string) string {
-	return fmt.Sprintf("%s:%s", ip, "6443")
-}
-
 func setMasterConfigs(mc []NodeAsset, opts *opts.MasterConfig) []NodeAsset {
 	var confs []NodeAsset
 	if len(mc) >= len(opts.IP) {
@@ -127,7 +111,6 @@ func setMasterConfigs(mc []NodeAsset, opts *opts.MasterConfig) []NodeAsset {
 					RAM:  8192,
 					Disk: 50,
 				},
-				Ign_Path: "",
 			})
 		}
 	}
@@ -156,7 +139,6 @@ func setWorkerHostname(wc []NodeAsset, opts *opts.WorkerConfig) []NodeAsset {
 					RAM:  8192,
 					Disk: 50,
 				},
-				Ign_Path: "",
 			})
 		}
 	}
@@ -190,7 +172,7 @@ type Kubernetes struct {
 	Pause_Image        string
 	Release_Image_URL  string
 	Token              string
-	AdminKubeConfig    string `json:"-" yaml:"-"`
+	AdminKubeConfig    string
 	CertificateKey     string
 
 	Network
@@ -199,6 +181,7 @@ type Kubernetes struct {
 type Network struct {
 	Service_Subnet        string
 	Pod_Subnet            string
+	Plugin                string
 	CoreDNS_Image_Version string
 }
 
@@ -296,11 +279,16 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
 	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, cf.Service_Subnet)
 	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, cf.Network.Pod_Subnet)
+	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
 	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, cf.Network.CoreDNS_Image_Version)
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
 		setStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
 		setStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, cf.ControllerImageUrl)
+		setStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "")
+		setStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "")
+		setUIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, cf.MaxUnavailable)
+		clusterAsset.Housekeeper.EvictPodForce = opts.Housekeeper.EvictPodForce
 	}
 
 	return clusterAsset, nil
@@ -331,17 +319,14 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 	var (
 		OperatorImageUrl   string
 		ControllerImageUrl string
-		Release_Image_URL  string
 	)
 	switch arch {
 	case "amd64", "x86_64":
 		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-operator-manager:0.1.0"
 		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-controller-manager:0.1.0"
-		Release_Image_URL = "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-x86_64-k8s-v1.23.10"
 	case "arm64", "aarch64":
 		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-operator-manager:0.1.0"
 		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-controller-manager:0.1.0"
-		Release_Image_URL = "hub.oepkgs.net/nestos/nestos:22.03-LTS-SP2.20230928.0-aarch64-k8s-v1.23.10"
 	default:
 		return nil, errors.New("unsupported architecture")
 	}
@@ -352,7 +337,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 		Platform:     "libvirt",
 		UserName:     "root",
 		Password:     "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/",
-		SSHKey:       getDefaultPubKeyPath(),
+		SSHKey:       utils.GetDefaultPubKeyPath(),
 		Master: []NodeAsset{
 			{
 				Hostname: "k8s-master01",
@@ -361,8 +346,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 					RAM:  8192,
 					Disk: 50,
 				},
-				IP:       "192.168.132.11",
-				Ign_Path: "",
+				IP: "192.168.132.11",
 			},
 		},
 		Worker: []NodeAsset{
@@ -373,27 +357,28 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 					RAM:  8192,
 					Disk: 50,
 				},
-				IP:       "",
-				Ign_Path: "",
+				IP: "",
 			},
 		},
 		Kubernetes: Kubernetes{
 			Kubernetes_Version: "v1.23.10",
-			ApiServer_Endpoint: getApiServerEndpoint("192.168.132.11"),
+			ApiServer_Endpoint: utils.GetApiServerEndpoint("192.168.132.11"),
 			Image_Registry:     "k8s.gcr.io",
 			Pause_Image:        "pause:3.6",
-			Release_Image_URL:  Release_Image_URL,
+			Release_Image_URL:  "",
 			Token:              generateToken(),
 			CertificateKey:     "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
 			Network: Network{
 				Service_Subnet:        "10.96.0.0/16",
-				Pod_Subnet:            "10.100.0.0/16",
+				Pod_Subnet:            "10.244.0.0/16",
+				Plugin:                "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
 				CoreDNS_Image_Version: "v1.8.6",
 			},
 		},
 		Housekeeper: Housekeeper{
 			OperatorImageUrl:   OperatorImageUrl,
 			ControllerImageUrl: ControllerImageUrl,
+			MaxUnavailable:     2,
 		},
 	}, nil
 }

@@ -33,6 +33,8 @@ var ClusterAsset = map[string]*asset.ClusterAsset{}
 
 // var InfraAsset = map[string]*asset.InfraAsset{}
 
+const clusterConfigFile string = "cluster_config.yaml"
+
 func Initial(opts *opts.OptionsList) error {
 	// Init global asset
 	globalConfig, err := globalconfig.InitGlobalConfig(opts)
@@ -41,7 +43,7 @@ func Initial(opts *opts.OptionsList) error {
 	}
 	GlobalConfig = globalConfig
 
-	files, err := filepath.Glob(filepath.Join(globalConfig.PersistDir, "*", "cluster_config.yaml"))
+	files, err := filepath.Glob(filepath.Join(globalConfig.PersistDir, "*", clusterConfigFile))
 	if err != nil {
 		return err
 	}
@@ -51,9 +53,7 @@ func Initial(opts *opts.OptionsList) error {
 	}
 
 	if len(files) == 0 {
-		if len(files) == 0 {
-			return initializeClusterAsset(&asset.ClusterAsset{}, opts)
-		}
+		return initializeClusterAsset(&asset.ClusterAsset{}, opts)
 	}
 
 	for _, file := range files {
@@ -98,6 +98,14 @@ func GetGlobalConfig() (*globalconfig.GlobalConfig, error) {
 
 func GetPersistDir() string {
 	return GlobalConfig.PersistDir
+}
+
+func GetBootstrapIgnPort() string {
+	return GlobalConfig.BootstrapIgnPort
+}
+
+func GetBootstrapIgnHost() string {
+	return GlobalConfig.BootstrapIgnHost
 }
 
 func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {

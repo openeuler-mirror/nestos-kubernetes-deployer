@@ -19,6 +19,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/ignition"
+	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"path/filepath"
 
@@ -26,29 +27,39 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	MasterIgnFilename            = "master.ign"
+	ControlplaneIgnFilename      = "controlplane.ign"
+	masterMergeIgnFilename       = "master-merge.ign"
+	controlplaneMergeIgnFilename = "controlplane-merge.ign"
+)
+
 type Master struct {
-	ClusterAsset *asset.ClusterAsset
+	ClusterAsset      *asset.ClusterAsset
+	Bootstrap_baseurl string
 }
 
 func (m *Master) GenerateFiles() error {
 	sshkeyContent, err := os.ReadFile(m.ClusterAsset.SSHKey)
 	if err != nil {
-		logrus.Debug("Error to read sshkey content")
+		logrus.Debug("Failed to read sshkey content:", err)
+		return err
 	}
-	//Get template dependency configuration
-	mtd := ignition.GetTmplData(m.ClusterAsset)
+
+	// Get template dependency configuration
+	masterTemplateData := ignition.GetTmplData(m.ClusterAsset)
+	ignitionDir := filepath.Join(configmanager.GetPersistDir(), m.ClusterAsset.Cluster_ID, "ignition")
+
 	for i, master := range m.ClusterAsset.Master {
-		nodeType := "controlplane"
-		if i > 0 {
-			nodeType = "master"
-		}
-		mtd.NodeName = master.Hostname
+		nodeType := getNodeTypeName(i)
+		masterTemplateData.NodeName = master.Hostname
+
 		generateFile := ignition.Common{
 			UserName:        m.ClusterAsset.UserName,
 			SSHKey:          string(sshkeyContent),
 			PassWord:        m.ClusterAsset.Password,
 			NodeType:        nodeType,
-			TmplData:        mtd,
+			TmplData:        masterTemplateData,
 			EnabledServices: ignition.EnabledServices,
 			Config:          &igntypes.Config{},
 		}
@@ -59,21 +70,48 @@ func (m *Master) GenerateFiles() error {
 			return err
 		}
 
-		// Merge certificates into ignition.Config
+		filename := MasterIgnFilename
+		mergeFilename := masterMergeIgnFilename
 		if i == 0 {
-			for _, file := range master.Certs {
-				ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
-				generateFile.Config.Storage.Files = ignition.AppendFiles(generateFile.Config.Storage.Files, ignFile)
-			}
+			filename = ControlplaneIgnFilename
+			mergeFilename = controlplaneMergeIgnFilename
+			mergeCertificatesIntoConfig(generateFile.Config, master.Certs)
 		}
 
-		//Assign the Ignition path to the Master node
-		filePath := filepath.Join(configmanager.GetPersistDir(), m.ClusterAsset.Cluster_ID, "ignition")
-		fileName := master.Hostname + ".ign"
-		m.ClusterAsset.Master[i].Ign_Path = filepath.Join(filePath, fileName)
+		m.ClusterAsset.Master[i].Ignitions.CreateIgnPath = filepath.Join(ignitionDir, filename)
+		m.ClusterAsset.Master[i].Ignitions.MergeIgnPath = filepath.Join(ignitionDir, mergeFilename)
 
-		ignition.SaveFile(generateFile.Config, filePath, fileName)
+		if err := ignition.SaveFile(generateFile.Config, ignitionDir, filename); err != nil {
+			return err
+		}
+
+		mergerConfig := ignition.GenerateMergeIgnition(m.Bootstrap_baseurl, filename)
+		if err := ignition.SaveFile(mergerConfig, ignitionDir, mergeFilename); err != nil {
+			return err
+		}
+
+		data, err := ignition.Marshal(generateFile.Config)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to Marshal ignition config")
+			return err
+		}
+		m.ClusterAsset.Master[i].CreateIgnContent = data
 	}
 
 	return nil
+}
+
+func getNodeTypeName(index int) string {
+	if index == 0 {
+		return "controlplane"
+	}
+	return "master"
+}
+
+// Merge certificates into ignition.Config
+func mergeCertificatesIntoConfig(config *igntypes.Config, certs []utils.StorageContent) {
+	for _, file := range certs {
+		ignFile := ignition.FileWithContents(file.Path, file.Mode, file.Content)
+		config.Storage.Files = ignition.AppendFiles(config.Storage.Files, ignFile)
+	}
 }

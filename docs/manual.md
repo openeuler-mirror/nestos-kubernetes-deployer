@@ -12,15 +12,24 @@
     ``` 
     ``` shell
     # 安装arm64版本
-    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_arm.rpm
-    $ rpm -ivh tofu_1.6.0-rc1_arm.rpm
+    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_arm64.rpm
+    $ rpm -ivh tofu_1.6.0-rc1_arm64.rpm
     ``` 
-  * 选择openstack平台部署集群，需要提前搭建好openstack环境
-  * 选择libvirt平台部署集群，需要提前安装libvirt虚拟化环境
 
 * 安装NKD
   * 选择拷贝编译好的NKD二进制文件直接使用
   * 根据以下编译安装说明编译安装NKD
+
+备注：
+为确保NKD部署的顺利运行，其所在的部署环境需能够与集群节点机器网络正常通信。如果存在防火墙，需正确配置以允许NKD与集群之间的通信，如开放特定的http服务端口。若采用域名进行通信，需确保DNS服务器配置正确，并且NKD所在的环境能够访问DNS服务器。
+
+## 支持平台
+
+### libvirt
+libvirt平台部署集群，需要提前安装libvirt虚拟化环境
+
+### openstack
+openstack平台部署集群，需要提前搭建好openstack环境
 
 ## 编译安装
 
@@ -39,6 +48,25 @@
   ``` shell
   $ sh hack/build.sh
   ```
+
+## 配置管理
+
+### 全局配置
+全局配置文件用于管理整个集群（多集群）的配置，具体的配置项参数和默认配置详见[全局配置文件说明](/docs/globalconfig_file_desc.md)
+
+#### 点火服务配置参数：
+NKD部署集群过程中集群节点需要访问NKD提供的点火服务，通过以下全局配置参数对点火服务进行配置：
+* bootstrap_ign_host：点火服务地址（域名或ip，一般为NKD运行环境）
+* bootstrap_ign_port：点火服务端口（默认9080，需自行开放防火墙端口）
+
+为适配多网卡环境，点火服务真实监听地址为0.0.0.0。
+* 简单网络环境下，部署集群节点可直接访问NKD服务，"bootstrap_ign_host"参数项可以为空，此时NKD会探测路由表默认最高优先级的IP地址作为访问点火服务URL的host；
+* 复杂网络环境下，部署集群节点无法直接访问NKD的运行环境，"bootstrap_ign_host"参数项需要配置为对外映射ip或域名，用户需自行配置NAT映射或DNS服务，以确保集群节点可访问到NKD点火服务。
+
+"bootstrap_ign_port"参数当前被点火服务监听端口和访问点火服务URL端口复用，简单网络环境下这两个值保持一致，但复杂网络环境下，需保证NKD服务对外映射端口与本地监听端口保持一致。
+
+### 集群配置
+集群配置文件用于对每个集群独立配置，具体的配置项参数和默认配置详见[集群配置文件说明](/docs/config_file_desc.md)
 
 ## 基本功能
 
@@ -138,7 +166,7 @@
     ``` shell
     $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50
     ```
- - 此外更精细化的配置，可以通过配置文件部署集群，具体的配置项参数以及参数默认配置详见[配置文件说明](/docs/config_file_desc.md)
+ - 此外更精细化的配置，可以通过集群配置文件部署集群，详情见配置管理。
     ``` shell
     $ nkd deploy -f cluster_config.yaml
     ```

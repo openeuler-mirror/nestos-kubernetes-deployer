@@ -50,6 +50,12 @@ type OptionsList struct {
 
 type NKDConfig struct {
 	Log_Level string
+	BootstrapUrl
+}
+
+type BootstrapUrl struct {
+	BootstrapIgnHost string
+	BootstrapIgnPort string
 }
 
 type InfraPlatform struct {
@@ -77,26 +83,25 @@ type Libvirt struct {
 }
 
 type MasterConfig struct {
-	Hostname    []string
-	CPU         uint
-	RAM         uint
-	Disk        uint
-	IP          []string
-	IgnFilePath []string
+	Hostname []string
+	CPU      uint
+	RAM      uint
+	Disk     uint
+	IP       []string
 }
 
 type WorkerConfig struct {
-	Hostname    []string
-	CPU         uint
-	RAM         uint
-	Disk        uint
-	IP          []string
-	IgnFilePath string
+	Hostname []string
+	CPU      uint
+	RAM      uint
+	Disk     uint
+	IP       []string
 }
 
 type NetworkConfig struct {
 	ServiceSubnet string
 	PodSubnet     string
+	Plugin        string
 	DNS           DnsConfig
 }
 

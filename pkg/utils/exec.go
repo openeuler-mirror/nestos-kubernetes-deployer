@@ -13,30 +13,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-package cmd
+package utils
 
 import (
+	"bytes"
 	"fmt"
-	"runtime"
-
-	"github.com/spf13/cobra"
+	"os/exec"
 )
 
-func NewVersionCommand() *cobra.Command {
-	var (
-		version = "0.2.1"
-		arch    = fmt.Sprint(runtime.GOOS, "/", runtime.GOARCH)
-	)
+// RunCommand runs the specified command and returns an error if the command fails.
+func RunCommand(command string) (string, error) {
+	cmd := exec.Command("sh", "-c", command)
+	var out bytes.Buffer
+	cmd.Stdout = &out
 
-	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Display the NKD version information",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Version:    %s\n", version)
-			fmt.Printf("OS/Arch:    %s\n", arch)
-		},
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("failed to run command: %v", err)
 	}
 
-	return cmd
+	return out.String(), nil
 }

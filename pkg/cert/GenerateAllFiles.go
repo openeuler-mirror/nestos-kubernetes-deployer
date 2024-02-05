@@ -23,6 +23,8 @@ import (
 	"nestos-kubernetes-deployer/pkg/utils"
 	"net"
 
+	netutils "k8s.io/utils/net"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,6 +43,22 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 
 	//用于后续kubeconfig生成
 	apiserverEndpoint := "https://" + clusterconfig.Kubernetes.ApiServer_Endpoint
+
+	//读取用户自定义服务子网IP
+	/*TODO: 1. 新增internalAPIServerVirtualIP 字段用于读取用户自定义内容；
+	        2. 新增判断，默认值取用Network.Service_Subnet并进行以下解析，如用户填充internalAPIServerVirtualIP
+			   则读取用户自定义内容
+			3. 持续调研service clusterip相关内容，是否有统一入口进行相关配置。*/
+	_, svcSubnet, err := net.ParseCIDR(clusterconfig.Network.Service_Subnet)
+	if err != nil {
+		logrus.Errorf("unable to get internal Kubernetes Service IP from the given service CIDR: %v\n", err)
+		return nil, err
+	}
+	internalAPIServerVirtualIP, err := netutils.GetIndexedIP(svcSubnet, 1)
+	if err != nil {
+		logrus.Errorf("unable to get the first IP address from the given CIDR: %v\n", err)
+		return nil, err
+	}
 
 	/* **********生成root CA 证书和密钥********** */
 
@@ -259,7 +277,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	dnsNames = []string{hostname, "kubernetes", "kubernetes.default",
 		"kubernetes.default.svc", "kubernetes.default.svc.cluster", "kubernetes.default.svc.cluster.local"}
 	extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-	ipAddresses = []net.IP{net.ParseIP(ipaddress), net.ParseIP("127.0.0.1"), net.ParseIP("0.0.0.0")}
+	ipAddresses = []net.IP{net.ParseIP(ipaddress), net.ParseIP("127.0.0.1"), net.ParseIP(internalAPIServerVirtualIP.String())}
 
 	apiservercrt, err := GenerateAllSignedCert(commonName,
 		nil, dnsNames, extKeyUsage, ipAddresses, rootCACert.CertRaw, rootCACert.KeyRaw)
@@ -330,7 +348,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	apiserverKubeletClientKeyContent := utils.StorageContent{
 		Path:    utils.ApiserverKubeletClientKey,
 		Mode:    int(utils.CertFileMode),
-		Content: frontProxyClientcrt.KeyRaw,
+		Content: apiserverKubeletClientcrt.KeyRaw,
 	}
 
 	certs = append(certs, apiserverKubeletClientCertContent, apiserverKubeletClientKeyContent)
