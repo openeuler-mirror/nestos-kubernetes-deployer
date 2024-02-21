@@ -8,7 +8,7 @@ ConditionPathExists=/var/log/node-pivot.stamp
 ConditionPathExists=!/var/log/join-master.stamp
 
 [Service]
-ExecStart=/bin/bash -c "kubeadm join {{.APIServerURL}} --token {{.Token}} --discovery-token-unsafe-skip-ca-verification --control-plane --certificate-key {{.CertificateKey}} --cri-socket=/var/run/isulad.sock  && touch /var/log/join-master.stamp"
+ExecStart=/bin/bash -c "kubeadm join {{.APIServerURL}} --token {{.Token}} --discovery-token-unsafe-skip-ca-verification --control-plane --certificate-key {{.CertificateKey}} --cri-socket={{.CriSocket}}  && touch /var/log/join-master.stamp"
 Restart=on-failure
 RestartSec=5s
 

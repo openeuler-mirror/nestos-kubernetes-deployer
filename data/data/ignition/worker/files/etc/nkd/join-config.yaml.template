@@ -9,5 +9,5 @@ discovery:
   tlsBootstrapToken: {{.Token}}
 kind: JoinConfiguration
 nodeRegistration:
-  criSocket: /var/run/isulad.sock
+  criSocket: {{.CriSocket}}
   taints: null

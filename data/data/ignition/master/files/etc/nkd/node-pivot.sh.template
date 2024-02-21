@@ -3,32 +3,32 @@
 # Function to manage service startup and enable on boot
 manage_service() {
     service_name="$1"
-    if systemctl is-active --quiet $service_name ; then
+    if systemctl is-active --quiet "$service_name"; then
         echo "$service_name is already running"
     else
         echo "$service_name is not running, starting..."
-        systemctl start $service_name
-        systemctl enable $service_name
-        if [ $? -eq 0 ]; then
+        if systemctl start "$service_name" && systemctl enable "$service_name"; then
             echo "$service_name starting success."
         else
-            echo "unable to start $service_name."
+            echo "Unable to start $service_name."
             exit 1
         fi
     fi
 }
 
-if systemctl list-unit-files | grep -q "isulad.service" ; then
-    manage_service "isulad"
-else
-    echo "isulad service does not exist, skipping..."
-fi
+# Check if service exists and manage it
+check_and_manage_service() {
+    service_name="$1"
+    if systemctl list-unit-files | grep -q "$service_name.service"; then
+        manage_service "$service_name"
+    else
+        echo "$service_name service does not exist, skipping..."
+    fi
+}
 
-if systemctl list-unit-files | grep -q "housekeeper-daemon.service" ; then
-    manage_service "housekeeper-daemon"
-else
-    echo "housekeeper-daemon service does not exist, skipping..."
-fi
+check_and_manage_service "{{.Runtime}}"
+
+check_and_manage_service "housekeeper-daemon"
 
 # Check if ReleaseImageURl is empty
 if [ -n "{{.ReleaseImageURl}}" ]; then

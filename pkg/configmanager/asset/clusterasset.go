@@ -157,6 +157,7 @@ type ClusterAsset struct {
 	SSHKey   string
 	Master   []NodeAsset
 	Worker   []NodeAsset
+	Runtime  string `yaml:"runtime"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
 	Kubernetes
 	Housekeeper
 	CertAsset
@@ -210,7 +211,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		clusterAsset.Master = append(clusterAsset.Master, cf.Master...)
 	}
 	if len(opts.Master.Hostname) != len(opts.Master.IP) {
-		return nil, fmt.Errorf("The number of configuration parameters master hostname and ip should be the same")
+		return nil, fmt.Errorf("the number of configuration parameters master hostname and ip should be the same")
 	}
 	if len(opts.Master.IP) != 0 {
 		clusterAsset.Master = setMasterConfigs(clusterAsset.Master, &opts.Master)
@@ -242,7 +243,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	// set worker IPs
 	if len(opts.Worker.IP) != 0 {
 		if len(opts.Worker.Hostname) != len(opts.Worker.IP) {
-			return nil, fmt.Errorf("The number of configuration parameters worker hostname and ip should be the same")
+			return nil, fmt.Errorf("the number of configuration parameters worker hostname and ip should be the same")
 		}
 		for i, _ := range opts.Worker.IP {
 			clusterAsset.Worker[i].IP = opts.Worker.IP[i]
@@ -271,6 +272,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Password, opts.Password, cf.Password)
 	setStringValue(&clusterAsset.SSHKey, opts.SSHKey, cf.SSHKey)
 	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, cf.Kubernetes_Version)
+	setStringValue(&clusterAsset.Runtime, opts.Runtime, cf.Runtime)
 	setStringValue(&clusterAsset.Kubernetes.ApiServer_Endpoint, opts.ApiServerEndpoint, cf.ApiServer_Endpoint)
 	setStringValue(&clusterAsset.Kubernetes.Image_Registry, opts.ImageRegistry, cf.Image_Registry)
 	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, cf.Pause_Image)
@@ -360,6 +362,7 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 				IP: "",
 			},
 		},
+		Runtime: "isulad",
 		Kubernetes: Kubernetes{
 			Kubernetes_Version: "v1.23.10",
 			ApiServer_Endpoint: utils.GetApiServerEndpoint("192.168.132.11"),
