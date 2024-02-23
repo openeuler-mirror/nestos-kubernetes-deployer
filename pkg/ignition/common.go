@@ -41,20 +41,20 @@ var (
 )
 
 type TmplData struct {
-	NodeName        string
-	APIServerURL    string
-	ImageRegistry   string
-	Runtime         string
-	CriSocket       string
-	PauseImage      string
-	KubeVersion     string
-	ServiceSubnet   string
-	PodSubnet       string
-	Token           string
-	CorednsImageTag string
-	ReleaseImageURl string
-	CertificateKey  string
-	Hsip            string //HostName + IP
+	NodeName          string
+	APIServerURL      string
+	ImageRegistry     string
+	Runtime           string
+	CriSocket         string
+	PauseImage        string
+	KubeVersion       string
+	ServiceSubnet     string
+	PodSubnet         string
+	Token             string
+	ReleaseImageURl   string
+	CertificateKey    string
+	Hsip              string //HostName + IP
+	KubeadmApiVersion string
 }
 
 type Common struct {
@@ -214,18 +214,18 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 	}
 
 	return &TmplData{
-		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
-		ImageRegistry:   c.Kubernetes.Image_Registry,
-		Runtime:         c.Runtime,
-		CriSocket:       criSocket,
-		PauseImage:      c.Kubernetes.Pause_Image,
-		KubeVersion:     c.Kubernetes.Kubernetes_Version,
-		ServiceSubnet:   c.Network.Service_Subnet,
-		PodSubnet:       c.Network.Pod_Subnet,
-		Token:           c.Kubernetes.Token,
-		CorednsImageTag: c.Network.CoreDNS_Image_Version,
-		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
-		CertificateKey:  c.Kubernetes.CertificateKey,
-		Hsip:            hsip,
+		APIServerURL:      c.Kubernetes.ApiServer_Endpoint,
+		ImageRegistry:     c.Kubernetes.Image_Registry,
+		Runtime:           c.Runtime,
+		CriSocket:         criSocket,
+		PauseImage:        c.Kubernetes.Pause_Image,
+		KubeVersion:       c.Kubernetes.Kubernetes_Version,
+		KubeadmApiVersion: c.Kubernetes.KubernetesAPIVersion,
+		ServiceSubnet:     c.Network.Service_Subnet,
+		PodSubnet:         c.Network.Pod_Subnet,
+		Token:             c.Kubernetes.Token,
+		ReleaseImageURl:   c.Kubernetes.Release_Image_URL,
+		CertificateKey:    c.Kubernetes.CertificateKey,
+		Hsip:              hsip,
 	}, nil
 }

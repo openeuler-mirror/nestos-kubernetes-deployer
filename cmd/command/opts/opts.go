@@ -29,20 +29,21 @@ type OptionsList struct {
 	ClusterID string
 	Platform  string
 
-	UserName          string
-	Password          string
-	SSHKey            string
-	Master            MasterConfig
-	Worker            WorkerConfig
-	ExtendCount       uint
-	Runtime           string
-	ApiServerEndpoint string
-	ImageRegistry     string
-	PauseImage        string
-	ReleaseImageUrl   string
-	KubeVersion       string
-	Token             string
-	CertificateKey    string
+	UserName             string
+	Password             string
+	SSHKey               string
+	Master               MasterConfig
+	Worker               WorkerConfig
+	ExtendCount          uint
+	Runtime              string
+	ApiServerEndpoint    string
+	ImageRegistry        string
+	PauseImage           string
+	ReleaseImageUrl      string
+	KubeVersion          string
+	KubernetesAPIVersion uint
+	Token                string
+	CertificateKey       string
 
 	NetWork NetworkConfig
 	Housekeeper
@@ -102,11 +103,6 @@ type NetworkConfig struct {
 	ServiceSubnet string
 	PodSubnet     string
 	Plugin        string
-	DNS           DnsConfig
-}
-
-type DnsConfig struct {
-	ImageVersion string //coredns
 }
 
 type Housekeeper struct {
