@@ -29,13 +29,13 @@ type OptionsList struct {
 	ClusterID string
 	Platform  string
 
-	UserName    string
-	Password    string
-	SSHKey      string
-	Master      MasterConfig
-	Worker      WorkerConfig
-	ExtendCount uint
-
+	UserName          string
+	Password          string
+	SSHKey            string
+	Master            MasterConfig
+	Worker            WorkerConfig
+	ExtendCount       uint
+	Runtime           string
 	ApiServerEndpoint string
 	ImageRegistry     string
 	PauseImage        string

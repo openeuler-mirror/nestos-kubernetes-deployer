@@ -44,6 +44,8 @@ type TmplData struct {
 	NodeName        string
 	APIServerURL    string
 	ImageRegistry   string
+	Runtime         string
+	CriSocket       string
 	PauseImage      string
 	KubeVersion     string
 	ServiceSubnet   string
@@ -198,16 +200,24 @@ func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{
 	return nil
 }
 
-func GetTmplData(c *asset.ClusterAsset) *TmplData {
+func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 	var hsip string
 	for i := 0; i < len(c.Master); i++ {
 		temp := c.Master[i].IP + " " + c.Master[i].Hostname + "\n"
 		hsip = hsip + temp
 	}
 
+	criSocket, err := asset.GetRuntimeCriSocket(c.Runtime)
+	if err != nil {
+		logrus.Errorf("Error getting runtime %s: %v\n", c.Runtime, err)
+		return nil, err
+	}
+
 	return &TmplData{
 		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
 		ImageRegistry:   c.Kubernetes.Image_Registry,
+		Runtime:         c.Runtime,
+		CriSocket:       criSocket,
 		PauseImage:      c.Kubernetes.Pause_Image,
 		KubeVersion:     c.Kubernetes.Kubernetes_Version,
 		ServiceSubnet:   c.Network.Service_Subnet,
@@ -217,5 +227,5 @@ func GetTmplData(c *asset.ClusterAsset) *TmplData {
 		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
 		CertificateKey:  c.Kubernetes.CertificateKey,
 		Hsip:            hsip,
-	}
+	}, nil
 }

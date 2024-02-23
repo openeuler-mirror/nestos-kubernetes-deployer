@@ -47,7 +47,10 @@ func (m *Master) GenerateFiles() error {
 	}
 
 	// Get template dependency configuration
-	masterTemplateData := ignition.GetTmplData(m.ClusterAsset)
+	masterTemplateData, err := ignition.GetTmplData(m.ClusterAsset)
+	if err != nil {
+		return err
+	}
 	ignitionDir := filepath.Join(configmanager.GetPersistDir(), m.ClusterAsset.Cluster_ID, "ignition")
 
 	for i, master := range m.ClusterAsset.Master {
