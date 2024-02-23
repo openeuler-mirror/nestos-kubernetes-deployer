@@ -34,6 +34,14 @@ check_and_manage_service "housekeeper-daemon"
 if [ -n "{{.ReleaseImageURl}}" ]; then
     # Execute rebase
     rpm-ostree rebase --experimental ostree-unverified-image:docker://{{.ReleaseImageURl}} --bypass-driver
+    # Check if the rebase was successful
+    if [ $? -eq 0 ]; then
+        echo "Rebase operation completed successfully. Rebooting the system..."
+        systemctl reboot
+    else
+        echo "Rebase operation failed. System will not be rebooted."
+    fi
+
 else
     echo "ReleaseImageURl is empty, skipping rpm-ostree rebase."
 fi

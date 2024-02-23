@@ -5,7 +5,7 @@ After=network-online.target
 ConditionPathExists=!/var/log/node-pivot.stamp
 
 [Service]
-ExecStart=/bin/bash -c "/etc/nkd/node-pivot.sh && touch /var/log/node-pivot.stamp && systemctl reboot"
+ExecStart=/bin/bash -c "/etc/nkd/node-pivot.sh && touch /var/log/node-pivot.stamp"
 
 Restart=on-failure
 RestartSec=5s
