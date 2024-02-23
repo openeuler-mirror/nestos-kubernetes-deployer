@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -167,23 +168,23 @@ type InfraPlatform interface {
 }
 
 type Kubernetes struct {
-	Kubernetes_Version string
-	ApiServer_Endpoint string
-	Image_Registry     string
-	Pause_Image        string
-	Release_Image_URL  string
-	Token              string
-	AdminKubeConfig    string
-	CertificateKey     string
+	Kubernetes_Version   string
+	KubernetesAPIVersion string `yaml:"kubernetes-apiversion"`
+	ApiServer_Endpoint   string
+	Image_Registry       string
+	Pause_Image          string
+	Release_Image_URL    string
+	Token                string
+	AdminKubeConfig      string
+	CertificateKey       string
 
 	Network
 }
 
 type Network struct {
-	Service_Subnet        string
-	Pod_Subnet            string
-	Plugin                string
-	CoreDNS_Image_Version string
+	Service_Subnet string
+	Pod_Subnet     string
+	Plugin         string
 }
 
 type Housekeeper struct {
@@ -282,7 +283,12 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, cf.Service_Subnet)
 	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, cf.Network.Pod_Subnet)
 	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
-	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, cf.Network.CoreDNS_Image_Version)
+	apiVersion, err := utils.GetKubernetesApiVersion(opts.KubernetesAPIVersion)
+	if err != nil {
+		logrus.Errorf("Error getting kubernetes api version: %v\n", err)
+		return nil, err
+	}
+	setStringValue(&clusterAsset.Kubernetes.KubernetesAPIVersion, apiVersion, cf.KubernetesAPIVersion)
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
 		setStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
@@ -364,18 +370,18 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 		},
 		Runtime: "isulad",
 		Kubernetes: Kubernetes{
-			Kubernetes_Version: "v1.23.10",
-			ApiServer_Endpoint: utils.GetApiServerEndpoint("192.168.132.11"),
-			Image_Registry:     "k8s.gcr.io",
-			Pause_Image:        "pause:3.6",
-			Release_Image_URL:  "",
-			Token:              generateToken(),
-			CertificateKey:     "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
+			Kubernetes_Version:   "v1.23.10",
+			KubernetesAPIVersion: "v1beta3",
+			ApiServer_Endpoint:   utils.GetApiServerEndpoint("192.168.132.11"),
+			Image_Registry:       "k8s.gcr.io",
+			Pause_Image:          "pause:3.6",
+			Release_Image_URL:    "",
+			Token:                generateToken(),
+			CertificateKey:       "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
 			Network: Network{
-				Service_Subnet:        "10.96.0.0/16",
-				Pod_Subnet:            "10.244.0.0/16",
-				Plugin:                "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
-				CoreDNS_Image_Version: "v1.8.6",
+				Service_Subnet: "10.96.0.0/16",
+				Pod_Subnet:     "10.244.0.0/16",
+				Plugin:         "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
 			},
 		},
 		Housekeeper: Housekeeper{
