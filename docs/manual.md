@@ -96,35 +96,40 @@ NKD部署集群过程中集群节点需要访问NKD提供的点火服务，通�
 除了应用配置文件部署集群外，支持应用配置项参数部署集群
   ``` shell
   $ nkd deploy --help
-    --CertificateKey string         指定要添加到主节点的证书密钥
-    --cluster-id string             指定集群的唯一标识符
     --arch string                   部署集群的机器架构
+    --bootstrap-ign-host string     指定点火服务地址
+    --bootstrap-ign-port string     指定点火服务端口
+    --certificateKey string         指定要添加到主节点的证书密钥
+    --cluster-id string             指定集群的唯一标识符                 
     --controller-image-url string   指定Housekeeper控制器组件的容器镜像地址
     --deploy-housekeeper            是否部署Housekeeper Operator，默认false
     -f, --file string               指定集群部署配置文件的位置
     --image-registry string         指定用于拉取Kubernetes组件容器镜像的地址
-    --image-version string          指定CoreDNS容器镜像的版本
+    --kubernetes-apiversion uint    指定Kubernetes API版本。可接受的参考数值为：
+                                    - 1 用于Kubernetes版本 < v1.15.0;
+                                    - 2 用于Kubernetes版本 >= v1.15.0 && < v1.22.0;
+                                    - 3 用于Kubernetes版本 >= v1.22.0;
     --kubeversion string            指定要部署的Kubernetes版本
-    --sshkey string                 ssh 免密登录的密钥存储文件的路径
-    --username string               需要部署 k8s 集群的机器的 ssh 登录用户名
-    --password string               指定 ssh 登录所配置节点的密码
     --master-cpu uint               设置主节点的CPU（单位：核）
     --master-disk uint              设置主节点磁盘大小（单位：GB）
     --master-hostname stringArray   设置主节点主机名
-    --master-igns stringArray       设置主节点的Ignition文件路径
     --master-ips stringArray        设置主节点IP地址
     --master-ram uint               设置主节点的RAM（单位：MB）
+    --network-plugin-url            网络插件类型的URL
     --operator-image-url string     指定Housekeeper Operator组件的容器镜像地址
+    --password string               指定 ssh 登录所配置节点的密码
     --pause-image string            指定pause容器的镜像
     --platform string               选择用于部署集群的基础设施平台
     --pod-subnet string             指定Kubernetes Pod的子网
     --release-image-url string      指定包含Kubernetes组件的NestOS容器镜像的URL，仅支持qcow2格式
+    --runtime string                指定容器运行时类型
     --service-subnet string         指定Kubernetes服务的子网，默认为 "10.96.0.0/16"
+    --sshkey string                 ssh 免密登录的密钥存储文件的路径
     --token string                  指定用于访问资源的身份验证令牌
+    --username string               需要部署 k8s 集群的机器的 ssh 登录用户名
     --worker-cpu uint               设置工作节点的CPU（单位：核心）
     --worker-disk uint              设置工作节点磁盘大小（单位：GB）
     --worker-hostname stringArray   设置工作节点主机名  
-    --worker-igns stringArray       设置工作节点的Ignition文件路径
     --worker-ips stringArray        设置工作节点IP地址
     --worker-ram uint               设置工作节点的RAM（单位：MB）
   # 应用可选配置项参数部署集群
