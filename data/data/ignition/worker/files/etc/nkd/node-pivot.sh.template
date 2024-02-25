@@ -30,6 +30,11 @@ check_and_manage_service "{{.Runtime}}"
 
 check_and_manage_service "housekeeper-daemon"
 
+# Disable SELinux
+echo "Disabling SELinux..."
+sed -i 's#SELINUX=enforcing#SELINUX=disabled#g' /etc/selinux/config
+setenforce 0
+
 # Check if ReleaseImageURl is empty
 if [ -n "{{.ReleaseImageURl}}" ]; then
     # Execute rebase

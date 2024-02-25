@@ -32,7 +32,6 @@ var (
 	EnabledServices = []string{
 		"kubelet.service",
 		"set-kernel-para.service",
-		"disable-selinux.service",
 		"init-cluster.service",
 		"join-master.service",
 		"release-image-pivot.service",
