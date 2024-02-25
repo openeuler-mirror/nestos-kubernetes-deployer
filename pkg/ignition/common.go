@@ -214,17 +214,17 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 	}
 
 	return &TmplData{
-		APIServerURL:      c.Kubernetes.ApiServer_Endpoint,
-		ImageRegistry:     c.Kubernetes.Image_Registry,
+		APIServerURL:      c.Kubernetes.ApiServerEndpoint,
+		ImageRegistry:     c.Kubernetes.ImageRegistry,
 		Runtime:           c.Runtime,
 		CriSocket:         criSocket,
-		PauseImage:        c.Kubernetes.Pause_Image,
-		KubeVersion:       c.Kubernetes.Kubernetes_Version,
+		PauseImage:        c.Kubernetes.PauseImage,
+		KubeVersion:       c.Kubernetes.KubernetesVersion,
 		KubeadmApiVersion: c.Kubernetes.KubernetesAPIVersion,
-		ServiceSubnet:     c.Network.Service_Subnet,
-		PodSubnet:         c.Network.Pod_Subnet,
+		ServiceSubnet:     c.Network.ServiceSubnet,
+		PodSubnet:         c.Network.PodSubnet,
 		Token:             c.Kubernetes.Token,
-		ReleaseImageURl:   c.Kubernetes.Release_Image_URL,
+		ReleaseImageURl:   c.Kubernetes.ReleaseImageURL,
 		CertificateKey:    c.Kubernetes.CertificateKey,
 		Hsip:              hsip,
 	}, nil

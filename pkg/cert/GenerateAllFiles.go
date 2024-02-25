@@ -42,14 +42,14 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	ipaddress := node.IP
 
 	//用于后续kubeconfig生成
-	apiserverEndpoint := "https://" + clusterconfig.Kubernetes.ApiServer_Endpoint
+	apiserverEndpoint := "https://" + clusterconfig.Kubernetes.ApiServerEndpoint
 
 	//读取用户自定义服务子网IP
 	/*TODO: 1. 新增internalAPIServerVirtualIP 字段用于读取用户自定义内容；
 	        2. 新增判断，默认值取用Network.Service_Subnet并进行以下解析，如用户填充internalAPIServerVirtualIP
 			   则读取用户自定义内容
 			3. 持续调研service clusterip相关内容，是否有统一入口进行相关配置。*/
-	_, svcSubnet, err := net.ParseCIDR(clusterconfig.Network.Service_Subnet)
+	_, svcSubnet, err := net.ParseCIDR(clusterconfig.Network.ServiceSubnet)
 	if err != nil {
 		logrus.Errorf("unable to get internal Kubernetes Service IP from the given service CIDR: %v\n", err)
 		return nil, err
