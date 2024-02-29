@@ -6,7 +6,7 @@ ConditionPathExists=!/var/log/join-worker.stamp
 
 [Service]
 ExecStartPre=/bin/bash -c "while [ ! -f /var/log/node-pivot.stamp ]; do sleep 10; done"
-ExecStart=/bin/bash -c "kubeadm join --config=/etc/nkd/join-config.yaml && touch /var/log/join-worker.stamp"
+ExecStart=/bin/bash -c "kubeadm join {{.APIServerURL}} --token {{.Token}} --discovery-token-ca-cert-hash {{.CaCertHash}} --cri-socket={{.CriSocket}}  && touch /var/log/join-worker.stamp"
 Restart=on-failure
 RestartSec=5s
 

@@ -50,6 +50,7 @@ type TmplData struct {
 	ServiceSubnet     string
 	PodSubnet         string
 	Token             string
+	CaCertHash        string
 	ReleaseImageURl   string
 	CertificateKey    string
 	Hsip              string //HostName + IP
@@ -223,6 +224,7 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 		ServiceSubnet:     c.Network.ServiceSubnet,
 		PodSubnet:         c.Network.PodSubnet,
 		Token:             c.Kubernetes.Token,
+		CaCertHash:        c.Kubernetes.CaCertHash,
 		ReleaseImageURl:   c.Kubernetes.ReleaseImageURL,
 		CertificateKey:    c.Kubernetes.CertificateKey,
 		Hsip:              hsip,

@@ -28,18 +28,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type CertGenerator struct {
+	ClusterID  string
+	CaCertHash string
+	Node       *asset.NodeAsset
+}
+
+func NewCertGenerator(clusterID string, node *asset.NodeAsset) *CertGenerator {
+	return &CertGenerator{
+		ClusterID: clusterID,
+		Node:      node,
+	}
+}
+
 // 生成所有证书文件和kubeconfig
-func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageContent, error) {
+func (cg *CertGenerator) GenerateAllFiles() error {
 
 	var certs []utils.StorageContent
-
+	clusterID := cg.ClusterID
 	//读取配置
 	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
 	globalconfig, _ := configmanager.GetGlobalConfig()
 
 	//获取node节点hostname和ip地址
-	hostname := node.Hostname
-	ipaddress := node.IP
+	hostname := cg.Node.Hostname
+	ipaddress := cg.Node.IP
 
 	//用于后续kubeconfig生成
 	apiserverEndpoint := "https://" + clusterconfig.Kubernetes.ApiServerEndpoint
@@ -52,12 +65,12 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	_, svcSubnet, err := net.ParseCIDR(clusterconfig.Network.ServiceSubnet)
 	if err != nil {
 		logrus.Errorf("unable to get internal Kubernetes Service IP from the given service CIDR: %v\n", err)
-		return nil, err
+		return err
 	}
 	internalAPIServerVirtualIP, err := netutils.GetIndexedIP(svcSubnet, 1)
 	if err != nil {
 		logrus.Errorf("unable to get the first IP address from the given CIDR: %v\n", err)
-		return nil, err
+		return err
 	}
 
 	/* **********生成root CA 证书和密钥********** */
@@ -66,7 +79,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		clusterconfig.CertAsset.RootCaKeyPath, "kubernetes", []string{"kubernetes"})
 	if err != nil {
 		logrus.Errorf("Error generating root CA:%v", err)
-		return nil, err
+		return err
 	}
 
 	/*如果用户没有提供自定义路径，则将ca保存在以下目录；
@@ -77,12 +90,12 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	//保存root CA证书和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/ca.crt", rootCACert.CertRaw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/ca.key", rootCACert.KeyRaw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	rootCACertContent := utils.StorageContent{
@@ -99,13 +112,18 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 
 	certs = append(certs, rootCACertContent, rootCAKeyContent)
 
+	cg.CaCertHash, err = GenerateCACertHashes(rootCACert.CertRaw)
+	if err != nil {
+		logrus.Errorf("error to generate ca cert hash: %v", err)
+	}
+
 	/* **********生成etcd CA 证书和密钥********** */
 
 	etcdCACert, err := GenerateAllCA(clusterconfig.CertAsset.EtcdCaCertPath,
 		clusterconfig.CertAsset.EtcdCaKeyPath, "etcd-ca", []string{"etcd-ca"})
 	if err != nil {
 		logrus.Errorf("Error generating etcd CA:%v", err)
-		return nil, err
+		return err
 	}
 
 	/*如果用户没有提供自定义路径，则将ca保存在以下目录；
@@ -116,12 +134,12 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	//保存etcd-ca和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/etcd/ca.crt", etcdCACert.CertRaw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/etcd/ca.key", etcdCACert.KeyRaw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	etcdCACertContent := utils.StorageContent{
@@ -144,7 +162,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		clusterconfig.CertAsset.FrontProxyCaKeyPath, "front-proxy-ca", []string{"front-proxy-ca"})
 	if err != nil {
 		logrus.Errorf("Error generating front-proxy CA:%v", err)
-		return nil, err
+		return err
 	}
 
 	/*如果用户没有提供自定义路径，则将ca保存在以下目录；
@@ -155,12 +173,12 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	//保存front-proxy-ca和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.key", frontProxyCACert.KeyRaw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	frontProxyCACertContent := utils.StorageContent{
@@ -182,7 +200,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	sakeypair, err := GenerateKeyPair()
 	if err != nil {
 		logrus.Errorf("Error generating sa keypair:%v", err)
-		return nil, err
+		return err
 	}
 
 	/*如果用户没有提供自定义路径，则将密钥对保存在以下目录；
@@ -193,12 +211,12 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	//保存密钥对到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/sa.key", sakeypair.PrivateKeyPEM)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/sa.pub", sakeypair.PublicKeyPEM)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	saKeyContent := utils.StorageContent{
@@ -226,7 +244,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		nil, dnsNames, extKeyUsage, ipAddresses, etcdCACert.CertRaw, etcdCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generating /etcd/server cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	serverCertContent := utils.StorageContent{
@@ -254,7 +272,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		nil, dnsNames, extKeyUsage, ipAddresses, etcdCACert.CertRaw, etcdCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generating /etcd/peer cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	peerCertContent := utils.StorageContent{
@@ -283,7 +301,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		nil, dnsNames, extKeyUsage, ipAddresses, rootCACert.CertRaw, rootCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generating apiserver cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	apiserverCertContent := utils.StorageContent{
@@ -309,7 +327,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		nil, nil, extKeyUsage, nil, frontProxyCACert.CertRaw, frontProxyCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generating front-proxy-client cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	frontProxyClientCertContent := utils.StorageContent{
@@ -336,7 +354,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		organization, nil, extKeyUsage, nil, rootCACert.CertRaw, rootCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generating apiserver-kubelet-client cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	apiserverKubeletClientCertContent := utils.StorageContent{
@@ -363,7 +381,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		organization, nil, extKeyUsage, nil, etcdCACert.CertRaw, etcdCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generating kube-apiserver-etcd-client cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	apiserverEtcdClientCertContent := utils.StorageContent{
@@ -390,7 +408,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		organization, nil, extKeyUsage, nil, etcdCACert.CertRaw, etcdCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generating healthcheck cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	healthcheckCertContent := utils.StorageContent{
@@ -417,14 +435,14 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		organization, nil, extKeyUsage, nil, rootCACert.CertRaw, rootCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generate admin cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	adminKubeconfig, err := generateKubeconfig(rootCACert.CertRaw, admincrt.CertRaw, admincrt.KeyRaw,
 		apiserverEndpoint, "kubernetes-admin", "kubernetes-admin@kubernetes")
 	if err != nil {
 		logrus.Errorf("Error generate admin.config:%v", err)
-		return nil, err
+		return err
 	}
 
 	clusterconfig.Kubernetes.AdminKubeConfig = globalconfig.PersistDir + "/" + clusterID + "/admin.config"
@@ -432,7 +450,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 	//将admin.config文件保存至宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/admin.config", adminKubeconfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	adminKubeconfigContent := utils.StorageContent{
@@ -452,14 +470,14 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		nil, nil, extKeyUsage, nil, rootCACert.CertRaw, rootCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generate controller-manager cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	controllerManagerKubeconfig, err := generateKubeconfig(rootCACert.CertRaw, controllerManagercrt.CertRaw, controllerManagercrt.KeyRaw,
 		apiserverEndpoint, "system:kube-controller-manager", "system:kube-controller-manager@kubernetes")
 	if err != nil {
 		logrus.Errorf("Error generate controller-manager.config:%v", err)
-		return nil, err
+		return err
 	}
 
 	controllerManagerKubeconfigContent := utils.StorageContent{
@@ -479,14 +497,14 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		nil, nil, extKeyUsage, nil, rootCACert.CertRaw, rootCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generate scheduler cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	schedulerKubeconfig, err := generateKubeconfig(rootCACert.CertRaw, schedulercrt.CertRaw, schedulercrt.KeyRaw,
 		apiserverEndpoint, "system:kube-scheduler", "system:kube-scheduler@kubernetes")
 	if err != nil {
 		logrus.Errorf("Error generate scheduler.config:%v", err)
-		return nil, err
+		return err
 	}
 
 	schedulerKubeconfigContent := utils.StorageContent{
@@ -507,14 +525,14 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 		organization, nil, extKeyUsage, nil, rootCACert.CertRaw, rootCACert.KeyRaw)
 	if err != nil {
 		logrus.Errorf("Error generate kubelet cert:%v", err)
-		return nil, err
+		return err
 	}
 
 	kubeletKubeconfig, err := generateKubeconfig(rootCACert.CertRaw, kubeletcrt.CertRaw, kubeletcrt.KeyRaw,
 		apiserverEndpoint, "system:node:"+hostname, "system:node:"+hostname+"@kubernetes")
 	if err != nil {
 		logrus.Errorf("Error generate kubelet.config:%v", err)
-		return nil, err
+		return err
 	}
 
 	kubeletKubeconfigContent := utils.StorageContent{
@@ -525,5 +543,7 @@ func GenerateAllFiles(clusterID string, node *asset.NodeAsset) ([]utils.StorageC
 
 	certs = append(certs, kubeletKubeconfigContent)
 
-	return certs, nil
+	cg.Node.Certs = certs
+
+	return nil
 }

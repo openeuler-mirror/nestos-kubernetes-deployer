@@ -6,6 +6,9 @@ ConditionPathExists=!/var/log/join-master.stamp
 
 [Service]
 ExecStartPre=/bin/bash -c "while [ ! -f /var/log/node-pivot.stamp ]; do sleep 10; done"
-ExecStart=/bin/bash -c "kubeadm join {{.APIServerURL}} --token {{.Token}} --discovery-token-unsafe-skip-ca-verification --control-plane --certificate-key {{.CertificateKey}} --cri-socket={{.CriSocket}}  && touch /var/log/join-master.stamp"
+ExecStart=/bin/bash -c "kubeadm join {{.APIServerURL}} --token {{.Token}} --discovery-token-ca-cert-hash {{.CaCertHash}} --control-plane --certificate-key {{.CertificateKey}} --cri-socket={{.CriSocket}}  && touch /var/log/join-master.stamp"
 Restart=on-failure
 RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

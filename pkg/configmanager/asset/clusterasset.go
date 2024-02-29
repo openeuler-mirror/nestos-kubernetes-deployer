@@ -177,6 +177,7 @@ type Kubernetes struct {
 	Token                string
 	AdminKubeConfig      string
 	CertificateKey       string
+	CaCertHash           string `json:"-" yaml:"-"`
 
 	Network
 }

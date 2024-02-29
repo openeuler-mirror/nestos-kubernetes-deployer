@@ -19,8 +19,10 @@ package cert
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -110,4 +112,28 @@ func SaveFileToLocal(savepath string, file []byte) error {
 	logrus.Infof("Successfully saved %s", savepath)
 
 	return nil
+}
+
+// GenerateCACertHashes: specifies a set of public key pins to verify when token-based discovery is used.
+func GenerateCACertHashes(certData []byte) (string, error) {
+	block, _ := pem.Decode(certData)
+	if block == nil {
+		return "", fmt.Errorf("failed to decode certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse certificate: %v", err)
+	}
+
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal public key: %v", err)
+	}
+
+	// Convert the hash to a hexadecimal string
+	caCertHashes := fmt.Sprintf("%x", sha256.Sum256(publicKeyBytes))
+	caCertHashes = "sha256:" + caCertHashes
+
+	return caCertHashes, nil
 }
