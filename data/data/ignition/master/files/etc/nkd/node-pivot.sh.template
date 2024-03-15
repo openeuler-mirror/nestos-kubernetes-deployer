@@ -27,8 +27,24 @@ check_and_manage_service() {
 }
 
 check_and_manage_service "{{.Runtime}}"
-
 check_and_manage_service "housekeeper-daemon"
+
+# Configure the crio container runtime
+if [ -f "/etc/crio/crio.conf" ]; then
+    if [ "{{.Runtime}}" = "crio" ]; then
+        if grep -q "\[crio\.image\]" /etc/crio/crio.conf; then
+            if grep -q "^[[:space:]]*pause_image = " /etc/crio/crio.conf; then
+                sed -i 's|^pause_image = .*|pause_image = "{{.ImageRegistry}}/{{.PauseImage}}"|' /etc/crio/crio.conf
+            else
+                sed -i '/\[crio\.image\]/a pause_image = "{{.ImageRegistry}}/{{.PauseImage}}"' /etc/crio/crio.conf
+            fi
+        else
+            echo "[crio.image]" >> /etc/crio/crio.conf
+            echo "pause_image = \"{{.ImageRegistry}}/{{.PauseImage}}\"" >> /etc/crio/crio.conf
+        fi
+        systemctl restart crio
+    fi
+fi
 
 # Disable SELinux
 echo "Disabling SELinux..."
