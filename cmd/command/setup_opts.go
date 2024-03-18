@@ -41,7 +41,7 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.UintVar(&opts.Opts.Worker.RAM, "worker-ram", 0, "Set worker RAM (units: MB)")
 	flags.UintVar(&opts.Opts.Worker.Disk, "worker-disk", 0, "Set worker disk size (units: GB)")
 	flags.StringArrayVarP(&opts.Opts.Worker.IP, "worker-ips", "", []string{}, "Set worker IPs")
-	flags.StringVarP(&opts.Opts.Runtime, "runtime", "", "", "Specify container runtime type (docker, isulad, contained or crio)")
+	flags.StringVarP(&opts.Opts.Runtime, "runtime", "", "", "Specify container runtime type (docker, isulad, containerd or crio)")
 	flags.StringVarP(&opts.Opts.ImageRegistry, "image-registry", "", "", "Specify the registry address for pulling the Kubernetes component container image")
 	flags.StringVarP(&opts.Opts.PauseImage, "pause-image", "", "", "Specify the image for the pause container")
 	flags.StringVarP(&opts.Opts.ReleaseImageUrl, "release-image-url", "", "", "Specify the URL of the NestOS container image that contains the Kubernetes component. Only supports the qcow2 format.")
