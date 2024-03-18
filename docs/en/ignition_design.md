@@ -9,15 +9,15 @@ Ignition是NestOS在initramfs期间用来操作磁盘的实用程序。其中包
 
 ### ControlPlane Node
 controlplane节点的Ignition文件配置信息如图:
-![ignition_design_1](/docs/figures/ignition_design_1.jpg)
+![ignition_design_1](/docs/en/figures/ignition_design_1.jpg)
 
 ### Master Node
 Master节点的Ignition文件配置信息如图：
-![ignition_design_2](/docs/figures/ignition_design_2.jpg)
+![ignition_design_2](/docs/en/figures/ignition_design_2.jpg)
 
 ### Worker Node
 Worker节点的Ignition文件配置信息如图：
-![ignition_design_3](/docs/figures/ignition_design_3.jpg)
+![ignition_design_3](/docs/en/figures/ignition_design_3.jpg)
 
 生成的Ignition文件目录结构如下：
 ``` shell

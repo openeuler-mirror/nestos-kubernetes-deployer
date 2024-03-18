@@ -20,7 +20,7 @@
 
 ## 详细设计
 NKD模块交互关系图
-![detailed_design](/docs/figures/detailed_design.jpg)
+![detailed_design](/docs/zh/figures/detailed_design.jpg)
 
 ### config-manager模块设计
 NKD部署集群提供了不同的应用配置方式，以方便不同的用户使用这款部署工具。
@@ -30,18 +30,18 @@ NKD部署集群提供了不同的应用配置方式，以方便不同的用户�
 
 命令行参数的优先级最高，配置文件次之。如果部署集群同时应用了配置文件和命令行参数，在配置参数项相同时，命令行参数会将配置文件内容覆盖。
 如果用户没有配置参数，NKD会自动生成该项参数或者使用默认配置，例如集群证书、Ignition文件等。config-manager模块会纳管集群的所有配置项参数，并存储在磁盘中。NKD部署集群依赖项如图：
-![config_manager_design](/docs/figures/config_manager_design.jpg)
+![config_manager_design](/docs/zh/figures/config_manager_design.jpg)
 
 ### cert-manager模块设计
-集群节点的创建、资源的访问都依赖证书，NKD在集群外创建证书并本地存储ca证书和admin.conf文件，更详细内容见[设计文档](/docs/certmanager_design.md)，创建完成的证书通过Ignition文件写入到节点机器。证书创建流程如图：
+集群节点的创建、资源的访问都依赖证书，NKD在集群外创建证书并本地存储ca证书和admin.conf文件，更详细内容见[设计文档](./certmanager_design.md)，创建完成的证书通过Ignition文件写入到节点机器。证书创建流程如图：
 
-![certmanager_design](/docs/figures/certmanager_design.jpg)
+![certmanager_design](/docs/zh/figures/certmanager_design.jpg)
 
 ### Ignition模块设计
-NKD在创建基础设施时，需要通过ignition点火机制传入系统部署后所需的动态配置，详细内容见[设计文档](/docs/ignition_design.md)。并且支持通过命令行参数或配置文件将用户配置转换为ignition文件。节点在部署完成操作系统引导后，通过Ignition机制在操作系统引导阶段自动完成集群创建，无需手动干预。集群各节点的Ignition文件创建流程如图：
-![ignition_design](/docs/figures/ignition_design.jpg)
+NKD在创建基础设施时，需要通过ignition点火机制传入系统部署后所需的动态配置，详细内容见[设计文档](./ignition_design.md)。并且支持通过命令行参数或配置文件将用户配置转换为ignition文件。节点在部署完成操作系统引导后，通过Ignition机制在操作系统引导阶段自动完成集群创建，无需手动干预。集群各节点的Ignition文件创建流程如图：
+![ignition_design](/docs/zh/figures/ignition_design.jpg)
 
 ### housekeeper模块设计
 在集群部署阶段，用户可以选择是否部署housekeeper
-详细内容见[设计文档](/docs/housekeeper_design.md)
+详细内容见[设计文档](./housekeeper_design.md)
 

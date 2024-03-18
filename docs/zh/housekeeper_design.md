@@ -17,7 +17,7 @@
 
 ## 架构介绍
 housekeeper的架构如图
-![housekeeper-arch](/docs/figures/housekeeper-arch.jpg)
+![housekeeper-arch](/docs/zh/figures/housekeeper-arch.jpg)
 如图所示housekeeper主要包含三个组件housekeeper-operator-manager、housekeeper-controller-manager、housekeeper-daemon
 - housekeeper-operator-manager: 以Deployment形式运行在Master节点上，负责协调所有Machines进行升级（不负责直接更新），并标记准备升级的节点。
 - housekeeper-controller-manager：以DaemonSet形式运行在集群中的所有节点上，负责驱逐业务pod，以及转发升级信息到housekeeper-daemon。
