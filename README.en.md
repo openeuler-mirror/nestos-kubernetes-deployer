@@ -10,11 +10,11 @@ It supports multiple deployment platforms, and NKD dynamically creates the requi
 
 ## Software architecture
 
-For more information, see [Software Architecture](docs/overall_design.md)
+For more information, see [Software Architecture](docs/en/overall_design.md)
 
 ## Install and deploy
 
-Please refer to the [user manual for details](docs/manual.md)
+Please refer to the [user manual for details](docs/en/manual.md)
 
 ## Planning for the future
 
