@@ -49,10 +49,10 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.UintVarP(&opts.Opts.KubernetesAPIVersion, "kubernetes-apiversion", "", 0,
 		"Sets the Kubernetes API version. Acceptable reference values:\n"+
 			"  - 1 for Kubernetes versions < v1.15.0,\n"+
-			"  - 2 for Kubernetes versions between v1.15.0 and v1.22.0,\n"+
+			"  - 2 for Kubernetes versions >= v1.15.0 && < v1.22.0,\n"+
 			"  - 3 for Kubernetes versions >= v1.22.0")
 	flags.StringVarP(&opts.Opts.Token, "token", "", "", "Specify the authentication token for accessing resources")
-	flags.StringVarP(&opts.Opts.CertificateKey, "CertificateKey", "", "", "Specifies the certificate key to be added to the master node")
+	flags.StringVarP(&opts.Opts.CertificateKey, "certificateKey", "", "", "Specifies the certificate key to be added to the master node")
 	flags.StringVarP(&opts.Opts.NetWork.ServiceSubnet, "service-subnet", "", "", "Specify the subnet for Kubernetes services")
 	flags.StringVarP(&opts.Opts.NetWork.PodSubnet, "pod-subnet", "", "", "Specify the subnet for Kubernetes Pods.")
 	flags.StringVarP(&opts.Opts.NetWork.Plugin, "network-plugin-url", "", "", "URL for the network plugin")
@@ -108,7 +108,7 @@ func SetupTemplateCmdOpts(templateCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.ReleaseImageUrl, "release-image-url", "", "", "Specify the URL of the NestOS container image that contains the Kubernetes component. Only supports the qcow2 format.")
 	flags.StringVarP(&opts.Opts.KubeVersion, "kubeversion", "", "", "Specify the version of Kubernetes to deploy")
 	flags.StringVarP(&opts.Opts.Token, "token", "", "", "Specify the authentication token for accessing resources")
-	flags.StringVarP(&opts.Opts.CertificateKey, "CertificateKey", "", "", "Specifies the certificate key to be added to the master node")
+	flags.StringVarP(&opts.Opts.CertificateKey, "certificateKey", "", "", "Specifies the certificate key to be added to the master node")
 	flags.StringVarP(&opts.Opts.NetWork.ServiceSubnet, "service-subnet", "", "", "Specify the subnet for Kubernetes services")
 	flags.StringVarP(&opts.Opts.NetWork.PodSubnet, "pod-subnet", "", "", "Specify the subnet for Kubernetes Pods.")
 	flags.StringVarP(&opts.Opts.NetWork.Plugin, "network-plugin-url", "", "", "URL for the network plugin")
