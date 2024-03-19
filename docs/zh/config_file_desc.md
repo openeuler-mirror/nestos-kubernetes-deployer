@@ -27,7 +27,7 @@ worker:                                             # 配置worker节点的列�
     ram: 8192
     disk: 50
   ip: ""                                            # 如果不设置worker节点IP地址，则由dhcp自动分配，默认为空
-runtime: isulad                                     # 指定容器运行时类型，目前支持 docker、isulad、containerd和crio
+runtime: isulad                                     # 指定容器运行时类型，目前支持 docker、isulad和crio
 kubernetes:                                         # 集群相关配置列表
   kubernetes-version: "v1.23.10"                    # 部署集群的版本
   kubernetes-apiversion: "v1beta3"                  # 指定kubeadm配置文件格式的版本，目前支持 v1beta3、v1beta2、v1beta1
