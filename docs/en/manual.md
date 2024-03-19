@@ -1,177 +1,177 @@
-# 用户操作手册
+# User Operation Manual
 
-## 准备工作 
+## Preparation
 
-* 环境要求
+* Environment Requirements
   * Linux x86_64/aarch64
-  * 安装tofu软件包
+  * Installation of the tofu software package
     ``` shell
-    # 安装amd64版本
+    # Install amd64 version
     $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_amd64.rpm
     $ rpm -ivh tofu_1.6.0-rc1_amd64.rpm
     ``` 
     ``` shell
-    # 安装arm64版本
+    # Install arm64 version
     $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_arm64.rpm
     $ rpm -ivh tofu_1.6.0-rc1_arm64.rpm
     ``` 
 
-* 安装NKD
-  * 选择拷贝编译好的NKD二进制文件直接使用
-  * 根据以下编译安装说明编译安装NKD
+* Install NKD
+  * Choose to directly use precompiled NKD binary files.
+  * Compile and install NKD according to the following compilation and installation instructions
 
-备注：
-为确保NKD部署的顺利运行，其所在的部署环境需能够与集群节点机器网络正常通信。如果存在防火墙，需正确配置以允许NKD与集群之间的通信，如开放特定的http服务端口。若采用域名进行通信，需确保DNS服务器配置正确，并且NKD所在的环境能够访问DNS服务器。
+Note:
+To ensure the smooth operation of NKD deployment, the deployment environment where it resides must be able to communicate properly with the cluster node machines. If there is a firewall, it needs to be configured correctly to allow communication between NKD and the cluster, such as opening specific http service ports. If domain names are used for communication, ensure that DNS server configuration is correct and that the environment where NKD resides can access the DNS server.
 
-## 支持平台
+## Supported Platforms
 
 ### libvirt
-libvirt平台部署集群，需要提前安装libvirt虚拟化环境
+Deploying clusters on the libvirt platform requires pre-installation of the libvirt virtualization environment.
 
 ### openstack
-openstack平台部署集群，需要提前搭建好openstack环境
+Deploying clusters on the OpenStack platform requires pre-setup of the OpenStack environment.
 
-## 编译安装
+## Compilation and Installation
 
-* 编译环境：Linux x86_64/aarch64
-* 进行编译需要以下软件包：
+* Compilation Environment: Linux x86_64/aarch64
+* The following software packages are required for compilation:
   * golang >= 1.17
   * git
   ``` shell
   $ sudo yum install golang git
   ```  
-* 使用git获取本项目的源码
+* Use git to obtain the source code of this project
   ``` shell
   sudo git clone https://gitee.com/openeuler/nestos-kubernetes-deployer
   ```
-* 编译二进制
+* Compile binaries
   ``` shell
   $ sh hack/build.sh
   ```
 
-## 配置管理
+## Configuration Management
 
-### 全局配置
-全局配置文件用于管理整个集群（多集群）的配置，具体的配置项参数和默认配置详见[全局配置文件说明](./globalconfig_file_desc.md)
+### Global Configuration
+The global configuration file is used to manage the configuration of the entire cluster (or multiple clusters). For specific configuration parameters and default configurations, refer to the [Global Configuration File Description](./globalconfig_file_desc.md)
 
-#### 点火服务配置参数：
-NKD部署集群过程中集群节点需要访问NKD提供的点火服务，通过以下全局配置参数对点火服务进行配置：
-* bootstrap_ign_host：点火服务地址（域名或ip，一般为NKD运行环境）
-* bootstrap_ign_port：点火服务端口（默认9080，需自行开放防火墙端口）
+#### Ignition Service Configuration Parameters
+During the NKD cluster deployment process, cluster nodes need to access the ignition service provided by NKD. The ignition service is configured through the following global configuration parameters:
+* bootstrap_ign_host：Ignition service address (domain name or IP, usually NKD operating environment)
+* bootstrap_ign_port：Ignition service port (default 9080, you need to open the firewall port yourself)
 
-为适配多网卡环境，点火服务真实监听地址为0.0.0.0。
-* 简单网络环境下，部署集群节点可直接访问NKD服务，"bootstrap_ign_host"参数项可以为空，此时NKD会探测路由表默认最高优先级的IP地址作为访问点火服务URL的host；
-* 复杂网络环境下，部署集群节点无法直接访问NKD的运行环境，"bootstrap_ign_host"参数项需要配置为对外映射ip或域名，用户需自行配置NAT映射或DNS服务，以确保集群节点可访问到NKD点火服务。
+To adapt to multi-NIC environments, the actual listening address of the ignition service is 0.0.0.0.
+* In a simple network environment, cluster nodes can directly access the NKD service. The "bootstrap_ign_host" parameter can be left empty. In this case, NKD will detect the IP address with the highest priority in the routing table as the host for accessing the ignition service URL.
+* In complex network environments where cluster nodes cannot directly access the NKD runtime environment, the "bootstrap_ign_host" parameter needs to be configured as an externally mapped IP or domain name. Users need to configure NAT mapping or DNS services themselves to ensure that cluster nodes can access the NKD ignition service.
 
-"bootstrap_ign_port"参数当前被点火服务监听端口和访问点火服务URL端口复用，简单网络环境下这两个值保持一致，但复杂网络环境下，需保证NKD服务对外映射端口与本地监听端口保持一致。
+The "bootstrap_ign_port" parameter is currently shared by the ignition service listening port and the ignition service URL access port. In a simple network environment, these two values are consistent. However, in complex network environments, it is necessary to ensure that the externally mapped port for the NKD service is consistent with the locally listened port.
 
-### 集群配置
-集群配置文件用于对每个集群独立配置，具体的配置项参数和默认配置详见[集群配置文件说明](./config_file_desc.md)
+### Cluster Configuration
+The cluster configuration file is used to configure each cluster independently. For specific configuration parameters and default configurations, please refer to the [Cluster Configuration File Description](./config_file_desc.md)
 
-## 基本功能
+## Basic Functions
 
-在“部署集群”章节中有部署集群的具体过程，这里列出了NKD的基本执行指令：
+The specific process is outlined in the "Create Cluster" section. Here are the basic execution commands for NKD:
   ``` shell
-  # 生成默认配置模板
+  # Generate default configuration template
   $ nkd template -f cluster_config.yaml
 
-  # 应用配置文件部署集群
+  # Deploy the cluster using the configuration file
   $ nkd deploy -f cluster_config.yaml
 
-  # 销毁指定集群
+  # Destroy a specific cluster
   $ nkd destroy --cluster-id [your-cluster-id]
 
-  # 扩展指定集群节点数量
+  # Scale the number of nodes in a specific cluster
   $ nkd extend --cluster-id [your-cluster-id] --num 10
 
-  # 升级指定集群
-  # --cluster-id string: 指定要升级的集群的唯一标识符
-  # --force: 强制驱逐Pod，这可能导致数据丢失或服务中断，请谨慎使用
-  # --imageurl string: 指定用于升级的容器镜像的地址
-  # --kube-version string: 选择特定的Kubernetes版本进行升级
-  # --kubeconfig string: 指定访问Kubeconfig文件的路径，默认为 "/etc/nkd/[your-cluster-id]/admin.config"
-  # --maxunavailable uint: 同时升级的节点的最大数量
+  # Upgrade a specific cluster
+  # --cluster-id string: Unique identifier for the cluster
+  # --force: Force eviction of pods even if unsafe. This may result in data loss or service disruption, use with caution (default: false)
+  # --imageurl string: The address of the container image to use for upgrading
+  # --kube-version string: Choose a specific kubernetes version for upgrading
+  # --kubeconfig string: Specify the access path to the Kubeconfig file，default "/etc/nkd/[your-cluster-id]/admin.config"
+  # --maxunavailable uint: Number of nodes that are upgraded at the same time (default: 2)
   $ nkd upgrade --cluster-id [your-cluster-id] --imageurl [your-image-url] --kube-version [your-k8s-version] 
   ```
-除了应用配置文件部署集群外，支持应用配置项参数部署集群
+Supports deploying the cluster using application configuration parameters, in addition to deploying it with application configuration files
   ``` shell
   $ nkd deploy --help
-    --arch string                   部署集群的机器架构
-    --bootstrap-ign-host string     指定点火服务地址
-    --bootstrap-ign-port string     指定点火服务端口
-    --certificateKey string         指定要添加到主节点的证书密钥
-    --cluster-id string             指定集群的唯一标识符                 
-    --controller-image-url string   指定Housekeeper控制器组件的容器镜像地址
-    --deploy-housekeeper            是否部署Housekeeper Operator，默认false
-    -f, --file string               指定集群部署配置文件的位置
-    --image-registry string         指定用于拉取Kubernetes组件容器镜像的地址
-    --kubernetes-apiversion uint    指定Kubernetes API版本。可接受的参考数值为：
-                                    - 1 用于Kubernetes版本 < v1.15.0;
-                                    - 2 用于Kubernetes版本 >= v1.15.0 && < v1.22.0;
-                                    - 3 用于Kubernetes版本 >= v1.22.0;
-    --kubeversion string            指定要部署的Kubernetes版本
-    --master-cpu uint               设置主节点的CPU（单位：核）
-    --master-disk uint              设置主节点磁盘大小（单位：GB）
-    --master-hostname stringArray   设置主节点主机名
-    --master-ips stringArray        设置主节点IP地址
-    --master-ram uint               设置主节点的RAM（单位：MB）
-    --network-plugin-url            网络插件类型的URL
-    --operator-image-url string     指定Housekeeper Operator组件的容器镜像地址
-    --password string               指定 ssh 登录所配置节点的密码
-    --pause-image string            指定pause容器的镜像
-    --platform string               选择用于部署集群的基础设施平台
-    --pod-subnet string             指定Kubernetes Pod的子网
-    --release-image-url string      指定包含Kubernetes组件的NestOS容器镜像的URL，仅支持qcow2格式
-    --runtime string                指定容器运行时类型
-    --service-subnet string         指定Kubernetes服务的子网，默认为 "10.96.0.0/16"
-    --sshkey string                 ssh 免密登录的密钥存储文件的路径
-    --token string                  指定用于访问资源的身份验证令牌
-    --username string               需要部署 k8s 集群的机器的 ssh 登录用户名
-    --worker-cpu uint               设置工作节点的CPU（单位：核心）
-    --worker-disk uint              设置工作节点磁盘大小（单位：GB）
-    --worker-hostname stringArray   设置工作节点主机名  
-    --worker-ips stringArray        设置工作节点IP地址
-    --worker-ram uint               设置工作节点的RAM（单位：MB）
-  # 应用可选配置项参数部署集群
+      --arch string                   Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)
+      --bootstrap-ign-host string     Ignition service address (domain name or IP)
+      --bootstrap-ign-port string     Ignition service port (default: 9080)
+      --certificateKey string         The key that is used for decryption of certificates after they are downloaded from the secret upon joining a new master node. (the certificate key is a hex encoded string that is an AES key of size 32 bytes)
+      --cluster-id string             Unique identifier for the cluster
+      --controller-image-url string   URL of the container image for the housekeeper controller component
+      --deploy-housekeeper            Deploy the Housekeeper Operator. (default: false)
+  -f, --file string                   Location of the cluster deploy config file
+  -h, --help                          help for deploy
+      --image-registry string         Registry address for Kubernetes component container images
+      --kubernetes-apiversion uint    Sets the Kubernetes API version. Acceptable reference values:
+                                        - 1 for Kubernetes versions < v1.15.0,
+                                        - 2 for Kubernetes versions >= v1.15.0 && < v1.22.0,
+                                        - 3 for Kubernetes versions >= v1.22.0
+      --kubeversion string            Version of Kubernetes to deploy
+      --master-cpu uint               CPU allocation for master nodes (units: cores)
+      --master-disk uint              Disk size allocation for master nodes (units: GB)
+      --master-hostname stringArray   Hostnames of master nodes (e.g., --master-hostname [master-01] --master-hostname [master-02] ...)
+      --master-ips stringArray        IP addresses of master nodes (e.g., --master-ips [master-ip-01] --master-ips [master-ip-02] ...)
+      --master-ram uint               RAM allocation for master nodes (units: MB)
+      --network-plugin-url string     The deployment yaml URL of the network plugin
+      --operator-image-url string     URL of the container image for the housekeeper operator component
+      --password string               Password for node login
+      --pause-image string            Image for the pause container (e.g., pause:TAG)
+      --platform string               Infrastructure platform for deploying the cluster (supports 'libvirt' or 'openstack')
+      --pod-subnet string             Subnet used for Kubernetes Pods. (default: 10.244.0.0/16)
+      --release-image-url string      URL of the NestOS container image containing Kubernetes component
+      --runtime string                Container runtime type (docker, isulad or crio)
+      --service-subnet string         Subnet used by Kubernetes services. (default: 10.96.0.0/16)
+      --sshkey string                 SSH key file path used for node authentication (default: ~/.ssh/id_rsa.pub)
+      --token string                  Used to validate the cluster information obtained from the control plane, with non-control plane nodes used for joining the cluster
+      --username string               User name for node login
+      --worker-cpu uint               CPU allocation for worker nodes (units: cores)
+      --worker-disk uint              Disk size allocation for worker nodes (units: GB)
+      --worker-hostname stringArray   Hostnames of worker nodes (e.g., --worker-hostname [worker-01] --worker-hostname [worker-02] ...)
+      --worker-ips stringArray        IP addresses of worker nodes (e.g., --worker-ips [worker-ip-01] --worker-ips [worker-ip-02] ...)
+      --worker-ram uint               RAM allocation for worker nodes (units: MB)
+  # Deploying the cluster with optional application configuration parameters
   $ nkd deploy --platform [platform] --master-ips [master-ip-01] --master-ips [master-ip-02] --master-hostname [master-hostname-01] --master-hostname [master-hostname-02] --master-cpu [master-cpu-cores] --worker-hostname [worker-hostname-01] --worker-disk [worker-disk-size]
   ```
 
-## 部署过程展示
+## Deployment Process Demonstration
 
-调整集群部署配置文件
+Adjusting Cluster Deployment Configuration Files
 ![](./figures/cluster_config.mp4)
 
-应用配置文件部署集群
+Deploying the Cluster with Application Configuration Files
 ![](./figures/cluster_deploy.mp4)
 
-## 镜像构建
+## Image Building
 
-* NestOS容器镜像支持利用Dockerfile在原来的基础上构建新的容器镜像
-* 制作注意事项
-    * 请确保已安装docker。
-    * 基础镜像需从NestOS官网下载最新版本容器镜像。
-    * 制作部署镜像，需提前下载相对应版本的kubeadm、kubelet、crictl二进制文件并复制到/usr/bin目录，以及将calico网络插件的yaml文件复制到/etc/nkd目录。
-    * 软件包的安装需要使用rpm-ostree命令。
- * Dockerfiles示例如下
+* NestOS container images support building new container images based on the existing Dockerfile.
+* Considerations for Making
+    * Ensure Docker is installed
+    * Download the latest version of the base image from the NestOS official website
+    * For making deployment images, download the corresponding versions of kubeadm, kubelet, crictl binary files in advance and copy them to the /usr/bin directory. 
+    * Installation of packages requires the use of the rpm-ostree command
+ * Example Dockerfiles:
       ``` dockerfile
       FROM nestos_base_image
       COPY kube* /usr/bin/
-      COPY calico.yaml /etc/nkd/
       RUN ostree container commit
       ```
-备注：部署集群前用户需要自定义构建部署镜像
+Note: Users need to customize building deployment images before deploying the cluster.
 
-## 部署集群
+## Create Cluster
 
- - 不添加任何配置项，通过默认配置部署集群。默认选择libvirt平台，并创建1个master节点、1个worker节点
+ - Deploy the cluster using default configurations without adding any parameters. The default platform is libvirt, and it creates one master node and one worker node
     ``` shell
     $ nkd deploy
     ```
- - 添加可选参数项部署集群，命令示例：
+ - Deploy the cluster with optional parameters. Example command:
     ``` shell
     $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50
     ```
- - 此外更精细化的配置，可以通过集群配置文件部署集群，详情见配置管理。
+ - Additionally, for more fine-grained configurations, you can deploy the cluster using a cluster configuration file. See configuration management for details.
     ``` shell
     $ nkd deploy -f cluster_config.yaml
     ```
