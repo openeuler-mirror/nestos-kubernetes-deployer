@@ -1,4 +1,5 @@
 # nestos-kubernetes-deployer
+![ignition_design_2](/docs/logo/nkd-logo.png)
 
 ## Introduction
 

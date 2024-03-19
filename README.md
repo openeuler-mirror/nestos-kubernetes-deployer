@@ -1,4 +1,5 @@
 # nestos-kubernetes-deployer
+![ignition_design_2](/docs/logo/nkd-logo.png)
 
 ## 介绍
 NKD（NestOS Kubernetes Deployer）是专为在NestOS上部署和维护Kubernetes集群而打造的解决方案。其旨在通过在集群外提供一系列服务，涵盖了基础设施和Kubernetes核心组件的部署、更新和配置管理等，从而简化了集群部署和升级的流程。NKD的设计目标在于提供更为便捷的集群操作体验，使得用户能够轻松完成复杂的管理任务，从而提高整体部署和维护的效率。
