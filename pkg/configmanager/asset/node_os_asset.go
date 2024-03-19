@@ -23,10 +23,9 @@ import (
 
 var (
 	mapRuntime = map[string]string{
-		"isulad":     "/var/run/isulad.sock",
-		"docker":     "/var/run/dockershim.sock",
-		"containerd": "unix:///var/run/containerd/containerd.sock",
-		"crio":       "unix:///var/run/crio/crio.sock",
+		"isulad": "/var/run/isulad.sock",
+		"docker": "/var/run/dockershim.sock",
+		"crio":   "unix:///var/run/crio/crio.sock",
 	}
 )
 

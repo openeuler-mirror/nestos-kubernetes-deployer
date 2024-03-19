@@ -27,7 +27,7 @@ worker:                                             # worker config
     ram: 8192
     disk: 50
   ip: ""                                            # If the worker node IP address is not set, it will be automatically assigned by dhcp and will be empty by default.
-runtime: isulad                                     # support docker、isulad、containerd、crio
+runtime: isulad                                     # support docker、isulad、crio
 kubernetes:                                         
   kubernetes-version: "v1.23.10"                   
   kubernetes-apiversion: "v1beta3"                  # support v1beta3、v1beta2、v1beta1
