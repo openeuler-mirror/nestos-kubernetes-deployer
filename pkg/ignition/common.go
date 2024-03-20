@@ -32,7 +32,6 @@ var (
 	EnabledServices = []string{
 		"kubelet.service",
 		"set-kernel-para.service",
-		"disable-selinux.service",
 		"init-cluster.service",
 		"join-master.service",
 		"release-image-pivot.service",
@@ -41,18 +40,21 @@ var (
 )
 
 type TmplData struct {
-	NodeName        string
-	APIServerURL    string
-	ImageRegistry   string
-	PauseImage      string
-	KubeVersion     string
-	ServiceSubnet   string
-	PodSubnet       string
-	Token           string
-	CorednsImageTag string
-	ReleaseImageURl string
-	CertificateKey  string
-	Hsip            string //HostName + IP
+	NodeName          string
+	APIServerURL      string
+	ImageRegistry     string
+	Runtime           string
+	CriSocket         string
+	PauseImage        string
+	KubeVersion       string
+	ServiceSubnet     string
+	PodSubnet         string
+	Token             string
+	CaCertHash        string
+	ReleaseImageURl   string
+	CertificateKey    string
+	Hsip              string //HostName + IP
+	KubeadmApiVersion string
 }
 
 type Common struct {
@@ -198,24 +200,33 @@ func appendSystemdUnits(config *igntypes.Config, uri string, tmplData interface{
 	return nil
 }
 
-func GetTmplData(c *asset.ClusterAsset) *TmplData {
+func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 	var hsip string
 	for i := 0; i < len(c.Master); i++ {
 		temp := c.Master[i].IP + " " + c.Master[i].Hostname + "\n"
 		hsip = hsip + temp
 	}
 
-	return &TmplData{
-		APIServerURL:    c.Kubernetes.ApiServer_Endpoint,
-		ImageRegistry:   c.Kubernetes.Image_Registry,
-		PauseImage:      c.Kubernetes.Pause_Image,
-		KubeVersion:     c.Kubernetes.Kubernetes_Version,
-		ServiceSubnet:   c.Network.Service_Subnet,
-		PodSubnet:       c.Network.Pod_Subnet,
-		Token:           c.Kubernetes.Token,
-		CorednsImageTag: c.Network.CoreDNS_Image_Version,
-		ReleaseImageURl: c.Kubernetes.Release_Image_URL,
-		CertificateKey:  c.Kubernetes.CertificateKey,
-		Hsip:            hsip,
+	criSocket, err := asset.GetRuntimeCriSocket(c.Runtime)
+	if err != nil {
+		logrus.Errorf("Error getting runtime %s: %v\n", c.Runtime, err)
+		return nil, err
 	}
+
+	return &TmplData{
+		APIServerURL:      c.Kubernetes.ApiServerEndpoint,
+		ImageRegistry:     c.Kubernetes.ImageRegistry,
+		Runtime:           c.Runtime,
+		CriSocket:         criSocket,
+		PauseImage:        c.Kubernetes.PauseImage,
+		KubeVersion:       c.Kubernetes.KubernetesVersion,
+		KubeadmApiVersion: c.Kubernetes.KubernetesAPIVersion,
+		ServiceSubnet:     c.Network.ServiceSubnet,
+		PodSubnet:         c.Network.PodSubnet,
+		Token:             c.Kubernetes.Token,
+		CaCertHash:        c.Kubernetes.CaCertHash,
+		ReleaseImageURl:   c.Kubernetes.ReleaseImageURL,
+		CertificateKey:    c.Kubernetes.CertificateKey,
+		Hsip:              hsip,
+	}, nil
 }
