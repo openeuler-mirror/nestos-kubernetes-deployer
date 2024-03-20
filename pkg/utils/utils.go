@@ -24,6 +24,31 @@ import (
 	"strings"
 )
 
+type version uint
+
+const (
+	v1beta1 version = iota + 1
+	v1beta2
+	v1beta3
+)
+
+var versionMap = map[version]string{
+	v1beta1: "v1beta1",
+	v1beta2: "v1beta2",
+	v1beta3: "v1beta3",
+}
+
+func GetKubernetesApiVersion(versionNumber uint) (string, error) {
+	if versionNumber == 0 {
+		return "", nil
+	}
+	v := version(versionNumber)
+	if str, ok := versionMap[v]; ok {
+		return str, nil
+	}
+	return "", fmt.Errorf("unsupported kubernetes api version number: %d", versionNumber)
+}
+
 func GetDefaultPubKeyPath() string {
 	return filepath.Join(getSysHome(), ".ssh", "id_rsa.pub")
 }

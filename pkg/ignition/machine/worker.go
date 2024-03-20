@@ -43,7 +43,10 @@ func (w *Worker) GenerateFiles() error {
 		return err
 	}
 
-	workerTemplateData := ignition.GetTmplData(w.ClusterAsset)
+	workerTemplateData, err := ignition.GetTmplData(w.ClusterAsset)
+	if err != nil {
+		return err
+	}
 	generateFile := ignition.Common{
 		UserName:        w.ClusterAsset.UserName,
 		SSHKey:          string(sshkeyContent),

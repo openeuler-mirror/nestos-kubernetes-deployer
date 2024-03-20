@@ -217,13 +217,13 @@ func generateDeployConfig(conf *asset.ClusterAsset) error {
 }
 
 func generateCerts(conf *asset.ClusterAsset) error {
-	// Generate CA certificates
-	masterCerts, err := cert.GenerateAllFiles(conf.Cluster_ID, &conf.Master[0])
+	cg := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
+	err := cg.GenerateAllFiles()
 	if err != nil {
 		logrus.Errorf("Error generating all certs files: %v", err)
 		return err
 	}
-	conf.Master[0].Certs = masterCerts
+	conf.CaCertHash = cg.CaCertHash
 	return nil
 }
 

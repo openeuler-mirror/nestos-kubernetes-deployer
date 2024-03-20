@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -157,6 +158,7 @@ type ClusterAsset struct {
 	SSHKey   string
 	Master   []NodeAsset
 	Worker   []NodeAsset
+	Runtime  string `yaml:"runtime"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
 	Kubernetes
 	Housekeeper
 	CertAsset
@@ -166,23 +168,24 @@ type InfraPlatform interface {
 }
 
 type Kubernetes struct {
-	Kubernetes_Version string
-	ApiServer_Endpoint string
-	Image_Registry     string
-	Pause_Image        string
-	Release_Image_URL  string
-	Token              string
-	AdminKubeConfig    string
-	CertificateKey     string
+	KubernetesVersion    string `yaml:"kubernetes-version"`
+	KubernetesAPIVersion string `yaml:"kubernetes-apiversion"`
+	ApiServerEndpoint    string `yaml:"apiserver-endpoint"`
+	ImageRegistry        string `yaml:"image-registry"`
+	PauseImage           string `yaml:"pause-image"`
+	ReleaseImageURL      string `yaml:"release-image-url"`
+	Token                string
+	AdminKubeConfig      string
+	CertificateKey       string
+	CaCertHash           string `json:"-" yaml:"-"`
 
 	Network
 }
 
 type Network struct {
-	Service_Subnet        string
-	Pod_Subnet            string
-	Plugin                string
-	CoreDNS_Image_Version string
+	ServiceSubnet string `yaml:"service-subnet"`
+	PodSubnet     string `yaml:"pod-subnet"`
+	Plugin        string
 }
 
 type Housekeeper struct {
@@ -210,7 +213,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		clusterAsset.Master = append(clusterAsset.Master, cf.Master...)
 	}
 	if len(opts.Master.Hostname) != len(opts.Master.IP) {
-		return nil, fmt.Errorf("The number of configuration parameters master hostname and ip should be the same")
+		return nil, fmt.Errorf("the number of configuration parameters master hostname and ip should be the same")
 	}
 	if len(opts.Master.IP) != 0 {
 		clusterAsset.Master = setMasterConfigs(clusterAsset.Master, &opts.Master)
@@ -242,7 +245,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	// set worker IPs
 	if len(opts.Worker.IP) != 0 {
 		if len(opts.Worker.Hostname) != len(opts.Worker.IP) {
-			return nil, fmt.Errorf("The number of configuration parameters worker hostname and ip should be the same")
+			return nil, fmt.Errorf("the number of configuration parameters worker hostname and ip should be the same")
 		}
 		for i, _ := range opts.Worker.IP {
 			clusterAsset.Worker[i].IP = opts.Worker.IP[i]
@@ -270,17 +273,23 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.UserName, opts.UserName, cf.UserName)
 	setStringValue(&clusterAsset.Password, opts.Password, cf.Password)
 	setStringValue(&clusterAsset.SSHKey, opts.SSHKey, cf.SSHKey)
-	setStringValue(&clusterAsset.Kubernetes.Kubernetes_Version, opts.KubeVersion, cf.Kubernetes_Version)
-	setStringValue(&clusterAsset.Kubernetes.ApiServer_Endpoint, opts.ApiServerEndpoint, cf.ApiServer_Endpoint)
-	setStringValue(&clusterAsset.Kubernetes.Image_Registry, opts.ImageRegistry, cf.Image_Registry)
-	setStringValue(&clusterAsset.Kubernetes.Pause_Image, opts.PauseImage, cf.Pause_Image)
-	setStringValue(&clusterAsset.Kubernetes.Release_Image_URL, opts.ReleaseImageUrl, cf.Release_Image_URL)
+	setStringValue(&clusterAsset.Kubernetes.KubernetesVersion, opts.KubeVersion, cf.KubernetesVersion)
+	setStringValue(&clusterAsset.Runtime, opts.Runtime, cf.Runtime)
+	setStringValue(&clusterAsset.Kubernetes.ApiServerEndpoint, opts.ApiServerEndpoint, cf.ApiServerEndpoint)
+	setStringValue(&clusterAsset.Kubernetes.ImageRegistry, opts.ImageRegistry, cf.ImageRegistry)
+	setStringValue(&clusterAsset.Kubernetes.PauseImage, opts.PauseImage, cf.PauseImage)
+	setStringValue(&clusterAsset.Kubernetes.ReleaseImageURL, opts.ReleaseImageUrl, cf.ReleaseImageURL)
 	setStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, opts.CertificateKey)
 	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
-	setStringValue(&clusterAsset.Kubernetes.Network.Service_Subnet, opts.NetWork.ServiceSubnet, cf.Service_Subnet)
-	setStringValue(&clusterAsset.Kubernetes.Network.Pod_Subnet, opts.NetWork.PodSubnet, cf.Network.Pod_Subnet)
+	setStringValue(&clusterAsset.Kubernetes.Network.ServiceSubnet, opts.NetWork.ServiceSubnet, cf.ServiceSubnet)
+	setStringValue(&clusterAsset.Kubernetes.Network.PodSubnet, opts.NetWork.PodSubnet, cf.Network.PodSubnet)
 	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
-	setStringValue(&clusterAsset.Kubernetes.Network.CoreDNS_Image_Version, opts.NetWork.DNS.ImageVersion, cf.Network.CoreDNS_Image_Version)
+	apiVersion, err := utils.GetKubernetesApiVersion(opts.KubernetesAPIVersion)
+	if err != nil {
+		logrus.Errorf("Error getting kubernetes api version: %v\n", err)
+		return nil, err
+	}
+	setStringValue(&clusterAsset.Kubernetes.KubernetesAPIVersion, apiVersion, cf.KubernetesAPIVersion)
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
 		setStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
@@ -360,19 +369,20 @@ func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
 				IP: "",
 			},
 		},
+		Runtime: "isulad",
 		Kubernetes: Kubernetes{
-			Kubernetes_Version: "v1.23.10",
-			ApiServer_Endpoint: utils.GetApiServerEndpoint("192.168.132.11"),
-			Image_Registry:     "k8s.gcr.io",
-			Pause_Image:        "pause:3.6",
-			Release_Image_URL:  "",
-			Token:              generateToken(),
-			CertificateKey:     "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
+			KubernetesVersion:    "v1.23.10",
+			KubernetesAPIVersion: "v1beta3",
+			ApiServerEndpoint:    utils.GetApiServerEndpoint("192.168.132.11"),
+			ImageRegistry:        "k8s.gcr.io",
+			PauseImage:           "pause:3.6",
+			ReleaseImageURL:      "",
+			Token:                generateToken(),
+			CertificateKey:       "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
 			Network: Network{
-				Service_Subnet:        "10.96.0.0/16",
-				Pod_Subnet:            "10.244.0.0/16",
-				Plugin:                "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
-				CoreDNS_Image_Version: "v1.8.6",
+				ServiceSubnet: "10.96.0.0/16",
+				PodSubnet:     "10.244.0.0/16",
+				Plugin:        "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
 			},
 		},
 		Housekeeper: Housekeeper{
