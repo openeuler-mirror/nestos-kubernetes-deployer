@@ -44,6 +44,8 @@ type OptionsList struct {
 	KubernetesAPIVersion uint
 	Token                string
 	CertificateKey       string
+	PreHookScript        string
+	PostHookYaml         string
 
 	NetWork NetworkConfig
 	Housekeeper
