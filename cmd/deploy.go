@@ -22,13 +22,13 @@ import (
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/data"
-	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
+	"nestos-kubernetes-deployer/pkg/osmanager"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"net/http"
 	"os"
@@ -143,8 +143,13 @@ func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpFileService, er
 }
 
 func deployCluster(conf *asset.ClusterAsset) error {
-	if err := generateDeployConfig(conf); err != nil {
-		logrus.Errorf("Failed to get cluster deploy config: %v", err)
+	osDep, err := osmanager.NewNestOS(conf)
+	if err != nil {
+		logrus.Errorf("Error creating NestOS osmanager instance: %v", err)
+		return err
+	}
+	if err := osDep.GenerateResourceFiles(); err != nil {
+		logrus.Errorf("Error generating NestOS resource files: %v", err)
 		return err
 	}
 
@@ -194,77 +199,6 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		return err
 	}
 	logrus.Info("Cluster deployment completed successfully!")
-	return nil
-}
-
-func generateDeployConfig(conf *asset.ClusterAsset) error {
-	if err := generateCerts(conf); err != nil {
-		logrus.Errorf("Error generating certificate files: %v", err)
-		return err
-	}
-
-	if err := generateIgnition(conf); err != nil {
-		logrus.Errorf("Error generating ignition files: %v", err)
-		return err
-	}
-
-	if err := generateTF(conf); err != nil {
-		logrus.Errorf("Error generating terraform files: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-func generateCerts(conf *asset.ClusterAsset) error {
-	cg := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
-	err := cg.GenerateAllFiles()
-	if err != nil {
-		logrus.Errorf("Error generating all certs files: %v", err)
-		return err
-	}
-	conf.CaCertHash = cg.CaCertHash
-	return nil
-}
-
-func generateIgnition(conf *asset.ClusterAsset) error {
-
-	hostport := configmanager.GetBootstrapIgnHost() + ":" + configmanager.GetBootstrapIgnPort()
-
-	master := &machine.Master{
-		ClusterAsset:      conf,
-		Bootstrap_baseurl: hostport,
-	}
-	if err := master.GenerateFiles(); err != nil {
-		logrus.Errorf("Failed to generate master ignition file: %v", err)
-		return err
-	}
-
-	worker := &machine.Worker{
-		ClusterAsset:      conf,
-		Bootstrap_baseurl: hostport,
-	}
-	if err := worker.GenerateFiles(); err != nil {
-		logrus.Errorf("Failed to generate worker ignition file: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-func generateTF(conf *asset.ClusterAsset) error {
-	// generate master.tf
-	var master infra.Infra
-	if err := master.Generate(conf, "master"); err != nil {
-		logrus.Errorf("Failed to generate master terraform file")
-		return err
-	}
-	// generate worker.tf
-	var worker infra.Infra
-	if err := worker.Generate(conf, "worker"); err != nil {
-		logrus.Errorf("Failed to generate worker terraform file")
-		return err
-	}
 	return nil
 }
 
