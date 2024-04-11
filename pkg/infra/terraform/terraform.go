@@ -19,6 +19,7 @@ package terraform
 import (
 	"context"
 	"fmt"
+	"nestos-kubernetes-deployer/pkg/bufferedprinter"
 	"os"
 	"path/filepath"
 
@@ -51,8 +52,20 @@ func newTFExec(tfFileDir string) (*tfexec.Terraform, error) {
 		}
 	}
 
-	tf.SetStdout(os.Stdout)
-	tf.SetStderr(os.Stderr)
+	bpDebug := bufferedprinter.New(func(args ...interface{}) {
+		lp := bufferedprinter.TrimLastNewline(args...)
+		logrus.Debug(lp...)
+	})
+	defer bpDebug.Close()
+
+	bpError := bufferedprinter.New(func(args ...interface{}) {
+		lp := bufferedprinter.TrimLastNewline(args...)
+		logrus.Error(lp...)
+	})
+	defer bpError.Close()
+
+	tf.SetStdout(bpDebug)
+	tf.SetStderr(bpError)
 
 	tf.SetLogger(newPrintfer())
 
