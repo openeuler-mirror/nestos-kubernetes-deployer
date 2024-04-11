@@ -162,6 +162,20 @@ type ClusterAsset struct {
 	Kubernetes
 	Housekeeper
 	CertAsset
+	HookConf `yaml:"hooks,omitempty"`
+}
+
+type HookConf struct {
+	PreHookScript string      `yaml:"prehookscript,omitempty"`
+	PostHookYaml  string      `yaml:"posthookyaml,omitempty"`
+	ShellFiles    []ShellFile `yaml:"-"`
+	PostHookFiles []string    `yaml:"-"`
+}
+
+type ShellFile struct {
+	Name    string `json:"name" yaml:"-"`
+	Mode    int    `json:"mode" yaml:"-"`
+	Content []byte `json:"content" yaml:"-"`
 }
 
 type InfraPlatform interface {
@@ -284,6 +298,9 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Network.ServiceSubnet, opts.NetWork.ServiceSubnet, cf.ServiceSubnet)
 	setStringValue(&clusterAsset.Kubernetes.Network.PodSubnet, opts.NetWork.PodSubnet, cf.Network.PodSubnet)
 	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
+	setStringValue(&clusterAsset.PreHookScript, opts.PreHookScript, "")
+	setStringValue(&clusterAsset.PostHookYaml, opts.PostHookYaml, "")
+
 	apiVersion, err := utils.GetKubernetesApiVersion(opts.KubernetesAPIVersion)
 	if err != nil {
 		logrus.Errorf("Error getting kubernetes api version: %v\n", err)
@@ -298,6 +315,11 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		setStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "")
 		setUIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, cf.MaxUnavailable)
 		clusterAsset.Housekeeper.EvictPodForce = opts.Housekeeper.EvictPodForce
+	}
+
+	if err := GetCmdHooks(&clusterAsset.HookConf); err != nil {
+		logrus.Errorf("error in initializing cluster hooks config: %v", err)
+		return nil, err
 	}
 
 	return clusterAsset, nil

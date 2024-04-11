@@ -61,6 +61,8 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.BoolVarP(&opts.Opts.DeployHousekeeper, "deploy-housekeeper", "", false, "Deploy the Housekeeper Operator. (default: false)")
 	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnHost, "bootstrap-ign-host", "", "", "Ignition service address (domain name or IP)")
 	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnPort, "bootstrap-ign-port", "", "", "Ignition service port (default: 9080)")
+	flags.StringVarP(&opts.Opts.PreHookScript, "prehook-script", "", "", "Specify a script file or directory to execute before cluster deployment as hooks")
+	flags.StringVarP(&opts.Opts.PostHookYaml, "posthook-yaml", "", "", "Specify a YAML file or directory to apply after cluster deployment using 'kubectl apply'")
 }
 
 func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {
