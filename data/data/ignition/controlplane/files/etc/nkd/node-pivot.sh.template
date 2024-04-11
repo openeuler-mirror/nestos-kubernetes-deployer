@@ -26,6 +26,27 @@ check_and_manage_service() {
     fi
 }
 
+execute_hookfiles() {
+    local directory="$1"
+    if [ ! -d "$directory" ]; then
+        echo "Directory not found: $directory"
+        return 
+    fi
+
+    shell_files=("$directory"/*)
+    if [ ${#shell_files[@]} -eq 0 ]; then
+        echo "No files found in directory: $directory"
+        return
+    fi
+    for file in "${shell_files[@]}"; do
+        if [ -f "$file" ]; then
+            echo "Executing script: $file"
+            . "$file"
+        fi
+    done
+}
+
+execute_hookfiles "{{.HookFilesPath}}"
 check_and_manage_service "{{.Runtime}}"
 check_and_manage_service "housekeeper-daemon"
 
