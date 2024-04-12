@@ -47,12 +47,12 @@ func NewNestOS(conf *asset.ClusterAsset) (*NestOS, error) {
 		conf:  conf,
 		certs: cg,
 		ignitionMaster: &machine.Master{
-			ClusterAsset:      conf,
-			Bootstrap_baseurl: hostport,
+			ClusterAsset:     conf,
+			BootstrapBaseurl: hostport,
 		},
 		ignitionWorker: &machine.Worker{
-			ClusterAsset:      conf,
-			Bootstrap_baseurl: hostport,
+			ClusterAsset:     conf,
+			BootstrapBaseurl: hostport,
 		},
 		infraMaster: &infra.Infra{},
 		infraWorker: &infra.Infra{},

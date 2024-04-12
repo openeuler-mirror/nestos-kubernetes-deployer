@@ -35,8 +35,8 @@ const (
 )
 
 type Master struct {
-	ClusterAsset      *asset.ClusterAsset
-	Bootstrap_baseurl string
+	ClusterAsset     *asset.ClusterAsset
+	BootstrapBaseurl string
 }
 
 func (m *Master) GenerateFiles() error {
@@ -81,6 +81,10 @@ func (m *Master) GenerateFiles() error {
 			mergeCertificatesIntoConfig(generateFile.Config, master.Certs)
 		}
 
+		if len(m.ClusterAsset.ShellFiles) > 0 {
+			ignition.MergeHookFilesIntoConfig(generateFile.Config, m.ClusterAsset.ShellFiles)
+		}
+
 		m.ClusterAsset.Master[i].Ignitions.CreateIgnPath = filepath.Join(ignitionDir, filename)
 		m.ClusterAsset.Master[i].Ignitions.MergeIgnPath = filepath.Join(ignitionDir, mergeFilename)
 
@@ -88,7 +92,7 @@ func (m *Master) GenerateFiles() error {
 			return err
 		}
 
-		mergerConfig := ignition.GenerateMergeIgnition(m.Bootstrap_baseurl, filename)
+		mergerConfig := ignition.GenerateMergeIgnition(m.BootstrapBaseurl, filename)
 		if err := ignition.SaveFile(mergerConfig, ignitionDir, mergeFilename); err != nil {
 			return err
 		}

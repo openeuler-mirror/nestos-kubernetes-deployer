@@ -21,12 +21,15 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"path"
+	"path/filepath"
 	"strings"
 
 	ignutil "github.com/coreos/ignition/v2/config/util"
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/sirupsen/logrus"
 )
+
+const hookFilesPath = "/etc/nkd/hookfiles/"
 
 var (
 	EnabledServices = []string{
@@ -55,6 +58,7 @@ type TmplData struct {
 	CertificateKey    string
 	Hsip              string //HostName + IP
 	KubeadmApiVersion string
+	HookFilesPath     string
 }
 
 type Common struct {
@@ -228,5 +232,14 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 		ReleaseImageURl:   c.Kubernetes.ReleaseImageURL,
 		CertificateKey:    c.Kubernetes.CertificateKey,
 		Hsip:              hsip,
+		HookFilesPath:     hookFilesPath,
 	}, nil
+}
+
+// Merge hook files into ignition.Config
+func MergeHookFilesIntoConfig(config *igntypes.Config, hookFiles []asset.ShellFile) {
+	for _, file := range hookFiles {
+		ignFile := FileWithContents(filepath.Join(hookFilesPath, file.Name), file.Mode, file.Content)
+		config.Storage.Files = AppendFiles(config.Storage.Files, ignFile)
+	}
 }

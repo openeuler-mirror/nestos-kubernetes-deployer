@@ -32,8 +32,8 @@ const (
 )
 
 type Worker struct {
-	ClusterAsset      *asset.ClusterAsset
-	Bootstrap_baseurl string
+	ClusterAsset     *asset.ClusterAsset
+	BootstrapBaseurl string
 }
 
 func (w *Worker) GenerateFiles() error {
@@ -63,13 +63,17 @@ func (w *Worker) GenerateFiles() error {
 		return err
 	}
 
+	if len(w.ClusterAsset.HookConf.ShellFiles) > 0 {
+		ignition.MergeHookFilesIntoConfig(generateFile.Config, w.ClusterAsset.ShellFiles)
+	}
+
 	ignitionDir := filepath.Join(configmanager.GetPersistDir(), w.ClusterAsset.Cluster_ID, "ignition")
 
 	if err := ignition.SaveFile(generateFile.Config, ignitionDir, WorkerIgnFilename); err != nil {
 		return err
 	}
 
-	mergerConfig := ignition.GenerateMergeIgnition(w.Bootstrap_baseurl, WorkerIgnFilename)
+	mergerConfig := ignition.GenerateMergeIgnition(w.BootstrapBaseurl, WorkerIgnFilename)
 	if err := ignition.SaveFile(mergerConfig, ignitionDir, workerMergeIgnFilename); err != nil {
 		return err
 	}

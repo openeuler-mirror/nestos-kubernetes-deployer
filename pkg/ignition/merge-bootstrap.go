@@ -16,7 +16,6 @@ limitations under the License.
 package ignition
 
 import (
-	"fmt"
 	"net/url"
 
 	ignutil "github.com/coreos/ignition/v2/config/util"
@@ -52,7 +51,7 @@ func GenerateMergeIgnition(bootstrapIgnitionHost string, role string) *igntypes.
 						return &url.URL{
 							Scheme: "http",
 							Host:   bootstrapIgnitionHost,
-							Path:   fmt.Sprintf("%s", role),
+							Path:   role,
 						}
 					}().String()),
 				}},
