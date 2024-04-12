@@ -18,6 +18,10 @@ package opts
 
 var Opts OptionsList
 
+var RootOpts struct {
+	LogLevel string
+}
+
 type OptionsList struct {
 	RootOptDir        string
 	Arch              string

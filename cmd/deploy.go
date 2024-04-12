@@ -62,6 +62,9 @@ const (
 )
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
+	cleanup := command.SetuploggerHook(opts.Opts.RootOptDir)
+	defer cleanup()
+
 	if err := validateDeployConfig(); err != nil {
 		return err
 	}
