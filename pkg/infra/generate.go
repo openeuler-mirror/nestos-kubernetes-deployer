@@ -120,13 +120,16 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		)
 
 		infra.Master.Count = len(conf.Master)
-		for _, master := range conf.Master {
+		for i, master := range conf.Master {
 			master_cpu = append(master_cpu, master.CPU)
 			master_ram = append(master_ram, master.RAM)
 			master_disk = append(master_disk, master.Disk)
 			master_hostname = append(master_hostname, master.Hostname)
 			master_ip = append(master_ip, master.IP)
-			master_ignPath = append(master_ignPath, master.Ignitions.MergeIgnPath)
+			if i == 0 {
+				master_ignPath = append(master_ignPath, conf.BootConfig.Controlplane.MergePath)
+			}
+			master_ignPath = append(master_ignPath, conf.BootConfig.Master.MergePath)
 		}
 		infra.Master.CPU, err = convertSliceToStrings(master_cpu)
 		if err != nil {
@@ -172,7 +175,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			}
 			worker_ip = append(worker_ip, worker.IP)
 			worker_hostname = append(worker_hostname, worker.Hostname)
-			worker_ignPath = append(worker_ignPath, worker.Ignitions.MergeIgnPath)
+			worker_ignPath = append(worker_ignPath, conf.BootConfig.Worker.MergePath)
 		}
 		infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
 		if err != nil {

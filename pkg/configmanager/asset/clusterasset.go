@@ -153,16 +153,29 @@ type ClusterAsset struct {
 	Architecture string
 	Platform     string
 	InfraPlatform
-	UserName string
-	Password string
-	SSHKey   string
-	Master   []NodeAsset
-	Worker   []NodeAsset
-	Runtime  string `yaml:"runtime"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
+	UserName   string
+	Password   string
+	SSHKey     string
+	Master     []NodeAsset
+	Worker     []NodeAsset
+	BootConfig NodeType `yaml:"bootconfig,omitempty"`
+	Runtime    string   `yaml:"runtime,omitempty"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
 	Kubernetes
 	Housekeeper
 	CertAsset
 	HookConf `yaml:"hooks,omitempty"`
+}
+
+type NodeType struct {
+	Controlplane BootFile `yaml:"controlplane,omitempty"`
+	Master       BootFile `yaml:"master,omitempty"`
+	Worker       BootFile `yaml:"worker,omitempty"`
+}
+
+type BootFile struct {
+	Content   []byte `json:"content" yaml:"-"`
+	Path      string `json:"path"`
+	MergePath string `json:"mergepath"`
 }
 
 type HookConf struct {

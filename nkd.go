@@ -52,6 +52,7 @@ func newRootCmd() *cobra.Command {
 		Short:            "Creates Kubernetes Clusters",
 		PersistentPreRun: runRootCmd,
 	}
+
 	cmd.PersistentFlags().StringVar(&opts.Opts.RootOptDir, "dir", "/etc/nkd", "Assets directory")
 	cmd.PersistentFlags().StringVar(&opts.RootOpts.LogLevel, "log-level", "info", "log level (e.g. \"debug | info | warn | error\")")
 	return cmd

@@ -14,19 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package bootconfig
 
-type OperatingSystem interface {
-	GenerateResourceFiles() error
+import "os"
+
+type File struct {
+	Node
+	FileEmbedded1
+}
+type Node struct {
+	Overwrite *bool  `json:"overwrite,omitempty"`
+	Path      string `json:"path"`
+}
+type FileEmbedded1 struct {
+	Contents Resource    `json:"contents,omitempty"`
+	Mode     os.FileMode `json:"mode,omitempty"`
+}
+type Resource struct {
+	Source []byte `json:"source,omitempty"`
 }
 
-type BootConfigAPI interface {
-	GenerateBootConfig() error
+type Systemd struct {
+	Units []Unit `json:"units,omitempty"`
 }
-
-// Runtime 接口定义了获取运行时相关信息的方法。
-type Runtime interface {
-	GetRuntimeClient() string
-	// GetRuntimeCriSocket 返回与运行时相关的 CRI (Container Runtime Interface) 套接字地址
-	GetRuntimeCriSocket() string
+type Unit struct {
+	Contents *string `json:"contents,omitempty"`
+	Enabled  *bool   `json:"enabled,omitempty"`
+	Name     string  `json:"name"`
 }

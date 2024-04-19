@@ -1,0 +1,14 @@
+[Unit]
+Description=init kubernetes cluster
+Requires=set-kernel-para.service release-image-pivot.service
+After=set-kernel-para.service release-image-pivot.service
+ConditionPathExists=!/var/log/init-cluster.stamp
+
+[Service]
+ExecStartPre=/bin/bash -c "while [ ! -f /var/log/node-pivot.stamp ]; do sleep 10; done"
+ExecStart=/bin/bash -c "kubeadm init --config=/etc/nkdfiles/init-config.yaml --upload-certs && /bin/touch /var/log/init-cluster.stamp"
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
