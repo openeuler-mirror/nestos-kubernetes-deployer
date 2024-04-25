@@ -24,8 +24,8 @@ import (
 	"nestos-kubernetes-deployer/data"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/httpserver"
-	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/osmanager"
@@ -128,13 +128,19 @@ func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpFileService, er
 	// master ignition files for master node joining the cluster,
 	// and worker ignition files for worker node joining the cluster.
 	if len(conf.Master) > 0 {
-		fileService.AddFileToCache(machine.ControlplaneIgnFilename, conf.Master[0].CreateIgnContent)
+		if err := fileService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
+			return nil, err
+		}
 	}
 	if len(conf.Master) > 1 {
-		fileService.AddFileToCache(machine.MasterIgnFilename, conf.Master[1].CreateIgnContent)
+		if err := fileService.AddFileToCache(constants.MasterIgn, conf.BootConfig.Master.Content); err != nil {
+			return nil, err
+		}
 	}
 	if len(conf.Worker) > 0 {
-		fileService.AddFileToCache(machine.WorkerIgnFilename, conf.Worker[0].CreateIgnContent)
+		if err := fileService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
+			return nil, err
+		}
 	}
 
 	// Start the HTTP file service
@@ -159,6 +165,7 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	// Start HTTP service
 	fileService, err := startHttpService(conf)
 	if err != nil {
+		logrus.Errorf("Error starting HTTP service: %v", err)
 		return err
 	}
 	defer fileService.Stop()

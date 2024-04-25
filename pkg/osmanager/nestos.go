@@ -21,41 +21,36 @@ import (
 	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
-	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
+	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig/ignition"
 
 	"github.com/sirupsen/logrus"
 )
 
 type NestOS struct {
-	conf           *asset.ClusterAsset
-	certs          *cert.CertGenerator
-	ignitionMaster *machine.Master
-	ignitionWorker *machine.Worker
-	infraMaster    *infra.Infra
-	infraWorker    *infra.Infra
+	conf         *asset.ClusterAsset
+	certs        *cert.CertGenerator
+	ignitionFile *ignition.Ignition
+	infraMaster  *infra.Infra
+	infraWorker  *infra.Infra
 }
 
 func NewNestOS(conf *asset.ClusterAsset) (*NestOS, error) {
-	if len(conf.Master) == 0 {
-		errMsg := "master node config is empty"
-		return nil, errors.New(errMsg)
+	if conf == nil {
+		return nil, errors.New("cluster asset config is nil")
 	}
-	hostport := configmanager.GetBootstrapIgnHost() + ":" + configmanager.GetBootstrapIgnPort()
-	cg := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
+	if len(conf.Master) == 0 {
+		return nil, errors.New("master node config is empty")
+	}
+
+	certGenerator := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
+	ignitionFile := ignition.NewIgnition(conf, configmanager.GetBootstrapIgnHostPort())
 	return &NestOS{
-		conf:  conf,
-		certs: cg,
-		ignitionMaster: &machine.Master{
-			ClusterAsset:     conf,
-			BootstrapBaseurl: hostport,
-		},
-		ignitionWorker: &machine.Worker{
-			ClusterAsset:     conf,
-			BootstrapBaseurl: hostport,
-		},
-		infraMaster: &infra.Infra{},
-		infraWorker: &infra.Infra{},
+		conf:         conf,
+		certs:        certGenerator,
+		ignitionFile: ignitionFile,
+		infraMaster:  &infra.Infra{},
+		infraWorker:  &infra.Infra{},
 	}, nil
 }
 
@@ -66,13 +61,8 @@ func (n *NestOS) GenerateResourceFiles() error {
 	}
 	n.conf.CaCertHash = n.certs.CaCertHash
 
-	if err := n.ignitionMaster.GenerateFiles(); err != nil {
-		logrus.Errorf("failed to generate master ignition file: %v", err)
-		return err
-	}
-
-	if err := n.ignitionWorker.GenerateFiles(); err != nil {
-		logrus.Errorf("failed to generate worker ignition file: %v", err)
+	if err := n.ignitionFile.GenerateBootConfig(); err != nil {
+		logrus.Errorf("failed to generate ignition file: %v", err)
 		return err
 	}
 

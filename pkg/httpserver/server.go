@@ -19,8 +19,10 @@ package httpserver
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -45,11 +47,19 @@ func NewFileService(port string) *HttpFileService {
 }
 
 // AddFileToCache add file content to the file cache
-func (fs *HttpFileService) AddFileToCache(fileName string, content []byte) {
+func (fs *HttpFileService) AddFileToCache(fileName string, content []byte) error {
+	if len(content) == 0 {
+		return fmt.Errorf("failed to add file '%s' to cache: content is empty", fileName)
+	}
+
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
-	fileName = "/" + fileName
+	if !strings.HasPrefix(fileName, "/") {
+		fileName = "/" + fileName
+	}
 	fs.fileCache[fileName] = content
+
+	return nil
 }
 
 // RemoveFileFromCache removes file content from the file cache

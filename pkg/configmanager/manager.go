@@ -108,6 +108,10 @@ func GetBootstrapIgnHost() string {
 	return GlobalConfig.BootstrapIgnHost
 }
 
+func GetBootstrapIgnHostPort() string {
+	return GetBootstrapIgnHost() + ":" + GetBootstrapIgnPort()
+}
+
 func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {
 	clusterConfig, ok := ClusterAsset[clusterID]
 	if !ok {

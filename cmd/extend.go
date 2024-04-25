@@ -22,8 +22,8 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/httpserver"
-	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"os"
@@ -111,7 +111,6 @@ func extendArray(c *asset.ClusterAsset, count int) []string {
 				RAM:  c.Worker[i].RAM,
 				Disk: c.Worker[i].Disk,
 			},
-			Ignitions: c.Worker[i].Ignitions,
 		})
 		newHostnames = append(newHostnames, hostname)
 	}
@@ -119,13 +118,13 @@ func extendArray(c *asset.ClusterAsset, count int) []string {
 }
 
 func extendCluster(conf *asset.ClusterAsset, fileService *httpserver.HttpFileService) error {
-	data, err := os.ReadFile(conf.Worker[0].CreateIgnPath)
+	data, err := os.ReadFile(conf.BootConfig.Worker.Path)
 	if err != nil {
 		logrus.Errorf("error reading Ignition file: %v", err)
 		return err
 	}
 
-	fileService.AddFileToCache(machine.WorkerIgnFilename, data)
+	fileService.AddFileToCache(constants.WorkerIgn, data)
 	if err := fileService.Start(); err != nil {
 		logrus.Errorf("error starting file service: %v", err)
 		return err
