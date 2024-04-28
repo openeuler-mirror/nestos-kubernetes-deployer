@@ -117,7 +117,7 @@ func extendArray(c *asset.ClusterAsset, count int) []string {
 	return newHostnames
 }
 
-func extendCluster(conf *asset.ClusterAsset, fileService *httpserver.HttpFileService) error {
+func extendCluster(conf *asset.ClusterAsset, fileService *httpserver.HttpService) error {
 	data, err := os.ReadFile(conf.BootConfig.Worker.Path)
 	if err != nil {
 		logrus.Errorf("error reading Ignition file: %v", err)

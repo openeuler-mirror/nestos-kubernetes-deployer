@@ -38,7 +38,7 @@ func TestHttpFileService(t *testing.T) {
 	fileService.AddFileToCache("test.txt", testContent)
 
 	// Make an HTTP request to retrieve the test file content
-	resp, err := http.Get("http://localhost:9080/test.txt")
+	resp, err := http.Get("http://localhost:9080/file/test.txt")
 	if err != nil {
 		t.Fatalf("Error making GET request: %v", err)
 	}

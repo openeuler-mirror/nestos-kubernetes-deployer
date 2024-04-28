@@ -120,7 +120,7 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 }
 
 // startHttpService initializes the HTTP file service, adds files to the cache, and starts the service.
-func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpFileService, error) {
+func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpService, error) {
 	fileService := httpserver.NewFileService(configmanager.GetBootstrapIgnPort())
 
 	// Ignition files are divided into three types:
