@@ -15,15 +15,18 @@ limitations under the License.
 */
 package runtime
 
-import "nestos-kubernetes-deployer/pkg/constants"
+import (
+	"nestos-kubernetes-deployer/pkg/api"
+)
 
 type isuladRuntime struct {
 }
 
-func (ir *isuladRuntime) GetRuntimeClient() string {
-	return constants.Isulad
-}
-
 func (ir *isuladRuntime) GetRuntimeCriSocket() string {
 	return "/var/run/isulad.sock"
+}
+
+func IsIsulad(rt api.Runtime) bool {
+	_, ok := rt.(*isuladRuntime)
+	return ok
 }

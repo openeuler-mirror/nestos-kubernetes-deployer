@@ -16,7 +16,7 @@ limitations under the License.
 package ignition
 
 import (
-	"net/url"
+	"nestos-kubernetes-deployer/pkg/utils"
 
 	ignutil "github.com/coreos/ignition/v2/config/util"
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -47,13 +47,7 @@ func generateMergeIgnition(bootstrapIgnitionHost string, role string) *igntypes.
 			Version: igntypes.MaxVersion.String(),
 			Config: igntypes.IgnitionConfig{
 				Merge: []igntypes.Resource{{
-					Source: ignutil.StrToPtr(func() *url.URL {
-						return &url.URL{
-							Scheme: "http",
-							Host:   bootstrapIgnitionHost,
-							Path:   role,
-						}
-					}().String()),
+					Source: ignutil.StrToPtr(utils.ConstructURL(bootstrapIgnitionHost, role)),
 				}},
 			},
 		},

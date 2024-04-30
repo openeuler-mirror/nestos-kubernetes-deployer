@@ -19,6 +19,7 @@ package utils
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -89,4 +90,13 @@ func IsPortOpen(port string) bool {
 	}
 	defer listener.Close()
 	return true
+}
+
+func ConstructURL(bootstrapIgnitionHost string, role string) string {
+	u := url.URL{
+		Scheme: "http",
+		Host:   bootstrapIgnitionHost,
+		Path:   role,
+	}
+	return u.String()
 }

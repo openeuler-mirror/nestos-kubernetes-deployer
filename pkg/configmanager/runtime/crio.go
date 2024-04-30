@@ -15,14 +15,15 @@ limitations under the License.
 */
 package runtime
 
-import "nestos-kubernetes-deployer/pkg/constants"
+import "nestos-kubernetes-deployer/pkg/api"
 
 type crioRuntime struct{}
 
-func (cr *crioRuntime) GetRuntimeClient() string {
-	return constants.Crio
-}
-
 func (cr *crioRuntime) GetRuntimeCriSocket() string {
 	return "unix:///var/run/crio/crio.sock"
+}
+
+func IsCrio(rt api.Runtime) bool {
+	_, ok := rt.(*crioRuntime)
+	return ok
 }

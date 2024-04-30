@@ -28,6 +28,7 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
 	flags.StringVar(&opts.Opts.Arch, "arch", "", "Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)")
 	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' or 'openstack')")
+	flags.StringVarP(&opts.Opts.OSImage.Type, "os-type", "", "", "Operating system type for Kubernetes cluster deployment (e.g., nestos or openeuler)")
 	flags.StringVarP(&opts.Opts.UserName, "username", "", "", "User name for node login")
 	flags.StringVarP(&opts.Opts.Password, "password", "", "", "Password for node login")
 	flags.StringVarP(&opts.Opts.SSHKey, "sshkey", "", "", "SSH key file path used for node authentication (default: ~/.ssh/id_rsa.pub)")

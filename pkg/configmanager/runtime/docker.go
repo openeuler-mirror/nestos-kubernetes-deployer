@@ -15,14 +15,15 @@ limitations under the License.
 */
 package runtime
 
-import "nestos-kubernetes-deployer/pkg/constants"
+import "nestos-kubernetes-deployer/pkg/api"
 
 type dockerRuntime struct{}
 
-func (dr *dockerRuntime) GetRuntimeClient() string {
-	return constants.Docker
-}
-
 func (dr *dockerRuntime) GetRuntimeCriSocket() string {
 	return "/var/run/dockershim.sock"
+}
+
+func IsDocker(rt api.Runtime) bool {
+	_, ok := rt.(*dockerRuntime)
+	return ok
 }
