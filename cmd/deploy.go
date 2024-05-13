@@ -376,7 +376,7 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 	return nil
 }
 
-func addIgnitionFiles(fileService *httpserver.HttpFileService, conf *asset.ClusterAsset) error {
+func addIgnitionFiles(fileService *httpserver.HttpService, conf *asset.ClusterAsset) error {
 	// Ignition files are divided into three types:
 	// control plane ignition files for initializing the cluster,
 	// master ignition files for master node joining the cluster,

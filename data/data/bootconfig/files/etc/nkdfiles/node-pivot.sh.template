@@ -1,5 +1,7 @@
 #!/bin/bash
 
+exec >> /var/log/nkd_node_pivot.log 2>&1
+
 # Template variables
 hook_files_path="{{.HookFilesPath}}"
 runtime="{{.Runtime}}"
@@ -34,17 +36,31 @@ check_and_start_service() {
     fi
 }
 
+# Function to disable firewall if it's enabled
+disable_firewall() {
+    # Check if firewall is enabled
+    if systemctl is-active --quiet firewalld; then
+        echo "Firewall is running, disabling..."
+        
+        systemctl stop firewalld
+        systemctl disable firewalld
+        
+        echo "Firewall disabled successfully."
+    else
+        echo "Firewall is not running."
+    fi
+}
+
 # Function to execute hook files
 execute_hookfiles() {
     local directory="$1"
     if [ ! -d "$directory" ]; then
-        echo "Directory not found: $directory"
         return 
     fi
 
     local shell_files=("$directory"/*)
     if [ ${#shell_files[@]} -eq 0 ]; then
-        echo "No files found in directory: $directory"
+        echo "No files found in hook directory: $directory"
         return
     fi
 
@@ -89,7 +105,7 @@ fetch_and_save_certificates() {
     local certs_dir="/etc/kubernetes/pki/etcd"
 
     mkdir -p "$certs_dir"
-    local response=$(curl -s $certs_url)
+    local response=$(curl -s "$certs_url")
     if [ -z "$response" ]; then
         echo "Error: Failed to fetch JSON data."
         exit 1
@@ -103,7 +119,7 @@ fetch_and_save_certificates() {
 }
 
 install_kubernetes_packages() {
-    sudo yum install -y kubernetes-client kubernetes-kubelet kubernetes-kubeadm conntrack cri-tools
+    sudo yum install -y kubernetes-client kubernetes-kubelet kubernetes-kubeadm conntrack cri-tools socat containernetworking-plugins
     {{if .IsDocker -}}
     sudo yum install -y docker
     {{end -}}
@@ -118,12 +134,46 @@ install_kubernetes_packages() {
 }
 
 check_installation_status() {
-    if rpm -qa | grep -E 'kubernetes-client|kubernetes-master|kubernetes-node' >/dev/null 2>&1; then
+    if rpm -qa | grep -E 'kubernetes-client|kubernetes-kubelet|kubernetes-kubeadm|conntrack|cri-tools|socat|containernetworking-plugins'; then
         echo "Kubernetes packages installed successfully."
     else
-        echo "Error: Kubernetes packages installation failed." >&2
+        echo "Error: Kubernetes packages installation failed."
     fi
 }
+
+# Function to disable swap
+disable_swap() {
+    # Check if the user has sufficient privileges
+    if [[ $EUID -ne 0 ]]; then
+        echo "This function must be run as root" 
+        exit 1
+    fi
+
+    echo "Disabling swap..."
+    swapoff -a
+
+    # Check if swap is disabled
+    if [[ $? -eq 0 ]]; then
+        echo "Swap disabled successfully."
+    else
+        echo "Failed to disable swap."
+        exit 1
+    fi
+}
+
+# Function to disable SELinux
+disable_selinux() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "This function must be run as root" 
+        exit 1
+    fi
+    # Disable SELinux
+    setenforce 0
+    echo "Disable SELinux..."
+}
+
+# Call the function to disable firewall
+disable_firewall
 
 if grep -q 'openEuler' /etc/os-release; then
     install_kubernetes_packages
@@ -135,10 +185,10 @@ if grep -q 'openEuler' /etc/os-release; then
 fi
 
 # Execute hook files
-execute_hookfiles "$hook_files_path"
+execute_hookfiles "${hook_files_path}"
 
 # Start necessary services
-check_and_start_service "$runtime"
+check_and_start_service "${runtime}"
 check_and_start_service "housekeeper-daemon"
 
 # Configure CRI-O runtime
@@ -146,11 +196,15 @@ check_and_start_service "housekeeper-daemon"
 configure_crio_runtime
 {{end -}}
 
+# Call the function to disable swap
+disable_swap
+
+# Call the function to disable SELinux
+disable_selinux
+
 # Perform OSTree rebase for nestos
 if grep -q 'nestos' /etc/os-release; then
-# Disable SELinux
-echo "Disabling SELinux..."
-sed -i 's#SELINUX=enforcing#SELINUX=disabled#g' /etc/selinux/config
-setenforce 0
 perform_rebase "$release_image_url"
 fi
+
+echo "release-image-pivot.service complete"

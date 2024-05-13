@@ -41,6 +41,7 @@ const (
 	// 操作系统引导阶段可能写入的文件
 	InitClusterYaml       = "/etc/nkdfiles/init-config.yaml.template"
 	IsuladConfig          = "/etc/isulad/daemon.json.template"
+	DockerConfig          = "/etc/docker/daemon.json"
 	ReleaseImagePivotFile = "/etc/nkdfiles/node-pivot.sh.template"
 	SetKernelParaConf     = "/etc/sysctl.d/kubernetes.conf"
 	KubeletServiceConf    = "/etc/systemd/system/kubelet.service.d/10-kubeadm.conf.template"
