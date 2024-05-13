@@ -62,12 +62,12 @@ func (t *template) GenerateBootConfig() error {
 	}
 
 	//set container engine config
-	containerRuntime, err := runtime.GetRuntime(t.clusterAsset.Runtime)
+	engine, err := runtime.GetRuntime(t.clusterAsset.Runtime)
 	if err != nil {
 		return err
 	}
-	tmplData.CriSocket = containerRuntime.GetRuntimeCriSocket()
-	if constants.Isulad == containerRuntime.GetRuntimeClient() {
+	tmplData.CriSocket = engine.GetRuntimeCriSocket()
+	if runtime.IsIsulad(engine) {
 		t.enabledFiles = append(t.enabledFiles, constants.IsuladConfig)
 	}
 
@@ -146,7 +146,7 @@ func (t *template) GenerateBootConfig() error {
 	for _, u := range systemdConfig.Units {
 		unit := igntypes.Unit{
 			Name:     u.Name,
-			Contents: u.Contents,
+			Contents: ignutil.StrToPtr(u.Contents),
 			Enabled:  u.Enabled,
 		}
 		t.config.Systemd.Units = append(t.config.Systemd.Units, unit)

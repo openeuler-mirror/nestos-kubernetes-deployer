@@ -153,6 +153,7 @@ type ClusterAsset struct {
 	Architecture string
 	Platform     string
 	InfraPlatform
+	OSImage    `yaml:"osimage"`
 	UserName   string
 	Password   string
 	SSHKey     string
@@ -189,6 +190,10 @@ type ShellFile struct {
 	Name    string `json:"name" yaml:"-"`
 	Mode    int    `json:"mode" yaml:"-"`
 	Content []byte `json:"content" yaml:"-"`
+}
+
+type OSImage struct {
+	Type string `yaml:"type,omitempty"`
 }
 
 type InfraPlatform interface {
@@ -313,6 +318,7 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
 	setStringValue(&clusterAsset.PreHookScript, opts.PreHookScript, "")
 	setStringValue(&clusterAsset.PostHookYaml, opts.PostHookYaml, "")
+	setStringValue(&clusterAsset.OSImage.Type, opts.OSImage.Type, "")
 
 	apiVersion, err := utils.GetKubernetesApiVersion(opts.KubernetesAPIVersion)
 	if err != nil {

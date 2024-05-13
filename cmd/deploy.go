@@ -22,6 +22,7 @@ import (
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/data"
+	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/constants"
@@ -122,46 +123,19 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 // startHttpService initializes the HTTP file service, adds files to the cache, and starts the service.
 func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpFileService, error) {
 	fileService := httpserver.NewFileService(configmanager.GetBootstrapIgnPort())
-
-	// Ignition files are divided into three types:
-	// control plane ignition files for initializing the cluster,
-	// master ignition files for master node joining the cluster,
-	// and worker ignition files for worker node joining the cluster.
-	if len(conf.Master) > 0 {
-		if err := fileService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
-			return nil, err
-		}
-	}
-	if len(conf.Master) > 1 {
-		if err := fileService.AddFileToCache(constants.MasterIgn, conf.BootConfig.Master.Content); err != nil {
-			return nil, err
-		}
-	}
-	if len(conf.Worker) > 0 {
-		if err := fileService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
-			return nil, err
-		}
-	}
-
 	// Start the HTTP file service
 	if err := fileService.Start(); err != nil {
 		return nil, fmt.Errorf("error starting file service: %v", err)
 	}
-
 	return fileService, nil
 }
 
 func deployCluster(conf *asset.ClusterAsset) error {
-	osDep, err := osmanager.NewNestOS(conf)
-	if err != nil {
-		logrus.Errorf("Error creating NestOS osmanager instance: %v", err)
+	osMgr := osmanager.NewOSManager(conf)
+	if err := osMgr.GenerateOSConfig(); err != nil {
+		logrus.Errorf("Error generating OS config: %v", err)
 		return err
 	}
-	if err := osDep.GenerateResourceFiles(); err != nil {
-		logrus.Errorf("Error generating NestOS resource files: %v", err)
-		return err
-	}
-
 	// Start HTTP service
 	fileService, err := startHttpService(conf)
 	if err != nil {
@@ -170,13 +144,24 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	}
 	defer fileService.Stop()
 
+	if osMgr.IsNestOS() {
+		if err := addIgnitionFiles(fileService, conf); err != nil {
+			return err
+		}
+	}
+	if osMgr.IsOpenEuler() && len(conf.Master) > 0 {
+		certs, _ := cert.CertsToBytes(conf.Master[0].Certs)
+		if err := fileService.AddFileToCache(constants.CertsFiles, certs); err != nil {
+			return err
+		}
+	}
+
 	if err := createCluster(conf); err != nil {
 		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
 	}
 
-	configPath := conf.Kubernetes.AdminKubeConfig
-	kubeClient, err := kubeclient.CreateClient(configPath)
+	kubeClient, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
 	if err != nil {
 		logrus.Errorf("Failed to create kubernetes client %v", err)
 		return err
@@ -186,9 +171,10 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
 	}
+	// Set kubeconfig environment variable
+	os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
 
-	os.Setenv("KUBECONFIG", configPath) // set kubeconfig environment variable
-	// apply network plugin
+	// Apply network plugin
 	if err := applyNetworkPlugin(conf.Network.Plugin); err != nil {
 		logrus.Errorf("Failed to apply network plugin: %v", err)
 		return err
@@ -197,17 +183,19 @@ func deployCluster(conf *asset.ClusterAsset) error {
 
 	if conf.Housekeeper.DeployHousekeeper {
 		logrus.Info("Starting deployment of Housekeeper...")
-		if err := deployHousekeeper(conf.Housekeeper, configPath); err != nil {
+		if err := deployHousekeeper(conf.Housekeeper, conf.Kubernetes.AdminKubeConfig); err != nil {
 			logrus.Errorf("Failed to deploy operator: %v", err)
 			return err
 		}
 		logrus.Info("Housekeeper deployment completed successfully.")
 	}
 
+	// Wait for pods to be ready
 	if err := waitForPodsReady(kubeClient); err != nil {
 		logrus.Errorf("Failed while waiting for pods to be in 'Ready' state: %v", err)
 		return err
 	}
+
 	logrus.Info("Cluster deployment completed successfully!")
 	return nil
 }
@@ -385,5 +373,28 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 		}
 	}()
 
+	return nil
+}
+
+func addIgnitionFiles(fileService *httpserver.HttpFileService, conf *asset.ClusterAsset) error {
+	// Ignition files are divided into three types:
+	// control plane ignition files for initializing the cluster,
+	// master ignition files for master node joining the cluster,
+	// and worker ignition files for worker node joining the cluster.
+	if len(conf.Master) > 0 {
+		if err := fileService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
+			return fmt.Errorf("error adding control plane ignition file to cache: %v", err)
+		}
+	}
+	if len(conf.Master) > 1 {
+		if err := fileService.AddFileToCache(constants.MasterIgn, conf.BootConfig.Master.Content); err != nil {
+			return fmt.Errorf("error adding master ignition file to cache: %v", err)
+		}
+	}
+	if len(conf.Worker) > 0 {
+		if err := fileService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
+			return fmt.Errorf("error adding worker ignition file to cache: %v", err)
+		}
+	}
 	return nil
 }

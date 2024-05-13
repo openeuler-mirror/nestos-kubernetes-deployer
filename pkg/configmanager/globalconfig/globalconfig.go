@@ -63,7 +63,8 @@ func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 		globalAsset.BootstrapIgnPort = opts.NKD.BootstrapIgnPort
 	}
 	if !utils.IsPortOpen(globalAsset.BootstrapIgnPort) {
-		return nil, fmt.Errorf("The port %s is occupied.", globalAsset.BootstrapIgnPort)
+		errMsg := fmt.Sprintf("The port %s is occupied.", globalAsset.BootstrapIgnPort)
+		return nil, fmt.Errorf(errMsg)
 	}
 
 	if globalAsset.BootstrapIgnHost == "" {

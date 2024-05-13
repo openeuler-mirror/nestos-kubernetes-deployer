@@ -21,8 +21,10 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"path/filepath"
 
@@ -136,4 +138,14 @@ func GenerateCACertHashes(certData []byte) (string, error) {
 	caCertHashes = "sha256:" + caCertHashes
 
 	return caCertHashes, nil
+}
+
+func CertsToBytes(certs []utils.StorageContent) ([]byte, error) {
+	jsonData, err := json.Marshal(certs)
+	if err != nil {
+		return nil, err
+	}
+
+	byteData := []byte(jsonData)
+	return byteData, nil
 }

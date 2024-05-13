@@ -47,14 +47,15 @@ const (
 	Hosts                 = "/etc/hosts.template"
 	HookFilesPath         = "/etc/nkdfiles/hookfiles/"
 	BootConfigFilesPath   = "bootconfig/files"
-
-	// Ignition文件名称
+	// 引导配置文件名称
 	ControlplaneIgn      = "controlplane.ign"
 	ControlplaneMergeIgn = "controlplane-merge.ign"
 	MasterIgn            = "master.ign"
 	MasterMergeIgn       = "master-merge.ign"
 	WorkerIgn            = "worker.ign"
 	WorkerMergeIgn       = "worker-merge.ign"
+
+	CertsFiles = "certs.json"
 
 	SystemdServiceMode os.FileMode = 0644
 	StorageFilesMode   os.FileMode = 0755

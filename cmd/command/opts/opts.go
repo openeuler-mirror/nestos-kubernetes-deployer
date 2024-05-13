@@ -29,6 +29,7 @@ type OptionsList struct {
 	KubeConfigFile    string
 	NKD               NKDConfig
 	InfraPlatform
+	OSImage
 
 	ClusterID string
 	Platform  string
@@ -63,6 +64,10 @@ type NKDConfig struct {
 type BootstrapUrl struct {
 	BootstrapIgnHost string
 	BootstrapIgnPort string
+}
+
+type OSImage struct {
+	Type string
 }
 
 type InfraPlatform struct {

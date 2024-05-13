@@ -26,7 +26,6 @@ type BootConfigAPI interface {
 
 // Runtime 接口定义了获取运行时相关信息的方法。
 type Runtime interface {
-	GetRuntimeClient() string
 	// GetRuntimeCriSocket 返回与运行时相关的 CRI (Container Runtime Interface) 套接字地址
 	GetRuntimeCriSocket() string
 }

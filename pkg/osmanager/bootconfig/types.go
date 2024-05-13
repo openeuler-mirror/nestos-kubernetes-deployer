@@ -38,7 +38,7 @@ type Systemd struct {
 	Units []Unit `json:"units,omitempty"`
 }
 type Unit struct {
-	Contents *string `json:"contents,omitempty"`
-	Enabled  *bool   `json:"enabled,omitempty"`
-	Name     string  `json:"name"`
+	Contents string `json:"contents,omitempty"`
+	Enabled  *bool  `json:"enabled,omitempty"`
+	Name     string `json:"name"`
 }

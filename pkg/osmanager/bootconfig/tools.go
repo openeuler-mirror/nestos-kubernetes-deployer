@@ -21,6 +21,7 @@ import (
 	"nestos-kubernetes-deployer/data"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
 	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
@@ -50,6 +51,11 @@ type TmplData struct {
 	Hsip              string //HostName + IP
 	KubeadmApiVersion string
 	HookFilesPath     string
+	CertsUrl          string
+	IsControlPlane    bool
+	IsDocker          bool
+	IsIsulad          bool
+	IsCrio            bool
 }
 
 func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
@@ -58,6 +64,10 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 		hsipStrings = append(hsipStrings, master.IP+" "+master.Hostname)
 	}
 	hsip := strings.Join(hsipStrings, "\n")
+	engine, err := runtime.GetRuntime(c.Runtime)
+	if err != nil {
+		return nil, err
+	}
 
 	return &TmplData{
 		APIServerURL:      c.Kubernetes.ApiServerEndpoint,
@@ -74,6 +84,9 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 		CertificateKey:    c.Kubernetes.CertificateKey,
 		Hsip:              hsip,
 		HookFilesPath:     constants.HookFilesPath,
+		IsDocker:          runtime.IsDocker(engine),
+		IsIsulad:          runtime.IsIsulad(engine),
+		IsCrio:            runtime.IsCrio(engine),
 	}, nil
 }
 
@@ -94,6 +107,7 @@ func AppendStorageFiles(config *[]File, base string, uri string, tmplData interf
 
 	file, err := data.Assets.Open(uri)
 	if err != nil {
+		fmt.Printf("err: %v\n", err)
 		return err
 	}
 	defer file.Close()
@@ -171,7 +185,7 @@ func AppendSystemdUnits(config *Systemd, uri string, tmplData interface{}, enabl
 		if _, ok := enabled[name]; ok {
 			unit := Unit{
 				Name:     name,
-				Contents: ignutil.StrToPtr(string(contents)),
+				Contents: string(contents),
 			}
 			unit.Enabled = ignutil.BoolToPtr(true)
 			config.Units = append(config.Units, unit)
@@ -184,19 +198,19 @@ func GetSavePath(clusterID string) string {
 	return filepath.Join(configmanager.GetPersistDir(), clusterID, constants.BootConfigSaveDir)
 }
 
-func SaveYAML(data interface{}, filePath string, fileName string) error {
-	return saveFile(data, filePath, fileName, yaml.Marshal)
+func SaveYAML(data interface{}, filePath string, fileName string, header string) error {
+	return saveFile(data, filePath, fileName, header, yaml.Marshal)
 }
 
 func SaveJSON(data interface{}, filePath string, fileName string) error {
-	return saveFile(data, filePath, fileName, json.Marshal)
+	return saveFile(data, filePath, fileName, "", json.Marshal)
 }
 
 func Marshal(input interface{}) ([]byte, error) {
 	return json.Marshal(input)
 }
 
-func saveFile(data interface{}, filePath string, fileName string, marshalFunc func(interface{}) ([]byte, error)) error {
+func saveFile(data interface{}, filePath string, fileName string, header string, marshalFunc func(interface{}) ([]byte, error)) error {
 	if data == nil {
 		return errors.New("data is nil")
 	}
@@ -205,13 +219,14 @@ func saveFile(data interface{}, filePath string, fileName string, marshalFunc fu
 	if err != nil {
 		return fmt.Errorf("failed to marshal data: %v", err)
 	}
+	dataString := header + string(dataBytes)
 
 	fullPath := filepath.Join(filePath, fileName)
 	if err := os.MkdirAll(filepath.Dir(fullPath), constants.SaveFileDirMode); err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
-	if err := os.WriteFile(fullPath, dataBytes, constants.BootConfigFileMode); err != nil {
+	if err := os.WriteFile(fullPath, []byte(dataString), constants.BootConfigFileMode); err != nil {
 		return fmt.Errorf("failed to save file: %v", err)
 	}
 
