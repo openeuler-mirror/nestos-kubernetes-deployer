@@ -210,24 +210,35 @@ func Marshal(input interface{}) ([]byte, error) {
 	return json.Marshal(input)
 }
 
-func saveFile(data interface{}, filePath string, fileName string, header string, marshalFunc func(interface{}) ([]byte, error)) error {
+func SaveFile(data []byte, filePath, fileName string) error {
+	if data == nil {
+		return errors.New("data is nil")
+	}
+
+	return saveDataToFile(string(data), filePath, fileName)
+}
+
+func saveFile(data interface{}, filePath, fileName, header string, marshalFunc func(interface{}) ([]byte, error)) error {
 	if data == nil {
 		return errors.New("data is nil")
 	}
 
 	dataBytes, err := marshalFunc(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal data: %v", err)
+		return fmt.Errorf("failed to marshal data: %w", err)
 	}
 	dataString := header + string(dataBytes)
 
-	fullPath := filepath.Join(filePath, fileName)
-	if err := os.MkdirAll(filepath.Dir(fullPath), constants.SaveFileDirMode); err != nil {
-		return fmt.Errorf("failed to create directory: %v", err)
-	}
+	return saveDataToFile(dataString, filePath, fileName)
+}
 
-	if err := os.WriteFile(fullPath, []byte(dataString), constants.BootConfigFileMode); err != nil {
-		return fmt.Errorf("failed to save file: %v", err)
+func saveDataToFile(data, filePath, fileName string) error {
+	fullPath := filepath.Join(filePath, fileName)
+	if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+	if err := os.WriteFile(fullPath, []byte(data), os.ModePerm); err != nil {
+		return fmt.Errorf("failed to save file: %w", err)
 	}
 
 	return nil

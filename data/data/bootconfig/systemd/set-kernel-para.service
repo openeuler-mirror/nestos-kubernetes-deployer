@@ -11,4 +11,3 @@ ExecStart=sysctl -p /etc/sysctl.d/kubernetes.conf
 
 [Install]
 WantedBy=multi-user.target
-

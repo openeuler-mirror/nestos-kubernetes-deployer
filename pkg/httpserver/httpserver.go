@@ -105,8 +105,8 @@ func (hs *HttpService) Start() error {
 	})
 
 	// 处理文件请求
-	smux.HandleFunc("/file/", func(w http.ResponseWriter, r *http.Request) {
-		rpath := r.URL.Path[len("/file/"):]
+	smux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		rpath := r.URL.Path[len("/"):]
 
 		fileContent, ok := hs.fileCache[rpath]
 		if !ok {

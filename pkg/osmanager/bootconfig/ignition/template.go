@@ -69,6 +69,8 @@ func (t *template) GenerateBootConfig() error {
 	tmplData.CriSocket = engine.GetRuntimeCriSocket()
 	if runtime.IsIsulad(engine) {
 		t.enabledFiles = append(t.enabledFiles, constants.IsuladConfig)
+	} else if runtime.IsDocker(engine) {
+		t.enabledFiles = append(t.enabledFiles, constants.DockerConfig)
 	}
 
 	if err := bootconfig.AppendStorageFiles(&files, "/", constants.BootConfigFilesPath, tmplData, t.enabledFiles); err != nil {
