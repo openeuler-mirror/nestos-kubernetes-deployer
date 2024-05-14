@@ -27,7 +27,7 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "", "Location of the cluster deploy config file")
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
 	flags.StringVar(&opts.Opts.Arch, "arch", "", "Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)")
-	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' or 'openstack')")
+	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
 	flags.StringVarP(&opts.Opts.OSImage.Type, "os-type", "", "", "Operating system type for Kubernetes cluster deployment (e.g., nestos or openeuler)")
 	flags.StringVarP(&opts.Opts.UserName, "username", "", "", "User name for node login")
 	flags.StringVarP(&opts.Opts.Password, "password", "", "", "Password for node login")
@@ -64,11 +64,16 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnPort, "bootstrap-ign-port", "", "", "Ignition service port (default: 9080)")
 	flags.StringVarP(&opts.Opts.PreHookScript, "prehook-script", "", "", "Specify a script file or directory to execute before cluster deployment as hooks")
 	flags.StringVarP(&opts.Opts.PostHookYaml, "posthook-yaml", "", "", "Specify a YAML file or directory to apply after cluster deployment using 'kubectl apply'")
+	flags.StringVarP(&opts.Opts.TFTPServerIP, "tftp-server-ip", "", "", "IP address of TFTP server for PXE")
+	flags.StringVarP(&opts.Opts.TFTPRootDir, "tftp-root-dir", "", "", "Root directory of TFTP server for PXE (default: /var/lib/tftpboot/)")
+	flags.StringVarP(&opts.Opts.IPXEFilePath, "ipxe-file-path", "", "", "Path of config file for iPXE")
+	flags.StringVarP(&opts.Opts.IPXEOSInstallTreePath, "ipxe-os-install-tree-path", "", "", "Path of OS install tree for iPXE. (default: /var/www/html/)")
 }
 
 func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {
 	flags := destroyCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
+	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for the cluster (supports 'libvirt' or 'openstack')")
 }
 
 func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {

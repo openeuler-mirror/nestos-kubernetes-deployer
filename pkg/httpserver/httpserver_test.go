@@ -23,19 +23,21 @@ import (
 	"testing"
 )
 
-func TestHttpFileService(t *testing.T) {
-	// Create a new file service instance
-	fileService := httpserver.NewFileService("9080")
+func TestHTTPService(t *testing.T) {
+	// Create a new http service instance
+	httpService := &httpserver.HTTPService{
+		Port: "9080",
+	}
 
 	// Start the file service
-	if err := fileService.Start(); err != nil {
+	if err := httpService.Start(); err != nil {
 		t.Fatalf("Error starting file service: %v", err)
 	}
-	defer fileService.Stop()
+	defer httpService.Stop()
 
 	// Add test file to the file service
 	testContent := []byte("Hello, world!")
-	fileService.AddFileToCache("test.txt", testContent)
+	httpService.AddFileToCache("test.txt", testContent)
 
 	// Make an HTTP request to retrieve the test file content
 	resp, err := http.Get("http://localhost:9080/file/test.txt")

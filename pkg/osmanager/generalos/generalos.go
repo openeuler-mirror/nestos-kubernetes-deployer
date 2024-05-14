@@ -22,6 +22,10 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig/cloudinit"
+	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig/kickstart"
+	"nestos-kubernetes-deployer/pkg/terraform"
+	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -30,7 +34,9 @@ type GeneralOS struct {
 	conf          *asset.ClusterAsset
 	certs         *cert.CertGenerator
 	cloudinitFile *cloudinit.Cloudinit
-	// todo: add infra config
+	kickstartFile *kickstart.Kickstart
+	infraMaster   *terraform.Infra
+	infraWorker   *terraform.Infra
 }
 
 func NewGeneralOS(conf *asset.ClusterAsset) (*GeneralOS, error) {
@@ -43,17 +49,45 @@ func NewGeneralOS(conf *asset.ClusterAsset) (*GeneralOS, error) {
 
 	certGenerator := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
 	cloudinitFile := cloudinit.NewCloudinit(conf, configmanager.GetBootstrapIgnHostPort())
+	kickstartFile := kickstart.NewKickstart(conf, filepath.Join(configmanager.GetPersistDir(), conf.Cluster_ID))
 	return &GeneralOS{
 		conf:          conf,
 		certs:         certGenerator,
 		cloudinitFile: cloudinitFile,
+		kickstartFile: kickstartFile,
+		infraMaster:   &terraform.Infra{},
+		infraWorker:   &terraform.Infra{},
 	}, nil
 }
 
 func (g *GeneralOS) GenerateResourceFiles() error {
-	if err := g.cloudinitFile.GenerateBootConfig(); err != nil {
-		logrus.Errorf("failed to generate cloudinit file: %v", err)
+	if err := g.certs.GenerateAllFiles(); err != nil {
+		logrus.Errorf("Error generating all certs files: %v", err)
 		return err
 	}
+	g.conf.CaCertHash = g.certs.CaCertHash
+
+	switch strings.ToLower(g.conf.Platform) {
+	case "libvirt", "openstack":
+		if err := g.cloudinitFile.GenerateBootConfig(); err != nil {
+			logrus.Errorf("failed to generate cloudinit file: %v", err)
+			return err
+		}
+
+		if err := g.infraMaster.Generate(g.conf, "master"); err != nil {
+			logrus.Errorf("Failed to generate master terraform file")
+			return err
+		}
+		if err := g.infraWorker.Generate(g.conf, "worker"); err != nil {
+			logrus.Errorf("Failed to generate worker terraform file")
+			return err
+		}
+	case "pxe", "ipxe":
+		if err := g.kickstartFile.GenerateBootConfig(); err != nil {
+			logrus.Errorf("failed to generate kickstart file: %v", err)
+			return err
+		}
+	}
+
 	return nil
 }

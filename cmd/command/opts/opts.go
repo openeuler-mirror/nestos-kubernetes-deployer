@@ -73,6 +73,8 @@ type OSImage struct {
 type InfraPlatform struct {
 	OpenStack
 	Libvirt
+	PXE
+	IPXE
 }
 
 type OpenStack struct {
@@ -92,6 +94,20 @@ type Libvirt struct {
 	OSImage string
 	CIDR    string
 	Gateway string
+}
+
+type PXE struct {
+	HTTPServerPort string
+	HTTPRootDir    string
+	TFTPServerIP   string
+	TFTPServerPort string
+	TFTPRootDir    string
+}
+
+type IPXE struct {
+	IPXEPort              string
+	IPXEFilePath          string
+	IPXEOSInstallTreePath string
 }
 
 type MasterConfig struct {

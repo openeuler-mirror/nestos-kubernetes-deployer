@@ -20,6 +20,7 @@ import (
 	"errors"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
 	"path/filepath"
@@ -77,16 +78,17 @@ func Initial(opts *opts.OptionsList) error {
 
 func initializeClusterAsset(fileData *asset.ClusterAsset, opts *opts.OptionsList) error {
 	// Init infra asset
-	infraAsset, err := asset.InitInfraAsset(fileData, opts)
+	infraAsset, err := infraasset.InitInfraAsset(fileData, opts)
 	if err != nil {
 		return err
 	}
 
 	// Init cluster asset
-	clusterAsset, err := fileData.InitClusterAsset(infraAsset, opts)
+	clusterAsset, err := fileData.InitClusterAsset(opts)
 	if err != nil {
 		return err
 	}
+	clusterAsset.InfraPlatform = infraAsset
 
 	ClusterAsset[fileData.Cluster_ID] = clusterAsset
 	return nil

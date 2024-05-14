@@ -20,6 +20,7 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/infra"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -47,22 +48,82 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 	}
 	if clusterID == "" {
 		logrus.Errorf("cluster-id is not provided: %v", err)
+		return err
+	}
+
+	platform, err := cmd.Flags().GetString("platform")
+	if err != nil {
+		logrus.Errorf("Failed to get platform: %v", err)
+		return err
+	}
+	if platform == "" {
+		logrus.Errorf("platform is not provided: %v", err)
+		return err
 	}
 
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
-	persistDir := configmanager.GetPersistDir()
 
-	workerInfra := infra.InstanceCluster(persistDir, clusterID, "worker", 0)
-	if err := workerInfra.Destroy(); err != nil {
-		logrus.Errorf("Failed to perform the destroy worker nodes:%v", err)
+	var infrastructure infra.Infrastructure
+	switch platform {
+	case strings.ToLower("libvirt"):
+		persistDir := configmanager.GetPersistDir()
+
+		infrastructure = &infra.Libvirt{
+			PersistDir: persistDir,
+			ClusterID:  clusterID,
+			Node:       "worker",
+			Count:      0,
+		}
+		if err := infrastructure.Destroy(); err != nil {
+			logrus.Errorf("Failed to destroy worker nodes:%v", err)
+			return err
+		}
+
+		infrastructure = &infra.Libvirt{
+			PersistDir: persistDir,
+			ClusterID:  clusterID,
+			Node:       "master",
+			Count:      0,
+		}
+		if err := infrastructure.Destroy(); err != nil {
+			logrus.Errorf("Failed to destroy master nodes:%v", err)
+			return err
+		}
+	case strings.ToLower("openstack"):
+		persistDir := configmanager.GetPersistDir()
+
+		infrastructure = &infra.OpenStack{
+			PersistDir: persistDir,
+			ClusterID:  clusterID,
+			Node:       "worker",
+			Count:      0,
+		}
+		if err := infrastructure.Destroy(); err != nil {
+			logrus.Errorf("Failed to destroy worker nodes:%v", err)
+			return err
+		}
+
+		infrastructure = &infra.OpenStack{
+			PersistDir: persistDir,
+			ClusterID:  clusterID,
+			Node:       "master",
+			Count:      0,
+		}
+		if err := infrastructure.Destroy(); err != nil {
+			logrus.Errorf("Failed to destroy master nodes:%v", err)
+			return err
+		}
+	case strings.ToLower("pxe"):
+		logrus.Println("If necessary, manually delete the configuration file for deploying the PXE server")
 		return err
-	}
-	masterInfra := infra.InstanceCluster(persistDir, clusterID, "master", 0)
-	if err := masterInfra.Destroy(); err != nil {
-		logrus.Errorf("Failed to perform the destroy master nodes:%v", err)
+	case strings.ToLower("ipxe"):
+		logrus.Println("If necessary, manually delete the configuration file for deploying the iPXE server")
+		return err
+	default:
+		logrus.Errorf("unsupported platform")
 		return err
 	}
 

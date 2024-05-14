@@ -1,0 +1,156 @@
+terraform {
+  required_providers {
+    libvirt = {
+      source = "dmacvicar/libvirt"
+      version = "0.7.6"
+    }
+  }
+}
+
+provider "libvirt" {
+  uri = "{{.Platform.URI}}"
+}
+
+variable "cluster_id" {
+  type    = string
+  default = "{{.ClusterID}}"
+}
+
+variable "instance_count" {
+  type    = string
+  default = "{{.Master.Count}}"
+}
+
+variable "instance_hostname" {
+  type    = list(string)
+  default = {{.Master.Hostname}}
+}
+
+variable "instance_ip" {
+  type    = list(string)
+  default = {{.Master.IP}}
+}
+
+variable "cluster_ipv4_cidr" {
+  type    = string
+  default = "{{.Platform.CIDR}}"
+}
+
+variable "cluster_ipv4_gateway" {
+  type    = string
+  default = "{{.Platform.Gateway}}"
+}
+
+variable "instance_cpu" {
+  type    = list(string)
+  default = {{.Master.CPU}}
+}
+
+variable "instance_ram" {
+  type    = list(string)
+  default = {{.Master.RAM}}
+}
+
+variable "instance_disk" {
+  type    = list(string)
+  default = {{.Master.Disk}}
+}
+
+variable "instance_cloudinit" {
+  type    = list(string)
+  default = {{.Master.BootConfig}}
+}
+
+resource "libvirt_pool" "pool" {
+  name = "${var.cluster_id}-pool"
+  type = "dir"
+  path = "/var/lib/libvirt/images/${var.cluster_id}"
+}
+
+resource "libvirt_volume" "volume" {
+  name   = "${var.cluster_id}-volume"
+  pool   = libvirt_pool.pool.name
+  source = "{{.Platform.OSImage_Path}}"
+}
+
+resource "libvirt_volume" "disk" {
+  count          = var.instance_count
+  name           = "${var.instance_hostname[count.index]}-disk"
+  base_volume_id = libvirt_volume.volume.id
+  pool           = libvirt_pool.pool.name
+  size           = var.instance_disk[count.index] * 1024 * 1024 * 1024
+}
+
+resource "libvirt_cloudinit_disk" "cloudinit" {
+  count     = var.instance_count
+  name      = "${var.instance_hostname[count.index]}.iso"
+  pool      = libvirt_pool.pool.name
+  user_data = data.template_file.user_data.*.rendered[count.index]
+}
+
+data "template_file" "user_data" {
+  count    = var.instance_count
+  template = file(var.instance_cloudinit[count.index])
+}
+
+resource "libvirt_network" "network" {
+  name      = "${var.cluster_id}-net"
+  mode      = "nat"
+  domain    = "${var.cluster_id}.local"
+  addresses = [var.cluster_ipv4_cidr]
+
+  dhcp {
+    enabled = true
+  }
+
+  dns {
+    enabled    = true
+    local_only = true
+  }
+
+  routes {
+    cidr    = var.cluster_ipv4_cidr
+    gateway = var.cluster_ipv4_gateway
+  }
+
+  autostart = true
+}
+
+resource "libvirt_domain" "generalos" {
+  count           = var.instance_count
+  name            = var.instance_hostname[count.index]
+  cpu {
+    mode = "host-passthrough"
+  }
+  vcpu            = var.instance_cpu[count.index]
+  memory          = var.instance_ram[count.index]
+  cloudinit       = libvirt_cloudinit_disk.cloudinit.*.id[count.index]
+  machine         = "{{.MachineType}}"
+  autostart       = true
+  type            = "kvm"
+
+  disk {
+    volume_id = libvirt_volume.disk.*.id[count.index]
+  }
+
+  network_interface {
+    network_name   = libvirt_network.network.name
+    hostname       = var.instance_hostname[count.index]
+    addresses      = var.instance_ip[count.index] != "null" ? [var.instance_ip[count.index]] : null
+    wait_for_lease = true
+  }
+
+  graphics {
+    type        = "vnc"
+    listen_type = "address"
+  }
+
+  console {
+    type        = "pty"
+    target_port = "0"
+  }
+}
+
+output "ipv4" {
+  value = libvirt_domain.generalos.*.network_interface.0.addresses
+}

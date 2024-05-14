@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"nestos-kubernetes-deployer/cmd/command"
@@ -25,6 +26,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
 	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/infra"
@@ -120,42 +122,7 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 	return config, nil
 }
 
-// startHttpService initializes the HTTP file service, adds files to the cache, and starts the service.
-func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpService, error) {
-	fileService := httpserver.NewFileService(configmanager.GetBootstrapIgnPort())
-	// Start the HTTP file service
-	if err := fileService.Start(); err != nil {
-		return nil, fmt.Errorf("error starting file service: %v", err)
-	}
-	return fileService, nil
-}
-
 func deployCluster(conf *asset.ClusterAsset) error {
-	osMgr := osmanager.NewOSManager(conf)
-	if err := osMgr.GenerateOSConfig(); err != nil {
-		logrus.Errorf("Error generating OS config: %v", err)
-		return err
-	}
-	// Start HTTP service
-	fileService, err := startHttpService(conf)
-	if err != nil {
-		logrus.Errorf("Error starting HTTP service: %v", err)
-		return err
-	}
-	defer fileService.Stop()
-
-	if osMgr.IsNestOS() {
-		if err := addIgnitionFiles(fileService, conf); err != nil {
-			return err
-		}
-	}
-	if osMgr.IsOpenEuler() && len(conf.Master) > 0 {
-		certs, _ := cert.CertsToBytes(conf.Master[0].Certs)
-		if err := fileService.AddFileToCache(constants.CertsFiles, certs); err != nil {
-			return err
-		}
-	}
-
 	if err := createCluster(conf); err != nil {
 		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
@@ -201,16 +168,120 @@ func deployCluster(conf *asset.ClusterAsset) error {
 }
 
 func createCluster(conf *asset.ClusterAsset) error {
-	persistDir := configmanager.GetPersistDir()
-	masterInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "master", uint(len(conf.Master)))
-	if err := masterInfra.Deploy(); err != nil {
-		logrus.Errorf("Failed to deploy master nodes:%v", err)
+	httpService := &httpserver.HTTPService{
+		Port:      configmanager.GetBootstrapIgnPort(),
+		FileCache: make(map[string][]byte),
+	}
+
+	osMgr := osmanager.NewOSManager(conf)
+	if err := osMgr.GenerateOSConfig(); err != nil {
+		logrus.Errorf("Error generating OS config: %v", err)
 		return err
 	}
-	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", uint(len(conf.Worker)))
-	if err := workerInfra.Deploy(); err != nil {
-		logrus.Errorf("Failed to deploy worker nodes:%v", err)
-		return err
+
+	if osMgr.IsNestOS() {
+		if err := addIgnitionFiles(httpService, conf); err != nil {
+			return err
+		}
+	}
+	if osMgr.IsOpenEuler() && len(conf.Master) > 0 {
+		certs, _ := cert.CertsToBytes(conf.Master[0].Certs)
+		if err := httpService.AddFileToCache(constants.CertsFiles, certs); err != nil {
+			return err
+		}
+	}
+
+	p := infra.InfraPlatform{}
+	switch conf.Platform {
+	case strings.ToLower("libvirt"):
+		// Start http service
+		if err := httpService.Start(); err != nil {
+			return fmt.Errorf("error starting http service: %v", err)
+		}
+
+		libvirtMaster := &infra.Libvirt{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.Cluster_ID,
+			Node:       "master",
+			Count:      uint(len(conf.Master)),
+		}
+
+		p.SetInfra(libvirtMaster)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy master nodes:%v", err)
+			return err
+		}
+
+		libvirtWorker := &infra.Libvirt{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.Cluster_ID,
+			Node:       "worker",
+			Count:      uint(len(conf.Master)),
+		}
+		p.SetInfra(libvirtWorker)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy worker nodes:%v", err)
+			return err
+		}
+	case strings.ToLower("openstack"):
+		// Start http service
+		if err := httpService.Start(); err != nil {
+			return fmt.Errorf("error starting http service: %v", err)
+		}
+
+		openstackMaster := &infra.OpenStack{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.Cluster_ID,
+			Node:       "master",
+			Count:      uint(len(conf.Master)),
+		}
+		p.SetInfra(openstackMaster)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy master nodes:%v", err)
+			return err
+		}
+
+		openstackWorker := &infra.OpenStack{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.Cluster_ID,
+			Node:       "worker",
+			Count:      uint(len(conf.Master)),
+		}
+		p.SetInfra(openstackWorker)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy worker nodes:%v", err)
+			return err
+		}
+	case strings.ToLower("pxe"):
+		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
+		pxe := &infra.PXE{
+			HTTPServerPort: pxeConfig.HTTPServerPort,
+			HTTPRootDir:    pxeConfig.HTTPRootDir,
+			TFTPServerIP:   pxeConfig.TFTPServerIP,
+			TFTPServerPort: pxeConfig.TFTPServerPort,
+			TFTPRootDir:    pxeConfig.TFTPRootDir,
+			HTTPService:    httpService,
+		}
+		p.SetInfra(pxe)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy PXE:%v", err)
+			return err
+		}
+	case strings.ToLower("ipxe"):
+		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
+		ipxe := &infra.IPXE{
+			IPXEPort:              ipxeConfig.IPXEPort,
+			IPXEFilePath:          ipxeConfig.IPXEFilePath,
+			IPXEOSInstallTreePath: ipxeConfig.IPXEOSInstallTreePath,
+			HTTPService:           httpService,
+		}
+		p.SetInfra(ipxe)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy IPXE:%v", err)
+			return err
+		}
+	default:
+		return errors.New("unsupported platform")
 	}
 
 	return nil
@@ -376,23 +447,23 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 	return nil
 }
 
-func addIgnitionFiles(fileService *httpserver.HttpService, conf *asset.ClusterAsset) error {
+func addIgnitionFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAsset) error {
 	// Ignition files are divided into three types:
 	// control plane ignition files for initializing the cluster,
 	// master ignition files for master node joining the cluster,
 	// and worker ignition files for worker node joining the cluster.
 	if len(conf.Master) > 0 {
-		if err := fileService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
+		if err := httpService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
 			return fmt.Errorf("error adding control plane ignition file to cache: %v", err)
 		}
 	}
 	if len(conf.Master) > 1 {
-		if err := fileService.AddFileToCache(constants.MasterIgn, conf.BootConfig.Master.Content); err != nil {
+		if err := httpService.AddFileToCache(constants.MasterIgn, conf.BootConfig.Master.Content); err != nil {
 			return fmt.Errorf("error adding master ignition file to cache: %v", err)
 		}
 	}
 	if len(conf.Worker) > 0 {
-		if err := fileService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
+		if err := httpService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
 			return fmt.Errorf("error adding worker ignition file to cache: %v", err)
 		}
 	}
