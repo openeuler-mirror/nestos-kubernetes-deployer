@@ -17,16 +17,20 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
 	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
+	"nestos-kubernetes-deployer/pkg/terraform"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -76,10 +80,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	}
 	newHostnames := extendArray(clusterConfig, int(num))
 
-	fileService := httpserver.NewFileService(configmanager.GetBootstrapIgnPort())
-	defer fileService.Stop()
-
-	if err := extendCluster(clusterConfig, fileService); err != nil {
+	if err := extendCluster(clusterConfig); err != nil {
 		logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
 		return err
 	}
@@ -117,31 +118,86 @@ func extendArray(c *asset.ClusterAsset, count int) []string {
 	return newHostnames
 }
 
-func extendCluster(conf *asset.ClusterAsset, fileService *httpserver.HttpService) error {
+func extendCluster(conf *asset.ClusterAsset) error {
 	data, err := os.ReadFile(conf.BootConfig.Worker.Path)
 	if err != nil {
-		logrus.Errorf("error reading Ignition file: %v", err)
+		logrus.Errorf("error reading boot config file: %v", err)
 		return err
 	}
 
-	fileService.AddFileToCache(constants.WorkerIgn, data)
-	if err := fileService.Start(); err != nil {
+	httpService := &httpserver.HTTPService{
+		Port:      configmanager.GetBootstrapIgnPort(),
+		FileCache: make(map[string][]byte),
+	}
+
+	httpService.AddFileToCache(constants.WorkerIgn, data)
+	if err := httpService.Start(); err != nil {
 		logrus.Errorf("error starting file service: %v", err)
 		return err
 	}
+	defer httpService.Stop()
 
 	// regenerate worker.tf
-	var worker infra.Infra
+	var worker terraform.Infra
 	if err := worker.Generate(conf, "worker"); err != nil {
 		logrus.Errorf("Failed to generate worker terraform file")
 		return err
 	}
 
-	persistDir := configmanager.GetPersistDir()
-	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", uint(len(conf.Worker)))
-	if err := workerInfra.Deploy(); err != nil {
-		logrus.Errorf("Failed to deploy worker nodes:%v", err)
-		return err
+	p := infra.InfraPlatform{}
+	switch conf.Platform {
+	case strings.ToLower("libvirt"):
+		libvirtWorker := &infra.Libvirt{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.Cluster_ID,
+			Node:       "worker",
+			Count:      uint(len(conf.Worker)),
+		}
+		p.SetInfra(libvirtWorker)
+		if err := p.Extend(); err != nil {
+			logrus.Errorf("Failed to extend worker nodes:%v", err)
+			return err
+		}
+	case strings.ToLower("openstack"):
+		openstackWorker := &infra.OpenStack{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.Cluster_ID,
+			Node:       "worker",
+			Count:      uint(len(conf.Worker)),
+		}
+		p.SetInfra(openstackWorker)
+		if err := p.Extend(); err != nil {
+			logrus.Errorf("Failed to extend worker nodes:%v", err)
+			return err
+		}
+	case strings.ToLower("pxe"):
+		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
+		pxe := &infra.PXE{
+			HTTPServerPort: pxeConfig.HTTPServerPort,
+			HTTPRootDir:    pxeConfig.HTTPRootDir,
+			TFTPServerIP:   pxeConfig.TFTPServerIP,
+			TFTPServerPort: pxeConfig.TFTPServerPort,
+			TFTPRootDir:    pxeConfig.TFTPRootDir,
+		}
+		p.SetInfra(pxe)
+		if err := p.Extend(); err != nil {
+			logrus.Errorf("Failed to extend worker nodes:%v", err)
+			return err
+		}
+	case strings.ToLower("ipxe"):
+		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
+		ipxe := &infra.IPXE{
+			IPXEPort:              ipxeConfig.IPXEPort,
+			IPXEFilePath:          ipxeConfig.IPXEFilePath,
+			IPXEOSInstallTreePath: ipxeConfig.IPXEOSInstallTreePath,
+		}
+		p.SetInfra(ipxe)
+		if err := p.Extend(); err != nil {
+			logrus.Errorf("Failed to extend worker nodes:%v", err)
+			return err
+		}
+	default:
+		return errors.New("unsupported platform")
 	}
 
 	return nil

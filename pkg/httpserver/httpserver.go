@@ -23,54 +23,40 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-// HttpService encapsulates the properties of the HTTP file service
-type HttpService struct {
+// HTTPService encapsulates the properties of the HTTP file service
+type HTTPService struct {
 	Port      string
 	DirPath   string
+	FileCache map[string][]byte
 	running   bool
-	fileCache map[string][]byte
 	server    *http.Server
 	mutex     sync.RWMutex
 }
 
-// NewFileService creates a new instance of file service
-func NewFileService(port string) *HttpService {
-	return &HttpService{
-		Port:      port,
-		running:   false,
-		fileCache: make(map[string][]byte),
-	}
-}
-
-// NewDirService creates a new instance of dir service
-func NewDirService(port string, dirPath string) *HttpService {
-	return &HttpService{
-		Port:    port,
-		DirPath: dirPath,
-		running: false,
-	}
-}
-
 // AddFileToCache add file content to the file cache
-func (hs *HttpService) AddFileToCache(fileName string, content []byte) error {
+func (hs *HTTPService) AddFileToCache(fileName string, content []byte) error {
 	if len(content) == 0 {
 		return fmt.Errorf("failed to add file '%s' to cache: content is empty", fileName)
 	}
 	hs.mutex.Lock()
 	defer hs.mutex.Unlock()
 
-	hs.fileCache[fileName] = content
+	if !strings.HasPrefix(fileName, "/") {
+		fileName = "/" + fileName
+	}
+	hs.FileCache[fileName] = content
 
 	return nil
 }
 
-func (hs *HttpService) Start() error {
+func (hs *HTTPService) Start() error {
 	// Check if the http server is already running
 	if hs.running {
 		return errors.New("HTTP server is already running")
@@ -106,9 +92,8 @@ func (hs *HttpService) Start() error {
 
 	// 处理文件请求
 	smux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		rpath := r.URL.Path[len("/"):]
-
-		fileContent, ok := hs.fileCache[rpath]
+		rpath := r.URL.Path
+		fileContent, ok := hs.FileCache[rpath]
 		if !ok {
 			http.NotFound(w, r)
 			return
@@ -137,7 +122,7 @@ func (hs *HttpService) Start() error {
 	return nil
 }
 
-func (hs *HttpService) Stop() error {
+func (hs *HTTPService) Stop() error {
 	if !hs.running {
 		logrus.Warn("HTTP server is not running.")
 		return nil

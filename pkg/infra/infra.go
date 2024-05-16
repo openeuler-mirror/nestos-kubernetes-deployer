@@ -1,5 +1,5 @@
 /*
-Copyright 2023 KylinSoft  Co., Ltd.
+Copyright 2024 KylinSoft  Co., Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,59 +16,28 @@ limitations under the License.
 
 package infra
 
-import (
-	"nestos-kubernetes-deployer/pkg/infra/terraform"
-	"path/filepath"
-
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-)
-
-type Cluster struct {
-	PersistDir string
-	ClusterID  string
-	Node       string
-	Count      uint
+type Infrastructure interface {
+	Deploy() error
+	Extend() error
+	Destroy() error
 }
 
-func (c *Cluster) Deploy() (err error) {
-	tfFileDir := filepath.Join(c.PersistDir, c.ClusterID, c.Node)
-	outputs, err := terraform.ExecuteApplyTerraform(tfFileDir, c.PersistDir)
-	if err != nil {
-		return errors.Wrap(err, "failed to execute terraform apply")
-	}
-	logrus.Println(string(outputs))
-
-	return nil
+type InfraPlatform struct {
+	infra Infrastructure
 }
 
-func (c *Cluster) Extend() (err error) {
-	tfFileDir := filepath.Join(c.PersistDir, c.ClusterID, c.Node)
-	outputs, err := terraform.ExecuteApplyTerraform(tfFileDir, c.PersistDir)
-	if err != nil {
-		return errors.Wrap(err, "failed to execute terraform apply")
-	}
-	logrus.Println(string(outputs))
-
-	return nil
+func (p *InfraPlatform) SetInfra(infra Infrastructure) {
+	p.infra = infra
 }
 
-func (c *Cluster) Destroy() (err error) {
-	// tf file directory.
-	tfFileDir := filepath.Join(c.PersistDir, c.ClusterID, c.Node)
-	err = terraform.ExecuteDestroyTerraform(tfFileDir, c.PersistDir)
-	if err != nil {
-		return errors.Wrap(err, "failed to execute terraform destroy")
-	}
-
-	return nil
+func (p *InfraPlatform) Deploy() error {
+	return p.infra.Deploy()
 }
 
-func InstanceCluster(persistDir string, clusterID string, nodeType string, count uint) *Cluster {
-	return &Cluster{
-		PersistDir: persistDir,
-		ClusterID:  clusterID,
-		Node:       nodeType,
-		Count:      count,
-	}
+func (p *InfraPlatform) Extend() error {
+	return p.infra.Extend()
+}
+
+func (p *InfraPlatform) Destroy() error {
+	return p.infra.Destroy()
 }

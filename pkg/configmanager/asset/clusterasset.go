@@ -31,7 +31,7 @@ import (
 
 // Sets a value of the string type, using the parameter value if the command line argument exists,
 // otherwise using the default value.
-func setStringValue(target *string, value string, defaultValue string) {
+func SetStringValue(target *string, value string, defaultValue string) {
 	if value != "" {
 		*target = value
 	} else if *target == "" {
@@ -40,7 +40,7 @@ func setStringValue(target *string, value string, defaultValue string) {
 }
 
 // Check whether the value is provided
-func checkStringValue(target *string, value string, paramName string) error {
+func CheckStringValue(target *string, value string, paramName string) error {
 	if value != "" {
 		*target = value
 	} else if *target == "" {
@@ -149,18 +149,18 @@ func setWorkerHostname(wc []NodeAsset, opts *opts.WorkerConfig) []NodeAsset {
 // ========== Structure method ==========
 
 type ClusterAsset struct {
-	Cluster_ID   string
-	Architecture string
-	Platform     string
-	InfraPlatform
-	OSImage    `yaml:"osimage"`
-	UserName   string
-	Password   string
-	SSHKey     string
-	Master     []NodeAsset
-	Worker     []NodeAsset
-	BootConfig NodeType `yaml:"bootconfig,omitempty"`
-	Runtime    string   `yaml:"runtime,omitempty"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
+	Cluster_ID    string
+	Architecture  string
+	Platform      string
+	InfraPlatform interface{}
+	OSImage       `yaml:"osimage"`
+	UserName      string
+	Password      string
+	SSHKey        string
+	Master        []NodeAsset
+	Worker        []NodeAsset
+	BootConfig    NodeType `yaml:"bootconfig,omitempty"`
+	Runtime       string   `yaml:"runtime,omitempty"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
 	Kubernetes
 	Housekeeper
 	CertAsset
@@ -196,9 +196,6 @@ type OSImage struct {
 	Type string `yaml:"type,omitempty"`
 }
 
-type InfraPlatform interface {
-}
-
 type Kubernetes struct {
 	KubernetesVersion    string `yaml:"kubernetes-version"`
 	KubernetesAPIVersion string `yaml:"kubernetes-apiversion"`
@@ -230,10 +227,9 @@ type Housekeeper struct {
 	OSImageURL         string `json:"-" yaml:"-"`
 }
 
-func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
+func (clusterAsset *ClusterAsset) InitClusterAsset(opts *opts.OptionsList) (*ClusterAsset, error) {
 	// bind info
 	// infra platform
-	clusterAsset.InfraPlatform = infraAsset
 
 	cf, err := GetDefaultClusterConfig(clusterAsset.Architecture)
 	if err != nil {
@@ -301,37 +297,37 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 	}
 
 	// cluster info
-	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, cf.Cluster_ID)
-	setStringValue(&clusterAsset.UserName, opts.UserName, cf.UserName)
-	setStringValue(&clusterAsset.Password, opts.Password, cf.Password)
-	setStringValue(&clusterAsset.SSHKey, opts.SSHKey, cf.SSHKey)
-	setStringValue(&clusterAsset.Kubernetes.KubernetesVersion, opts.KubeVersion, cf.KubernetesVersion)
-	setStringValue(&clusterAsset.Runtime, opts.Runtime, cf.Runtime)
-	setStringValue(&clusterAsset.Kubernetes.ApiServerEndpoint, opts.ApiServerEndpoint, cf.ApiServerEndpoint)
-	setStringValue(&clusterAsset.Kubernetes.ImageRegistry, opts.ImageRegistry, cf.ImageRegistry)
-	setStringValue(&clusterAsset.Kubernetes.PauseImage, opts.PauseImage, cf.PauseImage)
-	setStringValue(&clusterAsset.Kubernetes.ReleaseImageURL, opts.ReleaseImageUrl, cf.ReleaseImageURL)
-	setStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, opts.CertificateKey)
-	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
-	setStringValue(&clusterAsset.Kubernetes.Network.ServiceSubnet, opts.NetWork.ServiceSubnet, cf.ServiceSubnet)
-	setStringValue(&clusterAsset.Kubernetes.Network.PodSubnet, opts.NetWork.PodSubnet, cf.Network.PodSubnet)
-	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
-	setStringValue(&clusterAsset.PreHookScript, opts.PreHookScript, "")
-	setStringValue(&clusterAsset.PostHookYaml, opts.PostHookYaml, "")
-	setStringValue(&clusterAsset.OSImage.Type, opts.OSImage.Type, "")
+	SetStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, cf.Cluster_ID)
+	SetStringValue(&clusterAsset.UserName, opts.UserName, cf.UserName)
+	SetStringValue(&clusterAsset.Password, opts.Password, cf.Password)
+	SetStringValue(&clusterAsset.SSHKey, opts.SSHKey, cf.SSHKey)
+	SetStringValue(&clusterAsset.Kubernetes.KubernetesVersion, opts.KubeVersion, cf.KubernetesVersion)
+	SetStringValue(&clusterAsset.Runtime, opts.Runtime, cf.Runtime)
+	SetStringValue(&clusterAsset.Kubernetes.ApiServerEndpoint, opts.ApiServerEndpoint, cf.ApiServerEndpoint)
+	SetStringValue(&clusterAsset.Kubernetes.ImageRegistry, opts.ImageRegistry, cf.ImageRegistry)
+	SetStringValue(&clusterAsset.Kubernetes.PauseImage, opts.PauseImage, cf.PauseImage)
+	SetStringValue(&clusterAsset.Kubernetes.ReleaseImageURL, opts.ReleaseImageUrl, cf.ReleaseImageURL)
+	SetStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, opts.CertificateKey)
+	SetStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
+	SetStringValue(&clusterAsset.Kubernetes.Network.ServiceSubnet, opts.NetWork.ServiceSubnet, cf.ServiceSubnet)
+	SetStringValue(&clusterAsset.Kubernetes.Network.PodSubnet, opts.NetWork.PodSubnet, cf.Network.PodSubnet)
+	SetStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
+	SetStringValue(&clusterAsset.PreHookScript, opts.PreHookScript, "")
+	SetStringValue(&clusterAsset.PostHookYaml, opts.PostHookYaml, "")
+	SetStringValue(&clusterAsset.OSImage.Type, opts.OSImage.Type, "")
 
 	apiVersion, err := utils.GetKubernetesApiVersion(opts.KubernetesAPIVersion)
 	if err != nil {
 		logrus.Errorf("Error getting kubernetes api version: %v\n", err)
 		return nil, err
 	}
-	setStringValue(&clusterAsset.Kubernetes.KubernetesAPIVersion, apiVersion, cf.KubernetesAPIVersion)
+	SetStringValue(&clusterAsset.Kubernetes.KubernetesAPIVersion, apiVersion, cf.KubernetesAPIVersion)
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
-		setStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
-		setStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, cf.ControllerImageUrl)
-		setStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "")
-		setStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "")
+		SetStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
+		SetStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, cf.ControllerImageUrl)
+		SetStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "")
+		SetStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "")
 		setUIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, cf.MaxUnavailable)
 		clusterAsset.Housekeeper.EvictPodForce = opts.Housekeeper.EvictPodForce
 	}

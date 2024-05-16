@@ -21,18 +21,22 @@ import (
 	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
-	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig/ignition"
+	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig/kickstart"
+	"nestos-kubernetes-deployer/pkg/terraform"
+	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
 type NestOS struct {
-	conf         *asset.ClusterAsset
-	certs        *cert.CertGenerator
-	ignitionFile *ignition.Ignition
-	infraMaster  *infra.Infra
-	infraWorker  *infra.Infra
+	conf          *asset.ClusterAsset
+	certs         *cert.CertGenerator
+	ignitionFile  *ignition.Ignition
+	kickstartFile *kickstart.Kickstart
+	infraMaster   *terraform.Infra
+	infraWorker   *terraform.Infra
 }
 
 func NewNestOS(conf *asset.ClusterAsset) (*NestOS, error) {
@@ -45,12 +49,14 @@ func NewNestOS(conf *asset.ClusterAsset) (*NestOS, error) {
 
 	certGenerator := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
 	ignitionFile := ignition.NewIgnition(conf, configmanager.GetBootstrapIgnHostPort())
+	kickstartFile := kickstart.NewKickstart(conf, filepath.Join(configmanager.GetPersistDir(), conf.Cluster_ID))
 	return &NestOS{
-		conf:         conf,
-		certs:        certGenerator,
-		ignitionFile: ignitionFile,
-		infraMaster:  &infra.Infra{},
-		infraWorker:  &infra.Infra{},
+		conf:          conf,
+		certs:         certGenerator,
+		ignitionFile:  ignitionFile,
+		kickstartFile: kickstartFile,
+		infraMaster:   &terraform.Infra{},
+		infraWorker:   &terraform.Infra{},
 	}, nil
 }
 
@@ -61,18 +67,26 @@ func (n *NestOS) GenerateResourceFiles() error {
 	}
 	n.conf.CaCertHash = n.certs.CaCertHash
 
-	if err := n.ignitionFile.GenerateBootConfig(); err != nil {
-		logrus.Errorf("failed to generate ignition file: %v", err)
-		return err
-	}
+	switch strings.ToLower(n.conf.Platform) {
+	case "libvirt", "openstack":
+		if err := n.ignitionFile.GenerateBootConfig(); err != nil {
+			logrus.Errorf("failed to generate ignition file: %v", err)
+			return err
+		}
 
-	if err := n.infraMaster.Generate(n.conf, "master"); err != nil {
-		logrus.Errorf("Failed to generate master terraform file")
-		return err
-	}
-	if err := n.infraWorker.Generate(n.conf, "worker"); err != nil {
-		logrus.Errorf("Failed to generate worker terraform file")
-		return err
+		if err := n.infraMaster.Generate(n.conf, "master"); err != nil {
+			logrus.Errorf("Failed to generate master terraform file")
+			return err
+		}
+		if err := n.infraWorker.Generate(n.conf, "worker"); err != nil {
+			logrus.Errorf("Failed to generate worker terraform file")
+			return err
+		}
+	case "pxe", "ipxe":
+		if err := n.kickstartFile.GenerateBootConfig(); err != nil {
+			logrus.Errorf("failed to generate kickstart file: %v", err)
+			return err
+		}
 	}
 
 	return nil
