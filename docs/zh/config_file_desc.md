@@ -1,17 +1,15 @@
 # 集群配置文件说明
 
-NestOS镜像下载地址见[官网](https://nestos.openeuler.org/)
 ``` shell
 cluster_id: cluster                                 # 集群名称
 architecture: amd64                                 # 部署集群的机器架构,支持amd64或者arm64
-platform: libvirt                                   # 部署平台为libvirt
-infraplatform
-  uri: qemu:///system                                
-  osimage: https://nestos.org.cn/nestos20230928/nestos-for-container/x86_64/NestOS-For-Container-22.03-LTS-SP2.20230928.0-qemu.{arch}.qcow2                                             # 指定部署集群机器的操作系统镜像地址，支持架构x86_64或者aarch64
-  cidr: 192.168.132.0/24                            # 路由地址
-  gateway: 192.168.132.1                            # 网关地址
+platform: libvirt                                   # 部署平台为libvirt、openstack、pxe
+infraplatform                                       # 指定基础设施平台类型
+                                                    # 需要根据不同的部署平台设置参数
+osimage:
+  type: nestos                                      # 指定操作系统类型，例如nestos、openeuler
 username: root                                      # 指定 ssh 登录所配置节点的用户名
-password: $1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/        # 指定 ssh 登录所配置节点的密码
+password:                                           # 指定 ssh 登录所配置节点的密码
 sshkey: "/root/.ssh/id_rsa.pub"                     # ssh 免密登录的密钥存储文件的路径
 master:                                             # 配置master节点的列表
 - hostname: k8s-master01                            # 该节点的名称
@@ -57,7 +55,17 @@ certasset:                                          # 配置外部证书文件�
   sakey: ""
 ```
 
-设置部署平台为openstack，需要重新设置“infraplatform”字段配置参数
+指定部署平台为libvirt配置参数示例：
+``` shell
+platform: libvirt                                   # 部署平台为libvirt
+infraplatform
+  uri: qemu:///system                                
+  osimage:                                          # 指定部署集群机器的操作系统镜像地址，支持架构x86_64或者aarch64
+  cidr: 192.168.132.0/24                            # 路由地址
+  gateway: 192.168.132.1                            # 网关地址
+```
+
+指定部署平台为openstack配置参数示例：
 ``` shell
 platform: openstack                                   # 部署平台为openstack
 infraplatform                      
@@ -71,3 +79,30 @@ infraplatform
 	glance_name:                                        # 创建openstack实例的qcow2镜像
 	availability_zone:                                  # 可用域，默认nova
 ```
+
+## 镜像下载地址
+
+- NestOS镜像下载地址见[官网](https://nestos.openeuler.org/)，需下载NestOS For Container版本
+- Openeuler镜像下载地址见[官网](https://www.openeuler.org/)
+
+## 密码密文生成方式：
+
+- 指定集群底层操作系统为nestos时需使用密文密码，其生成方式：
+  ``` shell
+  openssl passwd -1 -salt yoursalt
+  Password: qwer1234!@#$
+  $1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/
+  ```
+
+- 部署平台为pxe时需使用密文密码，其生成方式：
+  ``` shell
+  # python3  
+  Python 3.7.9 (default, Mar  2 2021, 02:43:11)
+  [GCC 7.3.0] on linux
+  Type "help", "copyright", "credits" or "license" for more information.  
+  >>> import crypt  
+  >>> passwd = crypt.crypt("myPasswd")  
+  >>> print (passwd)  
+  $6$sH1qri2n14V1VCv/$fWnV3rPv95gWHJ3wZu6o0bBGy.SnllSw4a2HuoP45jXfI9fCrwe60AULO/0aXS7dWTSwvwdqqY4yFhwUdJcb.0
+  ```
+
