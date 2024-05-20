@@ -82,10 +82,6 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("Failed to deploy %s cluster: %v", clusterID, err)
 		return err
 	}
-	if err := configmanager.Persist(); err != nil {
-		logrus.Errorf("Failed to persist the cluster asset: %v", err)
-		return err
-	}
 
 	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 	return nil
@@ -142,7 +138,7 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
 
 	// Apply network plugin
-	if err := applyNetworkPlugin(conf.Network.Plugin); err != nil {
+	if err := applyNetworkPlugin(conf.Network.Plugin, conf.IsNestOS); err != nil {
 		logrus.Errorf("Failed to apply network plugin: %v", err)
 		return err
 	}
@@ -191,6 +187,11 @@ func createCluster(conf *asset.ClusterAsset) error {
 		}
 	}
 
+	if err := configmanager.Persist(); err != nil {
+		logrus.Errorf("Failed to persist the cluster asset: %v", err)
+		return err
+	}
+
 	p := infra.InfraPlatform{}
 	switch conf.Platform {
 	case strings.ToLower("libvirt"):
@@ -198,6 +199,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 		if err := httpService.Start(); err != nil {
 			return fmt.Errorf("error starting http service: %v", err)
 		}
+		defer httpService.Stop()
 
 		libvirtMaster := &infra.Libvirt{
 			PersistDir: configmanager.GetPersistDir(),
@@ -228,6 +230,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 		if err := httpService.Start(); err != nil {
 			return fmt.Errorf("error starting http service: %v", err)
 		}
+		defer httpService.Stop()
 
 		openstackMaster := &infra.OpenStack{
 			PersistDir: configmanager.GetPersistDir(),
@@ -386,7 +389,7 @@ func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
 	return nil
 }
 
-func applyNetworkPlugin(pluginConfigPath string) error {
+func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 	var content []byte
 	var err error
 
@@ -416,7 +419,7 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 	// "/usr/libexec/kubernetes/kubelet-plugins"，而 FlexVolume 的目录必须是可写入的，
 	// 该功能特性才能正常工作，为了解决这个问题将/usr目录修改为可写目录/opt.
 	// Check if the content contains "/usr/libexec/kubernetes/kubelet-plugins"
-	if strings.Contains(string(content), "/usr/libexec/kubernetes/kubelet-plugins") {
+	if isNestOS && strings.Contains(string(content), "/usr/libexec/kubernetes/kubelet-plugins") {
 		content = []byte(strings.ReplaceAll(string(content),
 			"/usr/libexec/kubernetes/kubelet-plugins",
 			"/opt/libexec/kubernetes/kubelet-plugins"))

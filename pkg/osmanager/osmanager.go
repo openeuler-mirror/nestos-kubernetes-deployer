@@ -47,9 +47,17 @@ func (o *osmanager) GenerateOSConfig() error {
 }
 
 func (o *osmanager) IsNestOS() bool {
-	return strings.ToLower(o.config.OSImage.Type) == nestosType
+	if strings.ToLower(o.config.OSImage.Type) == nestosType {
+		o.config.OSImage.IsNestOS = true
+		return true
+	}
+	return false
 }
 
 func (o *osmanager) IsOpenEuler() bool {
-	return strings.ToLower(o.config.OSImage.Type) == eulerType
+	if strings.ToLower(o.config.OSImage.Type) == eulerType {
+		o.config.OSImage.IsOpeneuler = true
+		return true
+	}
+	return false
 }
