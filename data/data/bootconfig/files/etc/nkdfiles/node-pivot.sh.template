@@ -189,7 +189,6 @@ execute_hookfiles "${hook_files_path}"
 
 # Start necessary services
 check_and_start_service "${runtime}"
-check_and_start_service "housekeeper-daemon"
 
 # Configure CRI-O runtime
 {{if .IsCrio -}}
@@ -203,8 +202,8 @@ disable_swap
 disable_selinux
 
 # Perform OSTree rebase for nestos
-if grep -q 'nestos' /etc/os-release; then
+{{if .IsNestOS -}}
 perform_rebase "$release_image_url"
-fi
+{{end -}}
 
 echo "release-image-pivot.service complete"

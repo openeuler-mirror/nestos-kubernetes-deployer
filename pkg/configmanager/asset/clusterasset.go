@@ -174,9 +174,8 @@ type NodeType struct {
 }
 
 type BootFile struct {
-	Content   []byte `json:"content" yaml:"-"`
-	Path      string `json:"path"`
-	MergePath string `json:"mergepath"`
+	Content []byte `json:"content" yaml:"-"`
+	Path    string `json:"path"`
 }
 
 type HookConf struct {
@@ -193,7 +192,9 @@ type ShellFile struct {
 }
 
 type OSImage struct {
-	Type string `yaml:"type,omitempty"`
+	Type        string `yaml:"type,omitempty"`
+	IsNestOS    bool   `json:"isnestos" yaml:"-"`
+	IsOpeneuler bool   `json:"isopeneuler" yaml:"-"`
 }
 
 type Kubernetes struct {

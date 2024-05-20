@@ -110,21 +110,18 @@ func (ig *Ignition) generateNodeIgnition(nodeType, service string, yamlPath stri
 	switch nodeType {
 	case constants.Controlplane:
 		ig.ClusterAsset.BootConfig.Controlplane = asset.BootFile{
-			Content:   ignData,
-			Path:      filepath.Join(savePath, ignFilename),
-			MergePath: filepath.Join(savePath, mergeIgnFilename),
+			Content: ignData,
+			Path:    filepath.Join(savePath, mergeIgnFilename),
 		}
 	case constants.Master:
 		ig.ClusterAsset.BootConfig.Master = asset.BootFile{
-			Content:   ignData,
-			Path:      filepath.Join(savePath, ignFilename),
-			MergePath: filepath.Join(savePath, mergeIgnFilename),
+			Content: ignData,
+			Path:    filepath.Join(savePath, mergeIgnFilename),
 		}
 	case constants.Worker:
 		ig.ClusterAsset.BootConfig.Worker = asset.BootFile{
-			Content:   ignData,
-			Path:      filepath.Join(savePath, ignFilename),
-			MergePath: filepath.Join(savePath, mergeIgnFilename),
+			Content: ignData,
+			Path:    filepath.Join(savePath, mergeIgnFilename),
 		}
 	}
 
