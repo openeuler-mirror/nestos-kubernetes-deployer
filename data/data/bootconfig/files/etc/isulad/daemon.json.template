@@ -1,5 +1,4 @@
 {
-    "exec-opts": ["native.cgroupdriver=systemd"],
     "group": "isula",
     "default-runtime": "lcr",
     "graph": "/var/lib/isulad",

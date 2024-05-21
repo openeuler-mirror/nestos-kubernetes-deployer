@@ -145,7 +145,5 @@ func CertsToBytes(certs []utils.StorageContent) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	byteData := []byte(jsonData)
-	return byteData, nil
+	return jsonData, nil
 }
