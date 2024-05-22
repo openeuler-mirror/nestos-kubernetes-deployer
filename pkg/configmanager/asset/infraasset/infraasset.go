@@ -32,8 +32,8 @@ func InitInfraAsset(clusterAsset *asset.ClusterAsset, opts *opts.OptionsList) (I
 	asset.SetStringValue(&clusterAsset.Architecture, opts.Arch, runtime.GOARCH)
 	asset.SetStringValue(&clusterAsset.Platform, opts.Platform, "libvirt")
 
-	switch clusterAsset.Platform {
-	case strings.ToLower("openstack"):
+	switch strings.ToLower(clusterAsset.Platform) {
+	case "openstack":
 		assetMap, ok := convertMap(clusterAsset.InfraPlatform, "openstack")
 		if !ok {
 			return nil, errors.New("failed to get openstack asset")
@@ -45,7 +45,7 @@ func InitInfraAsset(clusterAsset *asset.ClusterAsset, opts *opts.OptionsList) (I
 			return nil, err
 		}
 		return infraAsset, nil
-	case strings.ToLower("libvirt"):
+	case "libvirt":
 		assetMap, ok := convertMap(clusterAsset.InfraPlatform, "libvirt")
 		if !ok {
 			return nil, errors.New("failed to get libvirt asset")
@@ -57,7 +57,7 @@ func InitInfraAsset(clusterAsset *asset.ClusterAsset, opts *opts.OptionsList) (I
 			return nil, err
 		}
 		return infraAsset, nil
-	case strings.ToLower("pxe"):
+	case "pxe":
 		assetMap, ok := convertMap(clusterAsset.InfraPlatform, "pxe")
 		if !ok {
 			return nil, errors.New("failed to get pxe asset")
@@ -69,7 +69,7 @@ func InitInfraAsset(clusterAsset *asset.ClusterAsset, opts *opts.OptionsList) (I
 			return nil, err
 		}
 		return infraAsset, nil
-	case strings.ToLower("ipxe"):
+	case "ipxe":
 		assetMap, ok := convertMap(clusterAsset.InfraPlatform, "ipxe")
 		if !ok {
 			return nil, errors.New("failed to get ipxe asset")
@@ -91,39 +91,39 @@ func convertMap(inputMap interface{}, platform string) (map[string]interface{}, 
 
 	if inputMap == nil {
 		// If inputMap is nil, return an empty map corresponding to the platform structure.
-		switch platform {
-		case strings.ToLower("openstack"):
+		switch strings.ToLower(platform) {
+		case "libvirt":
 			return map[string]interface{}{
-				"username":          "",
-				"password":          "",
-				"tenant_name":       "",
-				"auth_url":          "",
-				"region":            "",
-				"internal_network":  "",
-				"external_network":  "",
-				"glance_name":       "",
-				"availability_zone": "",
+				"uri":     "",
+				"osImage": "",
+				"cidr":    "",
+				"gateway": "",
 			}, true
-		case strings.ToLower("libvirt"):
+		case "openstack":
 			return map[string]interface{}{
-				"uri":      "",
-				"os_image": "",
-				"cidr":     "",
-				"gateway":  "",
+				"username":         "",
+				"password":         "",
+				"tenantName":       "",
+				"authURL":          "",
+				"region":           "",
+				"internalNetwork":  "",
+				"externalNetwork":  "",
+				"glanceName":       "",
+				"availabilityZone": "",
 			}, true
-		case strings.ToLower("pxe"):
+		case "pxe":
 			return map[string]interface{}{
-				"http_server_port":    "",
-				"http_root_directory": "",
-				"tftp_server_ip":      "",
-				"tftp_server_port":    "",
-				"tftp_root_directory": "",
+				"httpServerPort": "",
+				"httpRootDir":    "",
+				"tftpServerIP":   "",
+				"tftpServerPort": "",
+				"tftpRootDir":    "",
 			}, true
-		case strings.ToLower("ipxe"):
+		case "ipxe":
 			return map[string]interface{}{
-				"ipxe_port":                 "",
-				"ipxe_file_path":            "",
-				"ipxe_os_install_tree_path": "",
+				"ipxePort":              "",
+				"ipxeFilePath":          "",
+				"ipxeOSInstallTreePath": "",
 			}, true
 		default:
 			return resultMap, false

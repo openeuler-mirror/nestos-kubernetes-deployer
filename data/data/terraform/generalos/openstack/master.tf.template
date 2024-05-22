@@ -10,8 +10,8 @@ terraform {
 provider "openstack" {
   user_name   = "{{.Platform.Username}}"
   password    = "{{.Platform.Password}}"
-  tenant_name = "{{.Platform.Tenant_Name}}"
-  auth_url    = "{{.Platform.Auth_URL}}"
+  tenant_name = "{{.Platform.TenantName}}"
+  auth_url    = "{{.Platform.AuthURL}}"
   region      = "{{.Platform.Region}}"
 }
 
@@ -47,12 +47,12 @@ variable "instance_disk" {
 
 variable "instance_osimage" {
   type    = string
-  default = "{{.Platform.Glance_Name}}"
+  default = "{{.Platform.GlanceName}}"
 }
 
 variable "availability_zone" {
   type    = string
-  default = "{{.Platform.Availability_Zone}}"
+  default = "{{.Platform.AvailabilityZone}}"
 }
 
 variable "instance_userdata" {
@@ -62,7 +62,7 @@ variable "instance_userdata" {
 
 variable "internal_net" {
   type    = string
-  default = "{{.Platform.Internal_Network}}"
+  default = "{{.Platform.InternalNetwork}}"
 }
 
 variable "instance_ip" {
@@ -72,7 +72,7 @@ variable "instance_ip" {
 
 variable "external_net" {
   type    = string
-  default = "{{.Platform.External_Network}}"
+  default = "{{.Platform.ExternalNetwork}}"
 }
 
 resource "openstack_compute_flavor_v2" "flavor" {

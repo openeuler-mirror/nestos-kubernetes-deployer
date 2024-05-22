@@ -23,7 +23,7 @@ import (
 
 type LibvirtAsset struct {
 	URI     string
-	OSImage string
+	OSImage string `yaml:"osImage"`
 	CIDR    string
 	Gateway string
 }
@@ -32,16 +32,10 @@ func (la *LibvirtAsset) InitAsset(libvirtMap map[string]interface{}, opts *opts.
 	updateFieldFromMap("uri", &la.URI, libvirtMap)
 	asset.SetStringValue(&la.URI, opts.InfraPlatform.Libvirt.URI, "qemu:///system")
 
-	updateFieldFromMap("osimage", &la.OSImage, libvirtMap)
-	osImage := "https://nestos.org.cn/nestos20230928/nestos-for-container/x86_64/NestOS-For-Container-22.03-LTS-SP2.20230928.0-qemu.x86_64.qcow2"
-	if len(args) > 0 {
-		if arch, ok := args[0].(string); ok {
-			if arch == "arm64" || arch == "aarch64" {
-				osImage = "https://nestos.org.cn/nestos20230928/nestos-for-container/aarch64/NestOS-For-Container-22.03-LTS-SP2.20230928.0-qemu.aarch64.qcow2"
-			}
-		}
+	updateFieldFromMap("osImage", &la.OSImage, libvirtMap)
+	if err := asset.CheckStringValue(&la.OSImage, opts.InfraPlatform.Libvirt.OSImage, "os-image"); err != nil {
+		return nil, err
 	}
-	asset.SetStringValue(&la.OSImage, opts.InfraPlatform.Libvirt.OSImage, osImage)
 
 	updateFieldFromMap("cidr", &la.CIDR, libvirtMap)
 	asset.SetStringValue(&la.CIDR, opts.InfraPlatform.Libvirt.CIDR, "192.168.132.0/24")

@@ -47,9 +47,9 @@ func NewNestOS(conf *asset.ClusterAsset) (*NestOS, error) {
 		return nil, errors.New("master node config is empty")
 	}
 
-	certGenerator := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
+	certGenerator := cert.NewCertGenerator(conf.ClusterID, &conf.Master[0])
 	ignitionFile := ignition.NewIgnition(conf, configmanager.GetBootstrapIgnHostPort())
-	kickstartFile := kickstart.NewKickstart(conf, filepath.Join(configmanager.GetPersistDir(), conf.Cluster_ID))
+	kickstartFile := kickstart.NewKickstart(conf, filepath.Join(configmanager.GetPersistDir(), conf.ClusterID))
 	return &NestOS{
 		conf:          conf,
 		certs:         certGenerator,

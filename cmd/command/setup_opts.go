@@ -73,7 +73,6 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {
 	flags := destroyCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
-	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for the cluster (supports 'libvirt' or 'openstack')")
 }
 
 func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
@@ -95,4 +94,5 @@ func SetupExtendCmdOpts(extendCmd *cobra.Command) {
 func SetupTemplateCmdOpts(templateCmd *cobra.Command) {
 	flags := templateCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterConfigFile, "output", "o", "", "Generates a default configuration template at the specified location")
+	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
 }

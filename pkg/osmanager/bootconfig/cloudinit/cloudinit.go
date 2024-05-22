@@ -82,7 +82,7 @@ func (c *Cloudinit) generateNodeConfig(nodeType, service string, yamlPath string
 	if err := tmpl.GenerateBootConfig(c.BootstrapBaseurl, nodeType); err != nil {
 		return err
 	}
-	savePath := bootconfig.GetSavePath(c.ClusterAsset.Cluster_ID)
+	savePath := bootconfig.GetSavePath(c.ClusterAsset.ClusterID)
 	if err := bootconfig.SaveYAML(tmpl.config, savePath, filename, "#cloud-config\n"); err != nil {
 		return err
 	}
