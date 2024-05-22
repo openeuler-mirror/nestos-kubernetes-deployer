@@ -119,7 +119,10 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 }
 
 func deployCluster(conf *asset.ClusterAsset) error {
-	if err := createCluster(conf); err != nil {
+	hs := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
+	defer hs.Stop()
+
+	if err := createCluster(conf, hs); err != nil {
 		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
 	}
@@ -163,12 +166,7 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	return nil
 }
 
-func createCluster(conf *asset.ClusterAsset) error {
-	httpService := &httpserver.HTTPService{
-		Port:      configmanager.GetBootstrapIgnPort(),
-		FileCache: make(map[string][]byte),
-	}
-
+func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService) error {
 	osMgr := osmanager.NewOSManager(conf)
 	if err := osMgr.GenerateOSConfig(); err != nil {
 		logrus.Errorf("Error generating OS config: %v", err)
@@ -199,7 +197,6 @@ func createCluster(conf *asset.ClusterAsset) error {
 		if err := httpService.Start(); err != nil {
 			return fmt.Errorf("error starting http service: %v", err)
 		}
-		defer httpService.Stop()
 
 		libvirtMaster := &infra.Libvirt{
 			PersistDir: configmanager.GetPersistDir(),
@@ -230,7 +227,6 @@ func createCluster(conf *asset.ClusterAsset) error {
 		if err := httpService.Start(); err != nil {
 			return fmt.Errorf("error starting http service: %v", err)
 		}
-		defer httpService.Stop()
 
 		openstackMaster := &infra.OpenStack{
 			PersistDir: configmanager.GetPersistDir(),

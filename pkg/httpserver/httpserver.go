@@ -40,6 +40,13 @@ type HTTPService struct {
 	mutex     sync.RWMutex
 }
 
+func NewHTTPService(port string) *HTTPService {
+	return &HTTPService{
+		Port:      port,
+		FileCache: make(map[string][]byte),
+	}
+}
+
 // AddFileToCache add file content to the file cache
 func (hs *HTTPService) AddFileToCache(fileName string, content []byte) error {
 	if len(content) == 0 {

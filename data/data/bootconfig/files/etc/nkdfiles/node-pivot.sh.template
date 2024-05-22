@@ -42,10 +42,12 @@ disable_firewall() {
     if systemctl is-active --quiet firewalld; then
         echo "Firewall is running, disabling..."
         
-        systemctl stop firewalld
-        systemctl disable firewalld
-        
-        echo "Firewall disabled successfully."
+        if systemctl stop firewalld && systemctl disable firewalld; then
+            echo "Firewall disabled successfully."
+        else
+            echo "Failed to disable firewall."
+            exit 1
+        fi
     else
         echo "Firewall is not running."
     fi
@@ -75,13 +77,30 @@ execute_hookfiles() {
 # Function to configure CRI-O runtime
 configure_crio_runtime() {
     local config_file="/etc/crio/crio.conf"
-    if [ -f "$config_file" ]; then
-        if grep -q "\[crio\.image\]" "$config_file"; then
-            sed -i 's|^pause_image = .*|pause_image = "'"$image_registry/$pause_image"'"|' "$config_file" || true
+
+    # Check if the CRI-O config file exists
+    if [ ! -f "$config_file" ]; then
+        echo "CRI-O config file not found: $config_file"
+        exit 1
+    fi
+
+    if grep -q "\[crio\.image\]" "$config_file"; then
+        # If the line with 'pause_image' doesn't exist, add it directly
+        if ! grep -q "^pause_image" "$config_file"; then
+            sed -i '/^\[crio\.image\]/a pause_image = "'"$image_registry/$pause_image"'"' "$config_file"
         else
-            echo -e "[crio.image]\npause_image = \"$image_registry/$pause_image\"" >> "$config_file"
+            # If the line with 'pause_image' exists, replace its value
+            sed -i 's|^pause_image = .*|pause_image = "'"$image_registry/$pause_image"'"|' "$config_file"
         fi
-        systemctl restart crio
+    else
+        echo -e "[crio.image]\npause_image = \"$image_registry/$pause_image\"" >> "$config_file"
+    fi
+
+    if systemctl restart crio; then
+        echo "Successfully restarted CRI-O"
+    else
+        echo "Failed to restart CRI-O"
+        exit 1
     fi
 }
 
@@ -96,6 +115,7 @@ perform_rebase() {
             systemctl reboot
         else
             echo "Rebase operation failed. System will not be rebooted."
+            exit 1
         fi
     fi
 }
@@ -114,18 +134,19 @@ fetch_and_save_certificates() {
     local path content
     while IFS= read -r line; do
         read -r path content <<< "$line"
-        echo "$content" > "$certs_dir/$path"
+        content=$(echo "$content" | base64 -d)
+        echo "$content" > "$path"
     done < <(echo "$response" | jq -r '.[] | "\(.Path) \(.Content)"')
 }
 
-install_kubernetes_packages() {
-    sudo yum install -y kubernetes-client kubernetes-kubelet kubernetes-kubeadm conntrack cri-tools socat containernetworking-plugins
+install_kubernetes_packages() {    
+    sudo yum install -y kubernetes-client kubernetes-kubelet kubernetes-kubeadm conntrack cri-tools socat containernetworking-plugins iptables jq
     {{if .IsDocker -}}
     sudo yum install -y docker
     {{end -}}
     
     {{if .IsIsulad -}}
-    sudo yum install -y isulad
+    sudo yum install -y iSulad
     {{end -}}
 
     {{if .IsCrio -}}
@@ -134,10 +155,11 @@ install_kubernetes_packages() {
 }
 
 check_installation_status() {
-    if rpm -qa | grep -E 'kubernetes-client|kubernetes-kubelet|kubernetes-kubeadm|conntrack|cri-tools|socat|containernetworking-plugins'; then
+    if rpm -qa | grep -E 'kubernetes-client|kubernetes-kubelet|kubernetes-kubeadm|conntrack|cri-tools|socat|containernetworking-plugins|iptables|jq'; then
         echo "Kubernetes packages installed successfully."
     else
         echo "Error: Kubernetes packages installation failed."
+        exit 1
     fi
 }
 
@@ -169,20 +191,23 @@ disable_selinux() {
     fi
     # Disable SELinux
     setenforce 0
-    echo "Disable SELinux..."
+    echo "SELinux disabled successfully."
 }
 
 # Call the function to disable firewall
 disable_firewall
 
-if grep -q 'openEuler' /etc/os-release; then
+{{if .IsOpeneuler -}}
     install_kubernetes_packages
     echo "Checking installation status..."
     check_installation_status
     {{if .IsControlPlane -}}
     fetch_and_save_certificates
     {{end -}}
-fi
+
+    systemctl enable kubelet.service
+    systemctl restart set-kernel-para.service
+{{end -}}
 
 # Execute hook files
 execute_hookfiles "${hook_files_path}"
