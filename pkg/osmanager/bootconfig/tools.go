@@ -56,8 +56,10 @@ type TmplData struct {
 	IsDocker          bool
 	IsIsulad          bool
 	IsCrio            bool
+	IsContainerd      bool
 	IsNestOS          bool
-	IsOpeneuler       bool
+	IsGeneralOS       bool
+	PackageList       []string
 }
 
 func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
@@ -89,8 +91,10 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 		IsDocker:          runtime.IsDocker(engine),
 		IsIsulad:          runtime.IsIsulad(engine),
 		IsCrio:            runtime.IsCrio(engine),
+		IsContainerd:      runtime.IsContainerd(engine),
 		IsNestOS:          c.IsNestOS,
-		IsOpeneuler:       c.IsOpeneuler,
+		IsGeneralOS:       c.IsGeneralOS,
+		PackageList:       c.PackageList,
 	}, nil
 }
 

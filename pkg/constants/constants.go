@@ -24,9 +24,10 @@ const (
 	Worker       = "worker"
 
 	// 容器运行类型标识符
-	Isulad = "isulad"
-	Docker = "docker"
-	Crio   = "crio"
+	Isulad     = "isulad"
+	Docker     = "docker"
+	Crio       = "crio"
+	Containerd = "containerd"
 
 	// 操作系统引导文件存储文件夹
 	BootConfigSaveDir = "bootconfig"

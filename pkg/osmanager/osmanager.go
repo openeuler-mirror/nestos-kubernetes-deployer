@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	nestosType = "nestos"
-	eulerType  = "openeuler"
+	nestosType    = "nestos"
+	generalosType = "generalos"
 )
 
 type osmanager struct {
@@ -33,7 +33,7 @@ func (o *osmanager) GenerateOSConfig() error {
 			return fmt.Errorf("error generating NestOS resource files: %v", err)
 		}
 		return nil
-	} else if o.IsOpenEuler() {
+	} else if o.IsGeneralOS() {
 		osDep, err := generalos.NewGeneralOS(o.config)
 		if err != nil {
 			return fmt.Errorf("error creating GeneralOS osmanager instance: %v", err)
@@ -54,9 +54,9 @@ func (o *osmanager) IsNestOS() bool {
 	return false
 }
 
-func (o *osmanager) IsOpenEuler() bool {
-	if strings.ToLower(o.config.OSImage.Type) == eulerType {
-		o.config.OSImage.IsOpeneuler = true
+func (o *osmanager) IsGeneralOS() bool {
+	if strings.ToLower(o.config.OSImage.Type) == generalosType {
+		o.config.OSImage.IsGeneralOS = true
 		return true
 	}
 	return false

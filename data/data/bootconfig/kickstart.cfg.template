@@ -30,7 +30,7 @@ timezone Asia/Shanghai --utc
 %end
 
 %post --log=/var/log/ks-post.log
-mkdir -p /etc/nkdfiles
+mkdir -p /etc/nkdfiles/hookfiles/
 
 {{if .IsDocker -}}
 mkdir -p /etc/docker

@@ -78,7 +78,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		libvirtAsset := conf.InfraPlatform.(*infraasset.LibvirtAsset)
 		infra.Platform = &Libvirt{
 			URI:     libvirtAsset.URI,
-			OSImage: libvirtAsset.OSImage,
+			OSImage: libvirtAsset.OSPath,
 			CIDR:    libvirtAsset.CIDR,
 			Gateway: libvirtAsset.Gateway,
 		}

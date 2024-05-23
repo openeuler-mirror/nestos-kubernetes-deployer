@@ -195,21 +195,21 @@ type ShellFile struct {
 type OSImage struct {
 	Type        string
 	IsNestOS    bool `json:"isNestOS" yaml:"-"`
-	IsOpeneuler bool `json:"isopenEuler" yaml:"-"`
+	IsGeneralOS bool `json:"isGeneralOS" yaml:"-"`
 }
 
 type Kubernetes struct {
 	KubernetesVersion    string `yaml:"kubernetesVersion"`
 	KubernetesAPIVersion string `yaml:"kubernetesApiVersion"`
-	ApiServerEndpoint    string `yaml:"apiServerEndpoint"`
+	ApiServerEndpoint    string `yaml:"apiserverEndpoint"`
 	ImageRegistry        string `yaml:"imageRegistry"`
 	PauseImage           string `yaml:"pauseImage"`
 	ReleaseImageURL      string `yaml:"releaseImageURL"`
 	Token                string
-	AdminKubeConfig      string `yaml:"adminKubeConfig"`
-	CertificateKey       string `yaml:"certificateKey"`
-	CaCertHash           string `json:"-" yaml:"-"`
-
+	AdminKubeConfig      string   `yaml:"adminKubeConfig"`
+	CertificateKey       string   `yaml:"certificateKey"`
+	CaCertHash           string   `json:"-" yaml:"-"`
+	PackageList          []string `json:"packageList" yaml:"packageList,omitempty"`
 	Network
 }
 

@@ -18,6 +18,7 @@ package cloudinit
 import (
 	"encoding/base64"
 	"fmt"
+	"io/fs"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
 	"nestos-kubernetes-deployer/pkg/constants"
@@ -106,6 +107,19 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 		}
 		t.config.WriteFiles = append(t.config.WriteFiles, cf)
 	}
+
+	if len(t.clusterAsset.HookConf.ShellFiles) > 0 {
+		for _, sf := range t.clusterAsset.HookConf.ShellFiles {
+			wf := WriteFile{
+				EnCoding:    "b64",
+				Content:     base64.StdEncoding.EncodeToString(sf.Content),
+				Path:        constants.HookFilesPath + sf.Name,
+				Permissions: fs.FileMode(sf.Mode),
+			}
+			t.config.WriteFiles = append(t.config.WriteFiles, wf)
+		}
+	}
+
 	for _, u := range bootConfigSystemd.Units {
 		cf := WriteFile{
 			Content:     u.Contents,

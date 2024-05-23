@@ -13,36 +13,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package runtime
 
 import (
 	"nestos-kubernetes-deployer/pkg/api"
-	"nestos-kubernetes-deployer/pkg/constants"
-	"strings"
-
-	"github.com/pkg/errors"
 )
 
-var (
-	mapRuntime = map[string]api.Runtime{
-		constants.Isulad:     &isuladRuntime{},
-		constants.Docker:     &dockerRuntime{},
-		constants.Crio:       &crioRuntime{},
-		constants.Containerd: &containerdRuntime{},
-	}
-)
+type containerdRuntime struct {
+}
 
-func GetRuntime(runtime string) (api.Runtime, error) {
-	runtime = strings.ToLower(runtime)
-	if runtime == "" {
-		return mapRuntime[constants.Isulad], nil
-	}
+func (ir *containerdRuntime) GetRuntimeCriSocket() string {
+	return "unix:///var/run/containerd/containerd.sock"
+}
 
-	rt, ok := mapRuntime[runtime]
-	if !ok {
-		return nil, errors.New("unsupported runtime")
-	}
-
-	return rt, nil
+func IsContainerd(rt api.Runtime) bool {
+	_, ok := rt.(*containerdRuntime)
+	return ok
 }

@@ -9,6 +9,7 @@ image_registry="{{.ImageRegistry}}"
 pause_image="{{.PauseImage}}"
 release_image_url="{{.ReleaseImageURl}}"
 certs_url="{{.CertsUrl}}"
+package_list=({{range .PackageList}}"{{.}}" {{end}})
 
 # Function to manage services
 manage_service() {
@@ -104,6 +105,45 @@ configure_crio_runtime() {
     fi
 }
 
+# Function to configure CRI-O runtime
+configure_containerd_runtime() {
+    containerd config default > /etc/containerd/config.toml
+    sandbox_image="$image_registry/$pause_image"
+    
+    if sed -i "s#^\(\s*sandbox_image\s*=\s*\).*\$#\1\"$sandbox_image\"#" /etc/containerd/config.toml; then
+        echo "sandbox_image field in /etc/containerd/config.toml updated successfully."
+    else
+        echo "Failed to update sandbox_image field in /etc/containerd/config.toml."
+    fi
+
+    if systemctl restart containerd; then
+        echo "Successfully restarted containerd"
+    else
+        echo "Failed to restart containerd"
+        exit 1
+    fi
+}
+
+# Function to create crictl configuration file
+create_crictl_config() {
+    local config_file="/etc/crictl.yaml"
+    
+    # Create configuration file
+    cat <<EOF > "$config_file"
+runtime-endpoint: "unix:///run/containerd/containerd.sock"
+image-endpoint: "unix:///run/containerd/containerd.sock"
+timeout: 0
+debug: false
+EOF
+
+    # Check if configuration file is created successfully
+    if [ -f "$config_file" ]; then
+        echo "crictl configuration file created successfully at $config_file."
+    else
+        echo "Failed to create crictl configuration file at $config_file."
+    fi
+}
+
 # Function to perform OSTree rebase
 perform_rebase() {
     local url="$1"
@@ -139,28 +179,97 @@ fetch_and_save_certificates() {
     done < <(echo "$response" | jq -r '.[] | "\(.Path) \(.Content)"')
 }
 
-install_kubernetes_packages() {    
-    sudo yum install -y kubernetes-client kubernetes-kubelet kubernetes-kubeadm conntrack cri-tools socat containernetworking-plugins iptables jq
+# Function to define the installer packages based on the environment
+define_installer_packages() {
+    local packages=(
+        conntrack-tools
+        cri-tools
+        socat
+        containernetworking-plugins
+        iptables
+        jq
+    )
     {{if .IsDocker -}}
-    sudo yum install -y docker
+    packages+=(docker-engine)
     {{end -}}
-    
     {{if .IsIsulad -}}
-    sudo yum install -y iSulad
+    packages+=(iSulad)
     {{end -}}
-
     {{if .IsCrio -}}
-    sudo yum install -y crio
+    packages+=(cri-o)
     {{end -}}
+    echo "${packages[@]}"
+}
+
+# Function to install dependent packages
+install_dependent_packages() {
+    local packages
+    if [[ ${#package_list[@]} -ne 0 && "${package_list[0]}" != "" ]]; then
+        echo "Using configured package list:"
+        packages=("${package_list[@]}")
+    else
+        echo "Using default package list:"
+        packages=($(define_installer_packages))
+        {{if .IsContainerd -}}
+        packages+=(containerd)
+        {{end -}}
+    fi
+    echo "${packages[@]}"
+    sudo yum install -y "${packages[@]}" > /dev/null 2>&1
+}
+
+# Function to get the check packages, either from the package_list or the default list
+get_check_packages() {
+    local check_packages
+    if [[ ${#package_list[@]} -ne 0 && "${package_list[0]}" != "" ]]; then
+        check_packages=("${package_list[@]}")
+        # Replace containerd with containerd.io for checking
+        for i in "${!check_packages[@]}"; do
+            if [[ "${check_packages[i]}" == "containerd" ]]; then
+                check_packages[i]="containerd.io"
+            fi
+        done
+    else
+        check_packages=($(define_installer_packages))
+        {{if .IsContainerd -}}
+        check_packages+=(containerd.io)
+        {{end -}}
+    fi
+    echo "${check_packages[@]}"
 }
 
 check_installation_status() {
-    if rpm -qa | grep -E 'kubernetes-client|kubernetes-kubelet|kubernetes-kubeadm|conntrack|cri-tools|socat|containernetworking-plugins|iptables|jq'; then
-        echo "Kubernetes packages installed successfully."
-    else
-        echo "Error: Kubernetes packages installation failed."
-        exit 1
-    fi
+    local check_packages
+    check_packages=($(get_check_packages))
+    # Check if all packages are installed
+    for package in "${check_packages[@]}"; do
+        if ! rpm -q "$package" &> /dev/null; then
+            echo "Error: Package $package is not installed."
+            exit 1
+        fi
+    done
+
+    echo "Kubernetes dependent packages installed successfully."
+}
+
+check_and_install_kube_binaries() {
+    local binaries=(
+        "kubeadm"
+        "kubelet"
+        "kubectl"
+    )
+    for binary in "${binaries[@]}"; do
+         if ! command -v "$(basename "$binary")" &>/dev/null; then
+            echo "$binary is missing, installing it using yum."
+            sudo yum install -y /usr/bin/"$binary" > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                echo "Failed to install $binary. Exiting."
+                exit 1
+            else
+                echo "$(basename "$binary") installed successfully."
+            fi
+        fi
+    done
 }
 
 # Function to disable swap
@@ -194,30 +303,36 @@ disable_selinux() {
     echo "SELinux disabled successfully."
 }
 
+# Execute hook files
+execute_hookfiles "${hook_files_path}"
+
 # Call the function to disable firewall
 disable_firewall
 
-{{if .IsOpeneuler -}}
-    install_kubernetes_packages
-    echo "Checking installation status..."
-    check_installation_status
-    {{if .IsControlPlane -}}
-    fetch_and_save_certificates
-    {{end -}}
-
-    systemctl enable kubelet.service
-    systemctl restart set-kernel-para.service
+{{if or .IsGeneralOS -}}
+install_dependent_packages
+echo "Checking installation status..."
+check_installation_status
+check_and_install_kube_binaries
+{{if .IsControlPlane -}}
+fetch_and_save_certificates
 {{end -}}
 
-# Execute hook files
-execute_hookfiles "${hook_files_path}"
+systemctl enable kubelet.service
+systemctl restart set-kernel-para.service
+{{end -}}
 
 # Start necessary services
 check_and_start_service "${runtime}"
 
-# Configure CRI-O runtime
 {{if .IsCrio -}}
+# Configure CRI-O runtime
 configure_crio_runtime
+{{end -}}
+
+{{if .IsContainerd}}
+configure_containerd_runtime
+create_crictl_config
 {{end -}}
 
 # Call the function to disable swap
