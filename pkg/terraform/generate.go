@@ -42,22 +42,22 @@ type Infra struct {
 }
 
 type OpenStack struct {
-	Username          string
-	Password          string
-	Tenant_Name       string
-	Auth_URL          string
-	Region            string
-	Internal_Network  string
-	External_Network  string
-	Glance_Name       string
-	Availability_Zone string
+	Username         string
+	Password         string
+	TenantName       string
+	AuthURL          string
+	Region           string
+	InternalNetwork  string
+	ExternalNetwork  string
+	GlanceName       string
+	AvailabilityZone string
 }
 
 type Libvirt struct {
-	URI          string
-	OSImage_Path string
-	CIDR         string
-	Gateway      string
+	URI     string
+	OSImage string
+	CIDR    string
+	Gateway string
 }
 
 type Node struct {
@@ -71,29 +71,29 @@ type Node struct {
 }
 
 func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) {
-	infra.ClusterID = conf.Cluster_ID
+	infra.ClusterID = conf.ClusterID
 
-	switch conf.Platform {
-	case strings.ToLower("libvirt"):
+	switch strings.ToLower(conf.Platform) {
+	case "libvirt":
 		libvirtAsset := conf.InfraPlatform.(*infraasset.LibvirtAsset)
 		infra.Platform = &Libvirt{
-			URI:          libvirtAsset.URI,
-			OSImage_Path: libvirtAsset.OSImage,
-			CIDR:         libvirtAsset.CIDR,
-			Gateway:      libvirtAsset.Gateway,
+			URI:     libvirtAsset.URI,
+			OSImage: libvirtAsset.OSImage,
+			CIDR:    libvirtAsset.CIDR,
+			Gateway: libvirtAsset.Gateway,
 		}
-	case strings.ToLower("openstack"):
+	case "openstack":
 		openstackAsset := conf.InfraPlatform.(*infraasset.OpenStackAsset)
 		infra.Platform = &OpenStack{
-			Username:          openstackAsset.UserName,
-			Password:          openstackAsset.Password,
-			Tenant_Name:       openstackAsset.Tenant_Name,
-			Auth_URL:          openstackAsset.Auth_URL,
-			Region:            openstackAsset.Region,
-			Internal_Network:  openstackAsset.Internal_Network,
-			External_Network:  openstackAsset.External_Network,
-			Glance_Name:       openstackAsset.Glance_Name,
-			Availability_Zone: openstackAsset.Availability_Zone,
+			Username:         openstackAsset.UserName,
+			Password:         openstackAsset.Password,
+			TenantName:       openstackAsset.TenantName,
+			AuthURL:          openstackAsset.AuthURL,
+			Region:           openstackAsset.Region,
+			InternalNetwork:  openstackAsset.InternalNetwork,
+			ExternalNetwork:  openstackAsset.ExternalNetwork,
+			GlanceName:       openstackAsset.GlanceName,
+			AvailabilityZone: openstackAsset.AvailabilityZone,
 		}
 	default:
 		logrus.Errorf("unsupported platform")
@@ -206,11 +206,11 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 	}
 
 	persistDir := configmanager.GetPersistDir()
-	if err := os.MkdirAll(filepath.Join(persistDir, conf.Cluster_ID, node), 0644); err != nil {
+	if err := os.MkdirAll(filepath.Join(persistDir, conf.ClusterID, node), 0644); err != nil {
 		return err
 	}
 
-	outputFile, err := os.Create(filepath.Join(persistDir, conf.Cluster_ID, node, fmt.Sprintf("%s.tf", node)))
+	outputFile, err := os.Create(filepath.Join(persistDir, conf.ClusterID, node, fmt.Sprintf("%s.tf", node)))
 	if err != nil {
 		return errors.Wrap(err, "failed to create terraform config file")
 	}
@@ -218,7 +218,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 
 	// Read template.
 	osType := strings.ToLower(conf.OSImage.Type)
-	if osType == "openeuler" {
+	if osType != "nestos" {
 		osType = "generalos"
 	}
 

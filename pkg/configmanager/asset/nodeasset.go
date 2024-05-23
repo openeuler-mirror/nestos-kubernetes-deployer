@@ -19,10 +19,10 @@ package asset
 import "nestos-kubernetes-deployer/pkg/utils"
 
 type NodeAsset struct {
-	Hostname string
-	IP       string
-	HardwareInfo
-	Certs []utils.StorageContent `json:"-" yaml:"-"` // Certificates content (not printed in JSON and YAML)
+	Hostname     string
+	IP           string
+	HardwareInfo `yaml:"hardwareInfo,omitempty"`
+	Certs        []utils.StorageContent `json:"-" yaml:"-"` // Certificates content (not printed in JSON and YAML)
 }
 
 type HardwareInfo struct {

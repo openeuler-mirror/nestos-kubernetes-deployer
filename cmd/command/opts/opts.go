@@ -57,7 +57,7 @@ type OptionsList struct {
 }
 
 type NKDConfig struct {
-	Log_Level string
+	LogLevel string
 	BootstrapUrl
 }
 
@@ -78,15 +78,15 @@ type InfraPlatform struct {
 }
 
 type OpenStack struct {
-	UserName          string
-	Password          string
-	Tenant_Name       string
-	Auth_URL          string
-	Region            string
-	Internal_Network  string
-	External_Network  string
-	Glance_Name       string
-	Availability_Zone string
+	UserName         string
+	Password         string
+	TenantName       string
+	AuthURL          string
+	Region           string
+	InternalNetwork  string
+	ExternalNetwork  string
+	GlanceName       string
+	AvailabilityZone string
 }
 
 type Libvirt struct {

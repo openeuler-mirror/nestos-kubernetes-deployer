@@ -51,24 +51,20 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	platform, err := cmd.Flags().GetString("platform")
-	if err != nil {
-		logrus.Errorf("Failed to get platform: %v", err)
-		return err
-	}
-	if platform == "" {
-		logrus.Errorf("platform is not provided: %v", err)
-		return err
-	}
-
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
 
+	clusterConfig, err := configmanager.GetClusterConfig(clusterID)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		return err
+	}
+
 	var infrastructure infra.Infrastructure
-	switch platform {
-	case strings.ToLower("libvirt"):
+	switch strings.ToLower(clusterConfig.Platform) {
+	case "libvirt":
 		persistDir := configmanager.GetPersistDir()
 
 		infrastructure = &infra.Libvirt{
@@ -92,7 +88,7 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			logrus.Errorf("Failed to destroy master nodes:%v", err)
 			return err
 		}
-	case strings.ToLower("openstack"):
+	case "openstack":
 		persistDir := configmanager.GetPersistDir()
 
 		infrastructure = &infra.OpenStack{
@@ -116,12 +112,10 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			logrus.Errorf("Failed to destroy master nodes:%v", err)
 			return err
 		}
-	case strings.ToLower("pxe"):
+	case "pxe":
 		logrus.Println("If necessary, manually delete the configuration file for deploying the PXE server")
-		return err
-	case strings.ToLower("ipxe"):
+	case "ipxe":
 		logrus.Println("If necessary, manually delete the configuration file for deploying the iPXE server")
-		return err
 	default:
 		logrus.Errorf("unsupported platform")
 		return err

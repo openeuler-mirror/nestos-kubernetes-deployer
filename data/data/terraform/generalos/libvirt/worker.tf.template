@@ -53,7 +53,7 @@ variable "instance_cloudinit" {
 resource "libvirt_volume" "volume" {
   name   = "${var.cluster_id}-volume"
   pool   = "${var.cluster_id}-pool"
-  source = "{{.Platform.OSImage_Path}}"
+  source = "{{.Platform.OSImage}}"
 }
 
 resource "libvirt_volume" "disk" {

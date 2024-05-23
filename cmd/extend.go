@@ -62,12 +62,6 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("cluster-id is not provided: %v", err)
 	}
 
-	num, err := cmd.Flags().GetUint("num")
-	if err != nil {
-		logrus.Errorf("Failed to get the number of extended nodes: %v", err)
-		return err
-	}
-
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
 		return err
@@ -78,17 +72,30 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
-	newHostnames := extendArray(clusterConfig, int(num))
 
-	if err := extendCluster(clusterConfig); err != nil {
+	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
+	defer httpService.Stop()
+
+	if strings.ToLower(clusterConfig.Platform) == "pxe" || strings.ToLower(clusterConfig.Platform) == "ipxe" {
+		if err := extendCluster(clusterConfig, httpService); err != nil {
+			logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
+			return err
+		}
+		return nil
+	}
+
+	num, err := cmd.Flags().GetUint("num")
+	if err != nil {
+		logrus.Errorf("Failed to get the number of extended nodes: %v", err)
+		return err
+	}
+
+	if err := extendCluster(clusterConfig, httpService); err != nil {
 		logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
 		return err
 	}
-	if err := configmanager.Persist(); err != nil {
-		logrus.Errorf("Failed to persist the cluster asset: %v", err)
-		return err
-	}
 
+	newHostnames := extendArray(clusterConfig, int(num))
 	logrus.Infof("Waiting for cluster extend nodes to be ready...")
 	if err := checkNodesReady(clusterConfig, newHostnames); err != nil {
 		return err
@@ -118,38 +125,36 @@ func extendArray(c *asset.ClusterAsset, count int) []string {
 	return newHostnames
 }
 
-func extendCluster(conf *asset.ClusterAsset) error {
+func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService) error {
 	data, err := os.ReadFile(conf.BootConfig.Worker.Path)
 	if err != nil {
 		logrus.Errorf("error reading boot config file: %v", err)
 		return err
 	}
-
-	httpService := &httpserver.HTTPService{
-		Port:      configmanager.GetBootstrapIgnPort(),
-		FileCache: make(map[string][]byte),
-	}
-
 	httpService.AddFileToCache(constants.WorkerIgn, data)
-	if err := httpService.Start(); err != nil {
-		logrus.Errorf("error starting file service: %v", err)
-		return err
-	}
-	defer httpService.Stop()
 
-	// regenerate worker.tf
-	var worker terraform.Infra
-	if err := worker.Generate(conf, "worker"); err != nil {
-		logrus.Errorf("Failed to generate worker terraform file")
+	if err := configmanager.Persist(); err != nil {
+		logrus.Errorf("Failed to persist the cluster asset: %v", err)
 		return err
 	}
 
 	p := infra.InfraPlatform{}
-	switch conf.Platform {
-	case strings.ToLower("libvirt"):
+	switch strings.ToLower(conf.Platform) {
+	case "libvirt":
+		if err := httpService.Start(); err != nil {
+			return fmt.Errorf("error starting http service: %v", err)
+		}
+
+		// regenerate worker.tf
+		var worker terraform.Infra
+		if err := worker.Generate(conf, "worker"); err != nil {
+			logrus.Errorf("Failed to generate worker terraform file")
+			return err
+		}
+
 		libvirtWorker := &infra.Libvirt{
 			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.Cluster_ID,
+			ClusterID:  conf.ClusterID,
 			Node:       "worker",
 			Count:      uint(len(conf.Worker)),
 		}
@@ -158,10 +163,21 @@ func extendCluster(conf *asset.ClusterAsset) error {
 			logrus.Errorf("Failed to extend worker nodes:%v", err)
 			return err
 		}
-	case strings.ToLower("openstack"):
+	case "openstack":
+		if err := httpService.Start(); err != nil {
+			return fmt.Errorf("error starting http service: %v", err)
+		}
+
+		// regenerate worker.tf
+		var worker terraform.Infra
+		if err := worker.Generate(conf, "worker"); err != nil {
+			logrus.Errorf("Failed to generate worker terraform file")
+			return err
+		}
+
 		openstackWorker := &infra.OpenStack{
 			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.Cluster_ID,
+			ClusterID:  conf.ClusterID,
 			Node:       "worker",
 			Count:      uint(len(conf.Worker)),
 		}
@@ -170,7 +186,7 @@ func extendCluster(conf *asset.ClusterAsset) error {
 			logrus.Errorf("Failed to extend worker nodes:%v", err)
 			return err
 		}
-	case strings.ToLower("pxe"):
+	case "pxe":
 		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
 		pxe := &infra.PXE{
 			HTTPServerPort: pxeConfig.HTTPServerPort,
@@ -178,18 +194,20 @@ func extendCluster(conf *asset.ClusterAsset) error {
 			TFTPServerIP:   pxeConfig.TFTPServerIP,
 			TFTPServerPort: pxeConfig.TFTPServerPort,
 			TFTPRootDir:    pxeConfig.TFTPRootDir,
+			HTTPService:    httpService,
 		}
 		p.SetInfra(pxe)
 		if err := p.Extend(); err != nil {
 			logrus.Errorf("Failed to extend worker nodes:%v", err)
 			return err
 		}
-	case strings.ToLower("ipxe"):
+	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
 		ipxe := &infra.IPXE{
 			IPXEPort:              ipxeConfig.IPXEPort,
 			IPXEFilePath:          ipxeConfig.IPXEFilePath,
 			IPXEOSInstallTreePath: ipxeConfig.IPXEOSInstallTreePath,
+			HTTPService:           httpService,
 		}
 		p.SetInfra(ipxe)
 		if err := p.Extend(); err != nil {

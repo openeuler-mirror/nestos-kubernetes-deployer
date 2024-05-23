@@ -191,16 +191,15 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	}
 
 	p := infra.InfraPlatform{}
-	switch conf.Platform {
-	case strings.ToLower("libvirt"):
-		// Start http service
+	switch strings.ToLower(conf.Platform) {
+	case "libvirt":
 		if err := httpService.Start(); err != nil {
 			return fmt.Errorf("error starting http service: %v", err)
 		}
 
 		libvirtMaster := &infra.Libvirt{
 			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.Cluster_ID,
+			ClusterID:  conf.ClusterID,
 			Node:       "master",
 			Count:      uint(len(conf.Master)),
 		}
@@ -213,7 +212,7 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 
 		libvirtWorker := &infra.Libvirt{
 			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.Cluster_ID,
+			ClusterID:  conf.ClusterID,
 			Node:       "worker",
 			Count:      uint(len(conf.Master)),
 		}
@@ -222,15 +221,14 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			logrus.Errorf("Failed to deploy worker nodes:%v", err)
 			return err
 		}
-	case strings.ToLower("openstack"):
-		// Start http service
+	case "openstack":
 		if err := httpService.Start(); err != nil {
 			return fmt.Errorf("error starting http service: %v", err)
 		}
 
 		openstackMaster := &infra.OpenStack{
 			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.Cluster_ID,
+			ClusterID:  conf.ClusterID,
 			Node:       "master",
 			Count:      uint(len(conf.Master)),
 		}
@@ -242,7 +240,7 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 
 		openstackWorker := &infra.OpenStack{
 			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.Cluster_ID,
+			ClusterID:  conf.ClusterID,
 			Node:       "worker",
 			Count:      uint(len(conf.Master)),
 		}
@@ -251,7 +249,7 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			logrus.Errorf("Failed to deploy worker nodes:%v", err)
 			return err
 		}
-	case strings.ToLower("pxe"):
+	case "pxe":
 		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
 		pxe := &infra.PXE{
 			HTTPServerPort: pxeConfig.HTTPServerPort,
@@ -266,7 +264,7 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			logrus.Errorf("Failed to deploy PXE:%v", err)
 			return err
 		}
-	case strings.ToLower("ipxe"):
+	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
 		ipxe := &infra.IPXE{
 			IPXEPort:              ipxeConfig.IPXEPort,
@@ -451,20 +449,22 @@ func addIgnitionFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAs
 	// control plane ignition files for initializing the cluster,
 	// master ignition files for master node joining the cluster,
 	// and worker ignition files for worker node joining the cluster.
-	if len(conf.Master) > 0 {
-		if err := httpService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
-			return fmt.Errorf("error adding control plane ignition file to cache: %v", err)
-		}
+
+	// Only one master node
+	if err := httpService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
+		return fmt.Errorf("error adding control plane ignition file to cache: %v", err)
 	}
+
+	// multiple master nodes
 	if len(conf.Master) > 1 {
 		if err := httpService.AddFileToCache(constants.MasterIgn, conf.BootConfig.Master.Content); err != nil {
 			return fmt.Errorf("error adding master ignition file to cache: %v", err)
 		}
 	}
-	if len(conf.Worker) > 0 {
-		if err := httpService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
-			return fmt.Errorf("error adding worker ignition file to cache: %v", err)
-		}
+
+	if err := httpService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
+		return fmt.Errorf("error adding worker ignition file to cache: %v", err)
 	}
+
 	return nil
 }

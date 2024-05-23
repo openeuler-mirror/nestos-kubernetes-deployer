@@ -37,7 +37,6 @@ func (p *PXE) deployHTTP(port string, dirPath string) error {
 	if err := p.HTTPService.Start(); err != nil {
 		return err
 	}
-	defer p.HTTPService.Stop()
 
 	return nil
 }

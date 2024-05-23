@@ -90,7 +90,7 @@ func initializeClusterAsset(fileData *asset.ClusterAsset, opts *opts.OptionsList
 	}
 	clusterAsset.InfraPlatform = infraAsset
 
-	ClusterAsset[fileData.Cluster_ID] = clusterAsset
+	ClusterAsset[fileData.ClusterID] = clusterAsset
 	return nil
 }
 
@@ -129,7 +129,7 @@ func Persist() error {
 
 	// Persist cluster
 	for _, clusterAsset := range ClusterAsset {
-		clusterDir := filepath.Join(persistDir, clusterAsset.Cluster_ID)
+		clusterDir := filepath.Join(persistDir, clusterAsset.ClusterID)
 		if err := os.MkdirAll(clusterDir, 0644); err != nil {
 			return err
 		}

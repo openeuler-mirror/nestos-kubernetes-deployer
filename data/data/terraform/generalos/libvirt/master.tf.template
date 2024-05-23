@@ -70,7 +70,7 @@ resource "libvirt_pool" "pool" {
 resource "libvirt_volume" "volume" {
   name   = "${var.cluster_id}-volume"
   pool   = libvirt_pool.pool.name
-  source = "{{.Platform.OSImage_Path}}"
+  source = "{{.Platform.OSImage}}"
 }
 
 resource "libvirt_volume" "disk" {

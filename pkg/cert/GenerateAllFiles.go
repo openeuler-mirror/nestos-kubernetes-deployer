@@ -75,8 +75,8 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 
 	/* **********生成root CA 证书和密钥********** */
 
-	rootCACert, err := GenerateAllCA(clusterconfig.CertAsset.RootCaCertPath,
-		clusterconfig.CertAsset.RootCaKeyPath, "kubernetes", []string{"kubernetes"})
+	rootCACert, err := GenerateAllCA(clusterconfig.CertAsset.RootCACertPath,
+		clusterconfig.CertAsset.RootCAKeyPath, "kubernetes", []string{"kubernetes"})
 	if err != nil {
 		logrus.Errorf("Error generating root CA:%v", err)
 		return err
@@ -84,8 +84,8 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 
 	/*如果用户没有提供自定义路径，则将ca保存在以下目录；
 	  如果用户提供了自定义路径，也保存一份在以下路径，并反存到配置文件中*/
-	clusterconfig.CertAsset.RootCaCertPath = globalconfig.PersistDir + "/" + clusterID + "/pki/ca.crt"
-	clusterconfig.CertAsset.RootCaKeyPath = globalconfig.PersistDir + "/" + clusterID + "/pki/ca.key"
+	clusterconfig.CertAsset.RootCACertPath = globalconfig.PersistDir + "/" + clusterID + "/pki/ca.crt"
+	clusterconfig.CertAsset.RootCAKeyPath = globalconfig.PersistDir + "/" + clusterID + "/pki/ca.key"
 
 	//保存root CA证书和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/ca.crt", rootCACert.CertRaw)
@@ -119,8 +119,8 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 
 	/* **********生成etcd CA 证书和密钥********** */
 
-	etcdCACert, err := GenerateAllCA(clusterconfig.CertAsset.EtcdCaCertPath,
-		clusterconfig.CertAsset.EtcdCaKeyPath, "etcd-ca", []string{"etcd-ca"})
+	etcdCACert, err := GenerateAllCA(clusterconfig.CertAsset.EtcdCACertPath,
+		clusterconfig.CertAsset.EtcdCAKeyPath, "etcd-ca", []string{"etcd-ca"})
 	if err != nil {
 		logrus.Errorf("Error generating etcd CA:%v", err)
 		return err
@@ -128,8 +128,8 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 
 	/*如果用户没有提供自定义路径，则将ca保存在以下目录；
 	  如果用户提供了自定义路径，也保存一份在以下路径，并反存到配置文件中*/
-	clusterconfig.CertAsset.EtcdCaCertPath = globalconfig.PersistDir + "/" + clusterID + "/pki/etcd/ca.crt"
-	clusterconfig.CertAsset.EtcdCaKeyPath = globalconfig.PersistDir + "/" + clusterID + "/pki/etcd/ca.key"
+	clusterconfig.CertAsset.EtcdCACertPath = globalconfig.PersistDir + "/" + clusterID + "/pki/etcd/ca.crt"
+	clusterconfig.CertAsset.EtcdCAKeyPath = globalconfig.PersistDir + "/" + clusterID + "/pki/etcd/ca.key"
 
 	//保存etcd-ca和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/etcd/ca.crt", etcdCACert.CertRaw)
@@ -158,8 +158,8 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 
 	/* **********生成front-proxy CA 证书和密钥********** */
 
-	frontProxyCACert, err := GenerateAllCA(clusterconfig.CertAsset.FrontProxyCaCertPath,
-		clusterconfig.CertAsset.FrontProxyCaKeyPath, "front-proxy-ca", []string{"front-proxy-ca"})
+	frontProxyCACert, err := GenerateAllCA(clusterconfig.CertAsset.FrontProxyCACertPath,
+		clusterconfig.CertAsset.FrontProxyCAKeyPath, "front-proxy-ca", []string{"front-proxy-ca"})
 	if err != nil {
 		logrus.Errorf("Error generating front-proxy CA:%v", err)
 		return err
@@ -167,8 +167,8 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 
 	/*如果用户没有提供自定义路径，则将ca保存在以下目录；
 	  如果用户提供了自定义路径，也保存一份在以下路径，并反存到配置文件中*/
-	clusterconfig.CertAsset.FrontProxyCaCertPath = globalconfig.PersistDir + "/" + clusterID + "/pki/front-proxy-ca.crt"
-	clusterconfig.CertAsset.FrontProxyCaKeyPath = globalconfig.PersistDir + "/" + clusterID + "/pki/front-proxy-ca.key"
+	clusterconfig.CertAsset.FrontProxyCACertPath = globalconfig.PersistDir + "/" + clusterID + "/pki/front-proxy-ca.crt"
+	clusterconfig.CertAsset.FrontProxyCAKeyPath = globalconfig.PersistDir + "/" + clusterID + "/pki/front-proxy-ca.key"
 
 	//保存front-proxy-ca和密钥到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/front-proxy-ca.crt", frontProxyCACert.CertRaw)
@@ -205,8 +205,8 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 
 	/*如果用户没有提供自定义路径，则将密钥对保存在以下目录；
 	  如果用户提供了自定义路径，也保存一份在以下路径，并反存到配置文件中*/
-	clusterconfig.CertAsset.SaKey = globalconfig.PersistDir + "/pki/sa.key"
-	clusterconfig.CertAsset.SaPub = globalconfig.PersistDir + "/pki/sa.pub"
+	clusterconfig.CertAsset.SAKey = globalconfig.PersistDir + "/pki/sa.key"
+	clusterconfig.CertAsset.SAPub = globalconfig.PersistDir + "/pki/sa.pub"
 
 	//保存密钥对到宿主机
 	err = SaveFileToLocal(globalconfig.PersistDir+"/"+clusterID+"/pki/sa.key", sakeypair.PrivateKeyPEM)

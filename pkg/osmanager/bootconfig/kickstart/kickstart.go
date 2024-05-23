@@ -49,10 +49,8 @@ func (c *Kickstart) GenerateBootConfig() error {
 		}
 	}
 
-	if len(c.ClusterAsset.Worker) > 0 {
-		if err := c.generateNodeConfig(constants.Worker, constants.JoinWorkerService, "", kickstartWorker); err != nil {
-			return err
-		}
+	if err := c.generateNodeConfig(constants.Worker, constants.JoinWorkerService, "", kickstartWorker); err != nil {
+		return err
 	}
 
 	return nil
@@ -66,7 +64,7 @@ func (c *Kickstart) generateNodeConfig(nodeType, service string, yamlPath string
 	if err := tmpl.GenerateBootConfig(c.BootstrapBaseurl, nodeType); err != nil {
 		return err
 	}
-	savePath := bootconfig.GetSavePath(c.ClusterAsset.Cluster_ID)
+	savePath := bootconfig.GetSavePath(c.ClusterAsset.ClusterID)
 	if err := bootconfig.SaveFile(tmpl.config, savePath, filename); err != nil {
 		return err
 	}

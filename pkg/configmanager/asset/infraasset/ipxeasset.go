@@ -22,21 +22,21 @@ import (
 )
 
 type IPXEAsset struct {
-	IPXEPort              string `yaml:"ipxe_port"`
-	IPXEFilePath          string `yaml:"ipxe_file_path"`
-	IPXEOSInstallTreePath string `yaml:"ipxe_os_install_tree_path"`
+	IPXEPort              string `yaml:"ipxePort"`
+	IPXEFilePath          string `yaml:"ipxeFilePath"`
+	IPXEOSInstallTreePath string `yaml:"ipxeOSInstallTreePath"`
 }
 
 func (ia *IPXEAsset) InitAsset(ipxeMap map[string]interface{}, opts *opts.OptionsList, args ...interface{}) (InfraAsset, error) {
-	updateFieldFromMap("ipxe_port", &ia.IPXEPort, ipxeMap)
+	updateFieldFromMap("ipxePort", &ia.IPXEPort, ipxeMap)
 	asset.SetStringValue(&ia.IPXEPort, opts.InfraPlatform.IPXE.IPXEPort, "9080")
 
-	updateFieldFromMap("ipxe_file_path", &ia.IPXEFilePath, ipxeMap)
-	if err := asset.CheckStringValue(&ia.IPXEFilePath, opts.InfraPlatform.IPXE.IPXEFilePath, "ipxe-file-path"); err != nil {
-		return nil, err
-	}
+	updateFieldFromMap("ipxeFilePath", &ia.IPXEFilePath, ipxeMap)
+	// if err := asset.CheckStringValue(&ia.IPXEFilePath, opts.InfraPlatform.IPXE.IPXEFilePath, "ipxe-file-path"); err != nil {
+	// 	return nil, err
+	// }
 
-	updateFieldFromMap("ipxe_os_install_tree_path", &ia.IPXEOSInstallTreePath, ipxeMap)
+	updateFieldFromMap("ipxeOSInstallTreePath", &ia.IPXEOSInstallTreePath, ipxeMap)
 	asset.SetStringValue(&ia.IPXEOSInstallTreePath, opts.InfraPlatform.IPXE.IPXEOSInstallTreePath, "/var/www/html/")
 
 	return ia, nil

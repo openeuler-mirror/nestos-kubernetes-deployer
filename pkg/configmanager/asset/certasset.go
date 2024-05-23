@@ -18,12 +18,12 @@ package asset
 
 //接受用户自定义的各类ca证书路径
 type CertAsset struct {
-	RootCaCertPath       string
-	RootCaKeyPath        string
-	EtcdCaCertPath       string
-	EtcdCaKeyPath        string
-	FrontProxyCaCertPath string
-	FrontProxyCaKeyPath  string
-	SaPub                string
-	SaKey                string
+	RootCACertPath       string `yaml:"rootCACertPath"`
+	RootCAKeyPath        string `yaml:"rootCAKeyPath"`
+	EtcdCACertPath       string `yaml:"etcdCACertPath"`
+	EtcdCAKeyPath        string `yaml:"etcdCAKeyPath"`
+	FrontProxyCACertPath string `yaml:"frontProxyCACertPath"`
+	FrontProxyCAKeyPath  string `yaml:"frontProxyCAKeyPath"`
+	SAPub                string `yaml:"saPub"`
+	SAKey                string `yaml:"saKey"`
 }

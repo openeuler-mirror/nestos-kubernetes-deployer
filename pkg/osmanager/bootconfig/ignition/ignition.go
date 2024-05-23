@@ -92,7 +92,7 @@ func (ig *Ignition) generateNodeIgnition(nodeType, service string, yamlPath stri
 		}
 	}
 
-	savePath := bootconfig.GetSavePath(ig.ClusterAsset.Cluster_ID)
+	savePath := bootconfig.GetSavePath(ig.ClusterAsset.ClusterID)
 	if err := bootconfig.SaveJSON(tmpl.config, savePath, ignFilename); err != nil {
 		return err
 	}

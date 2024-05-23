@@ -45,7 +45,6 @@ func (i *IPXE) deployHTTP(port string, dirPath string, filePath string) error {
 	if err := i.HTTPService.Start(); err != nil {
 		return fmt.Errorf("error starting file service: %v", err)
 	}
-	defer i.HTTPService.Stop()
 
 	return nil
 }
