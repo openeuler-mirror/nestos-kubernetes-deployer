@@ -91,7 +91,7 @@ type OpenStack struct {
 
 type Libvirt struct {
 	URI     string
-	OSImage string
+	OSPath  string
 	CIDR    string
 	Gateway string
 }

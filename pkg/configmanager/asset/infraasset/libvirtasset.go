@@ -23,7 +23,7 @@ import (
 
 type LibvirtAsset struct {
 	URI     string
-	OSImage string `yaml:"osImage"`
+	OSPath  string `yaml:"osPath"`
 	CIDR    string
 	Gateway string
 }
@@ -32,8 +32,8 @@ func (la *LibvirtAsset) InitAsset(libvirtMap map[string]interface{}, opts *opts.
 	updateFieldFromMap("uri", &la.URI, libvirtMap)
 	asset.SetStringValue(&la.URI, opts.InfraPlatform.Libvirt.URI, "qemu:///system")
 
-	updateFieldFromMap("osImage", &la.OSImage, libvirtMap)
-	if err := asset.CheckStringValue(&la.OSImage, opts.InfraPlatform.Libvirt.OSImage, "os-image"); err != nil {
+	updateFieldFromMap("osPath", &la.OSPath, libvirtMap)
+	if err := asset.CheckStringValue(&la.OSPath, opts.InfraPlatform.Libvirt.OSPath, "os-path"); err != nil {
 		return nil, err
 	}
 

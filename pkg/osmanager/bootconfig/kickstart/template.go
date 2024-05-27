@@ -86,6 +86,16 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 		})
 	}
 
+	if len(t.clusterAsset.HookConf.ShellFiles) > 0 {
+		for _, sf := range t.clusterAsset.HookConf.ShellFiles {
+			hookFilePath := constants.HookFilesPath + sf.Name
+			ksData.Files = append(ksData.Files, File{
+				Content:   fmt.Sprintf("cat <<'EOF'> %s\n%s\nEOF", hookFilePath, string(sf.Content)),
+				ChangeMod: fmt.Sprintf("chmod %o %s", sf.Mode, hookFilePath),
+			})
+		}
+	}
+
 	for _, u := range systemds.Units {
 		fp := fmt.Sprintf("/etc/systemd/system/%s", u.Name)
 		ksData.Files = append(ksData.Files, File{

@@ -178,7 +178,7 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			return err
 		}
 	}
-	if osMgr.IsOpenEuler() && len(conf.Master) > 0 {
+	if osMgr.IsGeneralOS() && len(conf.Master) > 0 {
 		certs, _ := cert.CertsToBytes(conf.Master[0].Certs)
 		if err := httpService.AddFileToCache(constants.CertsFiles, certs); err != nil {
 			return err
