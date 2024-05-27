@@ -105,6 +105,25 @@ configure_crio_runtime() {
     fi
 }
 
+update_kubelet_config() {
+    local kubelet_conf_dir="/etc/systemd/system/kubelet.service.d"
+    local new_conf="$kubelet_conf_dir/10-kubeadm.conf"
+    local old_conf="$kubelet_conf_dir/kubeadm.conf"
+
+    if [ -f "$new_conf" ]; then
+        rm -f "$old_conf"
+        mv "$new_conf" "$old_conf"
+
+        systemctl daemon-reload
+        systemctl restart kubelet
+
+        echo "Kubelet configuration updated successfully."
+    else
+        echo "Error:kubelet configuration file not found."
+    fi
+}
+
+
 # Function to configure CRI-O runtime
 configure_containerd_runtime() {
     containerd config default > /etc/containerd/config.toml
@@ -203,6 +222,7 @@ define_installer_packages() {
 
 # Function to install dependent packages
 install_dependent_packages() {
+    echo "Installing dependent packages..."
     local packages
     if [[ ${#package_list[@]} -ne 0 && "${package_list[0]}" != "" ]]; then
         echo "Using configured package list:"
@@ -214,7 +234,7 @@ install_dependent_packages() {
         packages+=(containerd)
         {{end -}}
     fi
-    echo "${packages[@]}"
+    echo "Packages to be installed: ${packages[@]}"
     sudo yum install -y "${packages[@]}" > /dev/null 2>&1
 }
 
@@ -239,6 +259,7 @@ get_check_packages() {
 }
 
 check_installation_status() {
+    echo "Checking installation status..."
     local check_packages
     check_packages=($(get_check_packages))
     # Check if all packages are installed
@@ -311,13 +332,14 @@ disable_firewall
 
 {{if or .IsGeneralOS -}}
 install_dependent_packages
-echo "Checking installation status..."
 check_installation_status
 check_and_install_kube_binaries
 {{if .IsControlPlane -}}
 fetch_and_save_certificates
 {{end -}}
-
+{{if .IsCrio -}}
+update_kubelet_config
+{{end -}}
 systemctl enable kubelet.service
 systemctl restart set-kernel-para.service
 {{end -}}
