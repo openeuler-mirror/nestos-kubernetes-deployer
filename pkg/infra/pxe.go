@@ -17,10 +17,10 @@ limitations under the License.
 package infra
 
 import (
-	"github.com/sirupsen/logrus"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/tftpserver"
-	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type PXE struct {
@@ -35,8 +35,6 @@ type PXE struct {
 func (p *PXE) deployHTTP(port string, dirPath string) error {
 	p.HTTPService.Port = port
 	p.HTTPService.DirPath = dirPath
-	p.HTTPService.HttpLastRequestTime = time.Now().Unix()
-	p.HTTPService.Ch = make(chan struct{}, 1)
 	if err := p.HTTPService.Start(); err != nil {
 		return err
 	}
