@@ -61,8 +61,8 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 	}
 	if nodeType == constants.Controlplane {
 		tmplData.IsControlPlane = true
+		tmplData.CertsUrl = utils.ConstructURL(url, constants.CertsFiles)
 	}
-	tmplData.CertsUrl = utils.ConstructURL(url, constants.CertsFiles)
 
 	//set container engine config
 	engine, err := runtime.GetRuntime(t.clusterAsset.Runtime)

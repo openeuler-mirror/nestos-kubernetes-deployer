@@ -217,60 +217,69 @@ define_installer_packages() {
     {{if .IsCrio -}}
     packages+=(cri-o)
     {{end -}}
+    {{if .IsContainerd -}}
+    packages_to_install+=(containerd)
+    {{end -}}
     echo "${packages[@]}"
 }
 
-# Function to install dependent packages
-install_dependent_packages() {
+# Function to check and install dependent packages
+check_and_install_dependent_packages() {
     echo "Installing dependent packages..."
-    local packages
+    local packages_to_install=()
+
+    # check yum package
     if [[ ${#package_list[@]} -ne 0 && "${package_list[0]}" != "" ]]; then
         echo "Using configured package list:"
-        packages=("${package_list[@]}")
-    else
+        packages_to_install+=("${package_list[@]}")
+    fi
+
+    #check rpm package
+    if [ -n "{{.RpmPackageCurl}}" ]; then
+        rpm_url={{.RpmPackageCurl}}
+        architecture=$(uname -m)
+        rpm_package_path="/etc/nkdfiles/packages/$architecture"
+        if [ ! -d "$rpm_package_path" ]; then
+            mkdir -p "$rpm_package_path"
+        fi
+
+        # Fetch package list from the provided URL
+        package_list=$(curl -s "$rpm_url" | grep -oP 'href="\K[^"]+' | grep -E '\.rpm$')
+
+        if [[ -n "$package_list" ]]; then
+            echo "Downloading RPM packages from $rpm_url"
+            for package_filename in $package_list; do
+                package_url="${rpm_url%/}/$package_filename"
+                package_path="$rpm_package_path/$package_filename"
+
+                if wget -P "$rpm_package_path" "$package_url" >/dev/null 2>&1; then
+                    echo "Package $package_filename downloaded successfully."
+                    chmod +x "$package_path"
+                    packages_to_install+=("$package_path")
+                else
+                    echo "Failed to download package $package_filename."
+                    exit 1
+                fi
+            done
+        else
+            echo "No RPM packages found at $rpm_url"
+        fi
+    fi
+
+    # if package_list and rpm_package_list are empty
+    if [[ ${#packages_to_install[@]} -eq 0 ]]; then
         echo "Using default package list:"
-        packages=($(define_installer_packages))
-        {{if .IsContainerd -}}
-        packages+=(containerd)
-        {{end -}}
+        packages_to_install=($(define_installer_packages))
     fi
-    echo "Packages to be installed: ${packages[@]}"
-    sudo yum install -y "${packages[@]}" > /dev/null 2>&1
-}
 
-# Function to get the check packages, either from the package_list or the default list
-get_check_packages() {
-    local check_packages
-    if [[ ${#package_list[@]} -ne 0 && "${package_list[0]}" != "" ]]; then
-        check_packages=("${package_list[@]}")
-        # Replace containerd with containerd.io for checking
-        for i in "${!check_packages[@]}"; do
-            if [[ "${check_packages[i]}" == "containerd" ]]; then
-                check_packages[i]="containerd.io"
-            fi
-        done
-    else
-        check_packages=($(define_installer_packages))
-        {{if .IsContainerd -}}
-        check_packages+=(containerd.io)
-        {{end -}}
-    fi
-    echo "${check_packages[@]}"
-}
-
-check_installation_status() {
-    echo "Checking installation status..."
-    local check_packages
-    check_packages=($(get_check_packages))
-    # Check if all packages are installed
-    for package in "${check_packages[@]}"; do
-        if ! rpm -q "$package" &> /dev/null; then
-            echo "Error: Package $package is not installed."
+    for package in "${packages_to_install[@]}"; do
+        if sudo yum install -y "$package" >/dev/null 2>&1; then
+            echo "Package $package installed successfully."
+        else
+            echo "Failed to install package $package."
             exit 1
         fi
     done
-
-    echo "Kubernetes dependent packages installed successfully."
 }
 
 check_and_install_kube_binaries() {
@@ -282,9 +291,9 @@ check_and_install_kube_binaries() {
     for binary in "${binaries[@]}"; do
          if ! command -v "$(basename "$binary")" &>/dev/null; then
             echo "$binary is missing, installing it using yum."
-            sudo yum install -y /usr/bin/"$binary" > /dev/null 2>&1
+            sudo yum install -y /usr/bin/"$binary" 
             if [ $? -ne 0 ]; then
-                echo "Failed to install $binary. Exiting."
+                echo "Failed to install $binary."
                 exit 1
             else
                 echo "$(basename "$binary") installed successfully."
@@ -331,8 +340,7 @@ execute_hookfiles "${hook_files_path}"
 disable_firewall
 
 {{if or .IsGeneralOS -}}
-install_dependent_packages
-check_installation_status
+check_and_install_dependent_packages
 check_and_install_kube_binaries
 {{if .IsControlPlane -}}
 fetch_and_save_certificates

@@ -61,7 +61,8 @@ const (
 	WorkerKS             = "worker.cfg"
 	IPXECfg              = "ipxe.cfg"
 
-	CertsFiles = "certs.json"
+	CertsFiles     = "certs.json"
+	RpmPackageList = "/packagelist/"
 
 	SystemdServiceMode os.FileMode = 0644
 	StorageFilesMode   os.FileMode = 0755
