@@ -30,14 +30,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const TimeOut = 10 * 60
+
 // HTTPService encapsulates the properties of the HTTP file service
 type HTTPService struct {
-	Port      string
-	DirPath   string
-	FileCache map[string][]byte
-	running   bool
-	server    *http.Server
-	mutex     sync.RWMutex
+	Port                string
+	DirPath             string
+	FileCache           map[string][]byte
+	running             bool
+	server              *http.Server
+	mutex               sync.RWMutex
+	HttpLastRequestTime int64 `json:"http_last_request_time"`
+	Ch                  chan struct{}
 }
 
 func NewHTTPService(port string) *HTTPService {
@@ -82,9 +86,9 @@ func (hs *HTTPService) Start() error {
 	defer hs.mutex.Unlock()
 
 	smux := http.NewServeMux()
-
 	// 处理目录请求
 	smux.HandleFunc("/dir/", func(w http.ResponseWriter, r *http.Request) {
+		hs.HttpLastRequestTime = time.Now().Unix()
 		rpath := filepath.Join(dirPath, r.URL.Path[len("/dir/"):])
 		_, err := os.Stat(rpath)
 		if err != nil {
@@ -99,6 +103,7 @@ func (hs *HTTPService) Start() error {
 
 	// 处理文件请求
 	smux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		hs.HttpLastRequestTime = time.Now().Unix()
 		rpath := r.URL.Path
 		fileContent, ok := hs.FileCache[rpath]
 		if !ok {
@@ -113,19 +118,27 @@ func (hs *HTTPService) Start() error {
 		Handler: smux,
 	}
 
+	logrus.Infof("HTTP server is listening on port %s...\n", hs.Port)
 	go func() {
-		logrus.Infof("HTTP server is listening on port %s...\n", hs.Port)
-		hs.running = true
-		if hs.server != nil {
-			if err := hs.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				logrus.Errorf("ListenAndServe(): %v", err)
-				hs.running = false
-				return
+		for {
+			val := time.Now().Unix() - hs.HttpLastRequestTime
+			if val < TimeOut {
+				time.Sleep(30 * time.Second)
+				continue
 			}
-		} else {
-			logrus.Error("Server is nil. Cannot start.")
+			hs.server.Close()
+			hs.running = false
+			hs.server = nil
+			hs.Ch <- struct{}{}
+			return
 		}
 	}()
+	hs.running = true
+	if err := hs.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logrus.Errorf("ListenAndServe(): %v", err)
+		hs.running = false
+		return err
+	}
 	return nil
 }
 
@@ -135,19 +148,19 @@ func (hs *HTTPService) Stop() error {
 		return nil
 	}
 
-	if hs.server != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-
-		if err := hs.server.Shutdown(ctx); err != nil {
-			logrus.Errorf("Shut down the http server: %v", err)
-			return err
-		}
-		hs.server = nil
+	if hs.server == nil {
+		hs.running = false
+		logrus.Infof("HTTP server stopped.")
+		return nil
 	}
 
-	hs.running = false
-	logrus.Infof("HTTP server stopped.")
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 
+	if err := hs.server.Shutdown(ctx); err != nil {
+		logrus.Errorf("Shut down the http server: %v", err)
+		return err
+	}
+	hs.server = nil
 	return nil
 }
