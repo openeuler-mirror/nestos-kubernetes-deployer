@@ -210,6 +210,7 @@ type Kubernetes struct {
 	CertificateKey       string   `yaml:"certificateKey"`
 	CaCertHash           string   `json:"-" yaml:"-"`
 	PackageList          []string `json:"packageList" yaml:"packageList,omitempty"`
+	RpmPackagePath       string   `json:"rpmPackagePath" yaml:"rpmPackagePath,omitempty"`
 	Network
 }
 

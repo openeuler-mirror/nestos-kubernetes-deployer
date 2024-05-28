@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"nestos-kubernetes-deployer/pkg/constants"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,6 +37,7 @@ const TimeOut = 10 * 60
 type HTTPService struct {
 	Port                string
 	DirPath             string
+	PackageDir          string
 	FileCache           map[string][]byte
 	running             bool
 	server              *http.Server
@@ -98,6 +100,18 @@ func (hs *HTTPService) Start() error {
 		}
 
 		// 如果请求是文件，返回文件内容
+		http.ServeFile(w, r, rpath)
+	})
+
+	// 处理rpm软件包请求
+	smux.HandleFunc(constants.RpmPackageList, func(w http.ResponseWriter, r *http.Request) {
+		hs.HttpLastRequestTime = time.Now().Unix()
+		rpath := filepath.Join(hs.PackageDir, r.URL.Path[len(constants.RpmPackageList):])
+		_, err := os.Stat(rpath)
+		if err != nil {
+			http.FileServer(http.Dir(rpath)).ServeHTTP(w, r)
+			return
+		}
 		http.ServeFile(w, r, rpath)
 	})
 

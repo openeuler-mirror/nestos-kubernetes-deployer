@@ -192,6 +192,10 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			return err
 		}
 
+		if len(conf.Kubernetes.RpmPackagePath) > 0 {
+			httpService.PackageDir = conf.Kubernetes.RpmPackagePath
+		}
+
 		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
 			if err := addKickstartFiles(httpService, conf); err != nil {
 				return fmt.Errorf("error adding kickstart file to cache: %v", err)

@@ -60,17 +60,27 @@ type TmplData struct {
 	IsNestOS          bool
 	IsGeneralOS       bool
 	PackageList       []string
+	RpmPackageCurl    string
 }
 
 func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
-	var hsipStrings []string
+	var (
+		hsipStrings    []string
+		rpmPackageCurl string
+	)
+
 	for _, master := range c.Master {
 		hsipStrings = append(hsipStrings, master.IP+" "+master.Hostname)
 	}
 	hsip := strings.Join(hsipStrings, "\n")
+
 	engine, err := runtime.GetRuntime(c.Runtime)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.IsGeneralOS && len(c.Kubernetes.RpmPackagePath) > 0 {
+		rpmPackageCurl = utils.ConstructURL(configmanager.GetBootstrapIgnHostPort(), constants.RpmPackageList)
 	}
 
 	return &TmplData{
@@ -95,6 +105,7 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 		IsNestOS:          c.IsNestOS,
 		IsGeneralOS:       c.IsGeneralOS,
 		PackageList:       c.PackageList,
+		RpmPackageCurl:    rpmPackageCurl,
 	}, nil
 }
 
