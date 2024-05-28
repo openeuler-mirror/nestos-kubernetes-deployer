@@ -97,17 +97,18 @@ type Libvirt struct {
 }
 
 type PXE struct {
+	IP             string
 	HTTPServerPort string
 	HTTPRootDir    string
-	TFTPServerIP   string
 	TFTPServerPort string
 	TFTPRootDir    string
 }
 
 type IPXE struct {
-	IPXEPort              string
-	IPXEFilePath          string
-	IPXEOSInstallTreePath string
+	IP                string
+	Port              string
+	FilePath          string
+	OSInstallTreePath string
 }
 
 type MasterConfig struct {

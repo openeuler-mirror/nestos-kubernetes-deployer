@@ -52,17 +52,17 @@ func (oa *OpenStackAsset) InitAsset(openstackMap map[string]interface{}, opts *o
 	asset.SetStringValue(&oa.Region, opts.InfraPlatform.OpenStack.Region, "RegionOne")
 
 	updateFieldFromMap("internalNetwork", &oa.InternalNetwork, openstackMap)
-	if err := asset.CheckStringValue(&oa.InternalNetwork, opts.InfraPlatform.OpenStack.InternalNetwork, "openstack-internal-network"); err != nil {
+	if err := asset.CheckStringValue(&oa.InternalNetwork, opts.InfraPlatform.OpenStack.InternalNetwork, "openstack-internalNetwork"); err != nil {
 		return nil, err
 	}
 
 	updateFieldFromMap("externalNetwork", &oa.ExternalNetwork, openstackMap)
-	if err := asset.CheckStringValue(&oa.ExternalNetwork, opts.InfraPlatform.OpenStack.ExternalNetwork, "openstack-external-network"); err != nil {
+	if err := asset.CheckStringValue(&oa.ExternalNetwork, opts.InfraPlatform.OpenStack.ExternalNetwork, "openstack-externalNetwork"); err != nil {
 		return nil, err
 	}
 
 	updateFieldFromMap("glanceName", &oa.GlanceName, openstackMap)
-	if err := asset.CheckStringValue(&oa.GlanceName, opts.InfraPlatform.OpenStack.GlanceName, "openstack-glance-name"); err != nil {
+	if err := asset.CheckStringValue(&oa.GlanceName, opts.InfraPlatform.OpenStack.GlanceName, "openstack-glanceName"); err != nil {
 		return nil, err
 	}
 

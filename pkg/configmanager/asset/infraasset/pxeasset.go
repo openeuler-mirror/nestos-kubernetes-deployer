@@ -22,24 +22,24 @@ import (
 )
 
 type PXEAsset struct {
+	IP             string
 	HTTPServerPort string `yaml:"httpServerPort"`
 	HTTPRootDir    string `yaml:"httpRootDir"`
-	TFTPServerIP   string `yaml:"tftpServerIP"`
 	TFTPServerPort string `yaml:"tftpServerPort"`
 	TFTPRootDir    string `yaml:"tftpRootDir"`
 }
 
 func (pa *PXEAsset) InitAsset(pxeMap map[string]interface{}, opts *opts.OptionsList, args ...interface{}) (InfraAsset, error) {
+	updateFieldFromMap("ip", &pa.IP, pxeMap)
+	if err := asset.CheckStringValue(&pa.IP, opts.InfraPlatform.PXE.IP, "pxe-ip"); err != nil {
+		return nil, err
+	}
+
 	updateFieldFromMap("httpServerPort", &pa.HTTPServerPort, pxeMap)
 	asset.SetStringValue(&pa.HTTPServerPort, opts.InfraPlatform.PXE.HTTPServerPort, "9080")
 
 	updateFieldFromMap("httpRootDir", &pa.HTTPRootDir, pxeMap)
 	asset.SetStringValue(&pa.HTTPRootDir, opts.InfraPlatform.PXE.HTTPRootDir, "/var/www/html/")
-
-	updateFieldFromMap("tftpServerIP", &pa.TFTPServerIP, pxeMap)
-	if err := asset.CheckStringValue(&pa.TFTPServerIP, opts.InfraPlatform.PXE.TFTPServerIP, "tftp-server-ip"); err != nil {
-		return nil, err
-	}
 
 	updateFieldFromMap("tftpServerPort", &pa.TFTPServerPort, pxeMap)
 	asset.SetStringValue(&pa.TFTPServerPort, opts.InfraPlatform.PXE.TFTPServerPort, "69")

@@ -22,9 +22,9 @@ import (
 )
 
 type PXE struct {
+	IP             string
 	HTTPServerPort string
 	HTTPRootDir    string
-	TFTPServerIP   string
 	TFTPServerPort string
 	TFTPRootDir    string
 	HTTPService    *httpserver.HTTPService
@@ -60,7 +60,8 @@ func (p *PXE) Deploy() error {
 	if err := p.deployHTTP(p.HTTPServerPort, p.HTTPRootDir); err != nil {
 		return err
 	}
-	if err := p.deployTFTP(p.TFTPServerIP, p.TFTPServerPort, p.TFTPRootDir); err != nil {
+
+	if err := p.deployTFTP(p.IP, p.TFTPServerPort, p.TFTPRootDir); err != nil {
 		return err
 	}
 
@@ -71,7 +72,7 @@ func (p *PXE) Extend() error {
 	if err := p.deployHTTP(p.HTTPServerPort, p.HTTPRootDir); err != nil {
 		return err
 	}
-	if err := p.deployTFTP(p.TFTPServerIP, p.TFTPServerPort, p.TFTPRootDir); err != nil {
+	if err := p.deployTFTP(p.IP, p.TFTPServerPort, p.TFTPRootDir); err != nil {
 		return err
 	}
 
