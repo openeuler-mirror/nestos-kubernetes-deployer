@@ -48,8 +48,10 @@ type HTTPService struct {
 
 func NewHTTPService(port string) *HTTPService {
 	return &HTTPService{
-		Port:      port,
-		FileCache: make(map[string][]byte),
+		Port:                port,
+		FileCache:           make(map[string][]byte),
+		HttpLastRequestTime: time.Now().Unix(),
+		Ch:                  make(chan struct{}, 1),
 	}
 }
 
