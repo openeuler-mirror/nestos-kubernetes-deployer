@@ -28,6 +28,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
+	"nestos-kubernetes-deployer/pkg/osmanager"
 	"nestos-kubernetes-deployer/pkg/terraform"
 	"os"
 	"strings"
@@ -131,6 +132,17 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 		logrus.Errorf("error reading boot config file: %v", err)
 		return err
 	}
+
+	osMgr := osmanager.NewOSManager(conf)
+	if osMgr.IsNestOS() {
+		httpService.AddFileToCache(constants.WorkerIgn, data)
+	}
+	if osMgr.IsGeneralOS() {
+		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
+			httpService.AddFileToCache(constants.WorkerKS, data)
+		}
+	}
+
 	httpService.AddFileToCache(constants.WorkerIgn, data)
 
 	if err := configmanager.Persist(); err != nil {
@@ -189,9 +201,9 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	case "pxe":
 		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
 		pxe := &infra.PXE{
+			IP:             pxeConfig.IP,
 			HTTPServerPort: pxeConfig.HTTPServerPort,
 			HTTPRootDir:    pxeConfig.HTTPRootDir,
-			TFTPServerIP:   pxeConfig.TFTPServerIP,
 			TFTPServerPort: pxeConfig.TFTPServerPort,
 			TFTPRootDir:    pxeConfig.TFTPRootDir,
 			HTTPService:    httpService,
@@ -204,10 +216,10 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
 		ipxe := &infra.IPXE{
-			IPXEPort:              ipxeConfig.IPXEPort,
-			IPXEFilePath:          ipxeConfig.IPXEFilePath,
-			IPXEOSInstallTreePath: ipxeConfig.IPXEOSInstallTreePath,
-			HTTPService:           httpService,
+			Port:              ipxeConfig.Port,
+			FilePath:          ipxeConfig.FilePath,
+			OSInstallTreePath: ipxeConfig.OSInstallTreePath,
+			HTTPService:       httpService,
 		}
 		p.SetInfra(ipxe)
 		if err := p.Extend(); err != nil {

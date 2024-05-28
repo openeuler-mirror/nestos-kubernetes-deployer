@@ -4,13 +4,8 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig"
+	"os"
 	"path/filepath"
-)
-
-const (
-	kickstartControlplane = "controlplane.cfg"
-	kickstartMaster       = "master.cfg"
-	kickstartWorker       = "worker.cfg"
 )
 
 type Kickstart struct {
@@ -39,17 +34,17 @@ var (
 )
 
 func (c *Kickstart) GenerateBootConfig() error {
-	if err := c.generateNodeConfig(constants.Controlplane, constants.InitClusterService, constants.InitClusterYaml, kickstartControlplane); err != nil {
+	if err := c.generateNodeConfig(constants.Controlplane, constants.InitClusterService, constants.InitClusterYaml, constants.ControlplaneKS); err != nil {
 		return err
 	}
 
 	if len(c.ClusterAsset.Master) > 1 {
-		if err := c.generateNodeConfig(constants.Master, constants.JoinMasterService, "", kickstartMaster); err != nil {
+		if err := c.generateNodeConfig(constants.Master, constants.JoinMasterService, "", constants.MasterKS); err != nil {
 			return err
 		}
 	}
 
-	if err := c.generateNodeConfig(constants.Worker, constants.JoinWorkerService, "", kickstartWorker); err != nil {
+	if err := c.generateNodeConfig(constants.Worker, constants.JoinWorkerService, "", constants.WorkerKS); err != nil {
 		return err
 	}
 
@@ -69,18 +64,27 @@ func (c *Kickstart) generateNodeConfig(nodeType, service string, yamlPath string
 		return err
 	}
 
+	ksPath := filepath.Join(savePath, filename)
+	ksContent, err := os.ReadFile(ksPath)
+	if err != nil {
+		return err
+	}
+
 	switch nodeType {
 	case constants.Controlplane:
 		c.ClusterAsset.BootConfig.Controlplane = asset.BootFile{
-			Path: filepath.Join(savePath, filename),
+			Content: ksContent,
+			Path:    ksPath,
 		}
 	case constants.Master:
 		c.ClusterAsset.BootConfig.Master = asset.BootFile{
-			Path: filepath.Join(savePath, filename),
+			Content: ksContent,
+			Path:    ksPath,
 		}
 	case constants.Worker:
 		c.ClusterAsset.BootConfig.Worker = asset.BootFile{
-			Path: filepath.Join(savePath, filename),
+			Content: ksContent,
+			Path:    ksPath,
 		}
 	}
 

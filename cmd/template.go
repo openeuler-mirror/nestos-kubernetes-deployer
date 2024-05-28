@@ -103,8 +103,8 @@ func getDefaultInfraAsset(platform string) interface{} {
 		}
 	case "ipxe":
 		return infraasset.IPXEAsset{
-			IPXEPort:              "9080",
-			IPXEOSInstallTreePath: "/var/www/html/",
+			Port:              "9080",
+			OSInstallTreePath: "/var/www/html/",
 		}
 	default:
 		return errors.New("unsupported platform")

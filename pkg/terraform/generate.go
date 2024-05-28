@@ -217,12 +217,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 	defer outputFile.Close()
 
 	// Read template.
-	osType := strings.ToLower(conf.OSImage.Type)
-	if osType != "nestos" {
-		osType = "generalos"
-	}
-
-	tfFilePath := filepath.Join("terraform", osType, conf.Platform, fmt.Sprintf("%s.tf.template", node))
+	tfFilePath := filepath.Join("terraform", strings.ToLower(conf.OSImage.Type), conf.Platform, fmt.Sprintf("%s.tf.template", node))
 	tfFile, err := data.Assets.Open(tfFilePath)
 	if err != nil {
 		return err

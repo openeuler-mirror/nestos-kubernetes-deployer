@@ -122,6 +122,14 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	hs := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
 	defer hs.Stop()
 
+	if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
+		if err := createCluster(conf, hs); err != nil {
+			logrus.Errorf("Failed to create cluster: %v", err)
+			return err
+		}
+		return nil
+	}
+
 	if err := createCluster(conf, hs); err != nil {
 		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
@@ -182,6 +190,12 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 		certs, _ := cert.CertsToBytes(conf.Master[0].Certs)
 		if err := httpService.AddFileToCache(constants.CertsFiles, certs); err != nil {
 			return err
+		}
+
+		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
+			if err := addKickstartFiles(httpService, conf); err != nil {
+				return fmt.Errorf("error adding kickstart file to cache: %v", err)
+			}
 		}
 	}
 
@@ -252,9 +266,9 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	case "pxe":
 		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
 		pxe := &infra.PXE{
+			IP:             pxeConfig.IP,
 			HTTPServerPort: pxeConfig.HTTPServerPort,
 			HTTPRootDir:    pxeConfig.HTTPRootDir,
-			TFTPServerIP:   pxeConfig.TFTPServerIP,
 			TFTPServerPort: pxeConfig.TFTPServerPort,
 			TFTPRootDir:    pxeConfig.TFTPRootDir,
 			HTTPService:    httpService,
@@ -267,10 +281,10 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
 		ipxe := &infra.IPXE{
-			IPXEPort:              ipxeConfig.IPXEPort,
-			IPXEFilePath:          ipxeConfig.IPXEFilePath,
-			IPXEOSInstallTreePath: ipxeConfig.IPXEOSInstallTreePath,
-			HTTPService:           httpService,
+			Port:              ipxeConfig.Port,
+			FilePath:          ipxeConfig.FilePath,
+			OSInstallTreePath: ipxeConfig.OSInstallTreePath,
+			HTTPService:       httpService,
 		}
 		p.SetInfra(ipxe)
 		if err := p.Deploy(); err != nil {
@@ -464,6 +478,26 @@ func addIgnitionFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAs
 
 	if err := httpService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
 		return fmt.Errorf("error adding worker ignition file to cache: %v", err)
+	}
+
+	return nil
+}
+
+func addKickstartFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAsset) error {
+	// Only one master node
+	if err := httpService.AddFileToCache(constants.ControlplaneKS, conf.BootConfig.Controlplane.Content); err != nil {
+		return fmt.Errorf("error adding control plane kickstart file to cache: %v", err)
+	}
+
+	// multiple master nodes
+	if len(conf.Master) > 1 {
+		if err := httpService.AddFileToCache(constants.MasterKS, conf.BootConfig.Master.Content); err != nil {
+			return fmt.Errorf("error adding master kickstart file to cache: %v", err)
+		}
+	}
+
+	if err := httpService.AddFileToCache(constants.WorkerKS, conf.BootConfig.Worker.Content); err != nil {
+		return fmt.Errorf("error adding worker kickstart file to cache: %v", err)
 	}
 
 	return nil

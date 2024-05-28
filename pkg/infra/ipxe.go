@@ -18,15 +18,16 @@ package infra
 
 import (
 	"fmt"
+	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"os"
 )
 
 type IPXE struct {
-	IPXEPort              string
-	IPXEFilePath          string
-	IPXEOSInstallTreePath string
-	HTTPService           *httpserver.HTTPService
+	Port              string
+	FilePath          string
+	OSInstallTreePath string
+	HTTPService       *httpserver.HTTPService
 }
 
 func (i *IPXE) deployHTTP(port string, dirPath string, filePath string) error {
@@ -38,7 +39,7 @@ func (i *IPXE) deployHTTP(port string, dirPath string, filePath string) error {
 		return err
 	}
 
-	if err := i.HTTPService.AddFileToCache(filePath, fileContent); err != nil {
+	if err := i.HTTPService.AddFileToCache(constants.IPXECfg, fileContent); err != nil {
 		return err
 	}
 
@@ -50,7 +51,7 @@ func (i *IPXE) deployHTTP(port string, dirPath string, filePath string) error {
 }
 
 func (i *IPXE) Deploy() error {
-	if err := i.deployHTTP(i.IPXEPort, i.IPXEOSInstallTreePath, i.IPXEFilePath); err != nil {
+	if err := i.deployHTTP(i.Port, i.OSInstallTreePath, i.FilePath); err != nil {
 		return err
 	}
 
@@ -58,7 +59,7 @@ func (i *IPXE) Deploy() error {
 }
 
 func (i *IPXE) Extend() error {
-	if err := i.deployHTTP(i.IPXEPort, i.IPXEOSInstallTreePath, i.IPXEFilePath); err != nil {
+	if err := i.deployHTTP(i.Port, i.OSInstallTreePath, i.FilePath); err != nil {
 		return err
 	}
 

@@ -25,9 +25,37 @@ import (
 func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags := deployCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "", "Location of the cluster deploy config file")
-	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
+	flags.StringVarP(&opts.Opts.ClusterID, "clusterID", "", "", "Unique identifier for the cluster")
 	flags.StringVar(&opts.Opts.Arch, "arch", "", "Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)")
 	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
+
+	// libvirt
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.URI, "libvirt-uri", "", "", "URI for libvirt (default: qemu:///system)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.OSPath, "libvirt-osPath", "", "", "OS path for libvirt")
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.CIDR, "libvirt-cidr", "", "", "CIDR for libvirt (default: 192.168.132.0/24)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.Gateway, "libvirt-gateway", "", "", "Gateway for libvirt (default: 192.168.132.1)")
+
+	// openstack
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.UserName, "openstack-username", "", "", "UserName for openstack (default: admin)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.Password, "openstack-password", "", "", "Password for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.TenantName, "openstack-tenantName", "", "", "TenantName for openstack (default: admin)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.AuthURL, "openstack-authURL", "", "", "AuthURL for openstack (default: http://controller:5000/v3)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.Region, "openstack-region", "", "", "Region for openstack (default: RegionOne)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.InternalNetwork, "openstack-internalNetwork", "", "", "InternalNetwork for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.ExternalNetwork, "openstack-externalNetwork", "", "", "ExternalNetwork for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.GlanceName, "openstack-glanceName", "", "", "GlanceName for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.AvailabilityZone, "openstack-availabilityZone", "", "", "AvailabilityZone for openstack (default: nova)")
+
+	// pxe
+	flags.StringVarP(&opts.Opts.InfraPlatform.PXE.IP, "pxe-ip", "", "", "IP address of local machine for PXE")
+	flags.StringVarP(&opts.Opts.InfraPlatform.PXE.HTTPRootDir, "pxe-httpRootDir", "", "", "Root directory of HTTP server for PXE (default: /var/www/html/)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.PXE.TFTPRootDir, "pxe-tftpRootDir", "", "", "Root directory of TFTP server for PXE (default: /var/lib/tftpboot/)")
+
+	// ipxe
+	flags.StringVarP(&opts.Opts.InfraPlatform.IPXE.IP, "ipxe-ip", "", "", "IP address of local machine for iPXE")
+	flags.StringVarP(&opts.Opts.InfraPlatform.IPXE.FilePath, "ipxe-filePath", "", "", "Path of config file for iPXE")
+	flags.StringVarP(&opts.Opts.InfraPlatform.IPXE.OSInstallTreePath, "ipxe-osInstallTreePath", "", "", "Path of OS install tree for iPXE. (default: /var/www/html/)")
+
 	flags.StringVarP(&opts.Opts.OSImage.Type, "os-type", "", "", "Operating system type for Kubernetes cluster deployment (e.g., nestos or generalos)")
 	flags.StringVarP(&opts.Opts.UserName, "username", "", "", "User name for node login")
 	flags.StringVarP(&opts.Opts.Password, "password", "", "", "Password for node login")
@@ -64,10 +92,6 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnPort, "bootstrap-ign-port", "", "", "Ignition service port (default: 9080)")
 	flags.StringVarP(&opts.Opts.PreHookScript, "prehook-script", "", "", "Specify a script file or directory to execute before cluster deployment as hooks")
 	flags.StringVarP(&opts.Opts.PostHookYaml, "posthook-yaml", "", "", "Specify a YAML file or directory to apply after cluster deployment using 'kubectl apply'")
-	flags.StringVarP(&opts.Opts.TFTPServerIP, "tftp-server-ip", "", "", "IP address of TFTP server for PXE")
-	flags.StringVarP(&opts.Opts.TFTPRootDir, "tftp-root-dir", "", "", "Root directory of TFTP server for PXE (default: /var/lib/tftpboot/)")
-	flags.StringVarP(&opts.Opts.IPXEFilePath, "ipxe-file-path", "", "", "Path of config file for iPXE")
-	flags.StringVarP(&opts.Opts.IPXEOSInstallTreePath, "ipxe-os-install-tree-path", "", "", "Path of OS install tree for iPXE. (default: /var/www/html/)")
 }
 
 func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {

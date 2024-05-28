@@ -33,7 +33,7 @@ func (la *LibvirtAsset) InitAsset(libvirtMap map[string]interface{}, opts *opts.
 	asset.SetStringValue(&la.URI, opts.InfraPlatform.Libvirt.URI, "qemu:///system")
 
 	updateFieldFromMap("osPath", &la.OSPath, libvirtMap)
-	if err := asset.CheckStringValue(&la.OSPath, opts.InfraPlatform.Libvirt.OSPath, "os-path"); err != nil {
+	if err := asset.CheckStringValue(&la.OSPath, opts.InfraPlatform.Libvirt.OSPath, "libvirt-osPath"); err != nil {
 		return nil, err
 	}
 
