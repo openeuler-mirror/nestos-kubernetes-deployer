@@ -17,8 +17,10 @@ limitations under the License.
 package infra
 
 import (
+	"github.com/sirupsen/logrus"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"nestos-kubernetes-deployer/pkg/tftpserver"
+	"time"
 )
 
 type PXE struct {
@@ -33,7 +35,8 @@ type PXE struct {
 func (p *PXE) deployHTTP(port string, dirPath string) error {
 	p.HTTPService.Port = port
 	p.HTTPService.DirPath = dirPath
-
+	p.HTTPService.HttpLastRequestTime = time.Now().Unix()
+	p.HTTPService.Ch = make(chan struct{}, 1)
 	if err := p.HTTPService.Start(); err != nil {
 		return err
 	}
@@ -47,6 +50,14 @@ func (p *PXE) deployTFTP(ip string, port string, rootDir string) error {
 		Port:    port,
 		RootDir: rootDir,
 	}
+	go func() {
+		select {
+		case <-p.HTTPService.Ch:
+			logrus.Info("tftp server stop")
+			tftpService.Stop()
+			return
+		}
+	}()
 
 	if err := tftpService.Start(); err != nil {
 		return err
@@ -57,9 +68,13 @@ func (p *PXE) deployTFTP(ip string, port string, rootDir string) error {
 }
 
 func (p *PXE) Deploy() error {
-	if err := p.deployHTTP(p.HTTPServerPort, p.HTTPRootDir); err != nil {
-		return err
-	}
+	go func() {
+		err := p.deployHTTP(p.HTTPServerPort, p.HTTPRootDir)
+		if err != nil {
+			logrus.Errorf("PXE deploy http server err: %v", err)
+			return
+		}
+	}()
 
 	if err := p.deployTFTP(p.IP, p.TFTPServerPort, p.TFTPRootDir); err != nil {
 		return err
@@ -69,14 +84,7 @@ func (p *PXE) Deploy() error {
 }
 
 func (p *PXE) Extend() error {
-	if err := p.deployHTTP(p.HTTPServerPort, p.HTTPRootDir); err != nil {
-		return err
-	}
-	if err := p.deployTFTP(p.IP, p.TFTPServerPort, p.TFTPRootDir); err != nil {
-		return err
-	}
-
-	return nil
+	return p.Deploy()
 }
 
 func (p *PXE) Destroy() error {

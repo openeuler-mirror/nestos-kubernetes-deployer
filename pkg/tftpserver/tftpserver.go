@@ -36,11 +36,10 @@ func (t *TFTPService) Start() error {
 	tftpHandler := TFTPHandler{
 		RootDir: t.RootDir,
 	}
-	tftpServer := tftp.NewServer(tftpHandler.ReadHandler, tftpHandler.WriteHandler)
-
+	t.server = tftp.NewServer(tftpHandler.ReadHandler, tftpHandler.WriteHandler)
 	tftpServerAddr := t.IP + ":" + t.Port
 	logrus.Printf("TFTP server is listening on %s\n", tftpServerAddr)
-	err := tftpServer.ListenAndServe(tftpServerAddr)
+	err := t.server.ListenAndServe(tftpServerAddr)
 	if err != nil {
 		logrus.Println(err)
 		return err

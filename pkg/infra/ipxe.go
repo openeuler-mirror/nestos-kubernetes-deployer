@@ -21,6 +21,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"os"
+	"time"
 )
 
 type IPXE struct {
@@ -33,6 +34,7 @@ type IPXE struct {
 func (i *IPXE) deployHTTP(port string, dirPath string, filePath string) error {
 	i.HTTPService.Port = port
 	i.HTTPService.DirPath = dirPath
+	i.HTTPService.HttpLastRequestTime = time.Now().Unix()
 
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
@@ -51,19 +53,11 @@ func (i *IPXE) deployHTTP(port string, dirPath string, filePath string) error {
 }
 
 func (i *IPXE) Deploy() error {
-	if err := i.deployHTTP(i.Port, i.OSInstallTreePath, i.FilePath); err != nil {
-		return err
-	}
-
-	return nil
+	return i.deployHTTP(i.Port, i.OSInstallTreePath, i.FilePath)
 }
 
 func (i *IPXE) Extend() error {
-	if err := i.deployHTTP(i.Port, i.OSInstallTreePath, i.FilePath); err != nil {
-		return err
-	}
-
-	return nil
+	return i.Deploy()
 }
 
 func (i *IPXE) Destroy() error {
