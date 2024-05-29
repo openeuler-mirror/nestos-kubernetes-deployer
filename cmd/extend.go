@@ -153,9 +153,12 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	p := infra.InfraPlatform{}
 	switch strings.ToLower(conf.Platform) {
 	case "libvirt":
-		if err := httpService.Start(); err != nil {
-			return fmt.Errorf("error starting http service: %v", err)
-		}
+		go func() {
+			if err := httpService.Start(); err != nil {
+				logrus.Errorf("error starting http service: %v", err)
+				return
+			}
+		}()
 
 		// regenerate worker.tf
 		var worker terraform.Infra
@@ -176,9 +179,12 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			return err
 		}
 	case "openstack":
-		if err := httpService.Start(); err != nil {
-			return fmt.Errorf("error starting http service: %v", err)
-		}
+		go func() {
+			if err := httpService.Start(); err != nil {
+				logrus.Errorf("error starting http service: %v", err)
+				return
+			}
+		}()
 
 		// regenerate worker.tf
 		var worker terraform.Infra
