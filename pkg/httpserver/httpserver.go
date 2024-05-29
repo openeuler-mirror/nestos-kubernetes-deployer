@@ -149,12 +149,16 @@ func (hs *HTTPService) Start() error {
 			return
 		}
 	}()
+
 	hs.running = true
-	if err := hs.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+
+	if err := hs.server.ListenAndServe(); err != nil {
 		logrus.Errorf("ListenAndServe(): %v", err)
 		hs.running = false
+		hs.Ch <- struct{}{}
 		return err
 	}
+
 	return nil
 }
 

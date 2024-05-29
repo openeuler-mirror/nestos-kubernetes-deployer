@@ -211,9 +211,12 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	p := infra.InfraPlatform{}
 	switch strings.ToLower(conf.Platform) {
 	case "libvirt":
-		if err := httpService.Start(); err != nil {
-			return fmt.Errorf("error starting http service: %v", err)
-		}
+		go func() {
+			if err := httpService.Start(); err != nil {
+				logrus.Errorf("error starting http service: %v", err)
+				return
+			}
+		}()
 
 		libvirtMaster := &infra.Libvirt{
 			PersistDir: configmanager.GetPersistDir(),
@@ -240,9 +243,12 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			return err
 		}
 	case "openstack":
-		if err := httpService.Start(); err != nil {
-			return fmt.Errorf("error starting http service: %v", err)
-		}
+		go func() {
+			if err := httpService.Start(); err != nil {
+				logrus.Errorf("error starting http service: %v", err)
+				return
+			}
+		}()
 
 		openstackMaster := &infra.OpenStack{
 			PersistDir: configmanager.GetPersistDir(),
