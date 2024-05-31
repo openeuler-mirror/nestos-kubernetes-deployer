@@ -148,12 +148,12 @@ create_crictl_config() {
     local config_file="/etc/crictl.yaml"
     
     # Create configuration file
-    cat <<EOF > "$config_file"
+    cat <<EOF_CRICTL > "$config_file"
 runtime-endpoint: "unix:///run/containerd/containerd.sock"
 image-endpoint: "unix:///run/containerd/containerd.sock"
 timeout: 0
 debug: false
-EOF
+EOF_CRICTL
 
     # Check if configuration file is created successfully
     if [ -f "$config_file" ]; then
