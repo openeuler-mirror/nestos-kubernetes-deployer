@@ -31,7 +31,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const TimeOut = 10 * 60
+const TimeOut = 30 * 60
 
 // HTTPService encapsulates the properties of the HTTP file service
 type HTTPService struct {
@@ -152,11 +152,13 @@ func (hs *HTTPService) Start() error {
 
 	hs.running = true
 
-	if err := hs.server.ListenAndServe(); err != nil {
+	if err := hs.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logrus.Errorf("ListenAndServe(): %v", err)
 		hs.running = false
 		hs.Ch <- struct{}{}
 		return err
+	} else {
+		logrus.Println("http server closed")
 	}
 
 	return nil
