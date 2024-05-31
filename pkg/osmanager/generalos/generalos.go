@@ -24,7 +24,6 @@ import (
 	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig/cloudinit"
 	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig/kickstart"
 	"nestos-kubernetes-deployer/pkg/terraform"
-	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -49,7 +48,7 @@ func NewGeneralOS(conf *asset.ClusterAsset) (*GeneralOS, error) {
 
 	certGenerator := cert.NewCertGenerator(conf.ClusterID, &conf.Master[0])
 	cloudinitFile := cloudinit.NewCloudinit(conf, configmanager.GetBootstrapIgnHostPort())
-	kickstartFile := kickstart.NewKickstart(conf, filepath.Join(configmanager.GetPersistDir(), conf.ClusterID))
+	kickstartFile := kickstart.NewKickstart(conf, configmanager.GetBootstrapIgnHostPort())
 	return &GeneralOS{
 		conf:          conf,
 		certs:         certGenerator,

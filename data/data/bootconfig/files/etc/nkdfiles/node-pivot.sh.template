@@ -218,7 +218,7 @@ define_installer_packages() {
     packages+=(cri-o)
     {{end -}}
     {{if .IsContainerd -}}
-    packages_to_install+=(containerd)
+    packages+=(containerd)
     {{end -}}
     echo "${packages[@]}"
 }
@@ -252,13 +252,17 @@ check_and_install_dependent_packages() {
                 package_url="${rpm_url%/}/$package_filename"
                 package_path="$rpm_package_path/$package_filename"
 
-                if wget -P "$rpm_package_path" "$package_url" >/dev/null 2>&1; then
-                    echo "Package $package_filename downloaded successfully."
-                    chmod +x "$package_path"
-                    packages_to_install+=("$package_path")
+                if [ -f "$package_path" ]; then
+                    echo "Package already exists. Skipping download."
                 else
-                    echo "Failed to download package $package_filename."
-                    exit 1
+                    if wget -P "$rpm_package_path" "$package_url" >/dev/null 2>&1; then
+                        echo "Package $package_filename downloaded successfully."
+                        chmod +x "$package_path"
+                        packages_to_install+=("$package_path")
+                    else
+                        echo "Failed to download package $package_filename."
+                        exit 1
+                    fi
                 fi
             done
         else
