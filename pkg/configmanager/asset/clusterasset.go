@@ -163,9 +163,9 @@ type ClusterAsset struct {
 	BootConfig    NodeType    `yaml:"bootConfig,omitempty"`
 	Runtime       string      `yaml:"runtime,omitempty"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
 	Kubernetes
-	Housekeeper
-	CertAsset `yaml:"certAsset"`
-	HookConf  `yaml:"hooks,omitempty"`
+	Housekeeper `json:"housekeeper" yaml:"-"` //不对housekeeper字段配置
+	CertAsset   `yaml:"certAsset,omitempty"`
+	HookConf    `yaml:"hooks,omitempty"`
 }
 
 type NodeType struct {
@@ -199,13 +199,13 @@ type OSImage struct {
 }
 
 type Kubernetes struct {
-	KubernetesVersion    string `yaml:"kubernetesVersion"`
-	KubernetesAPIVersion string `yaml:"kubernetesApiVersion"`
-	ApiServerEndpoint    string `yaml:"apiserverEndpoint"`
-	ImageRegistry        string `yaml:"imageRegistry"`
-	PauseImage           string `yaml:"pauseImage"`
-	ReleaseImageURL      string `yaml:"releaseImageURL"`
-	Token                string
+	KubernetesVersion    string   `yaml:"kubernetesVersion"`
+	KubernetesAPIVersion string   `yaml:"kubernetesApiVersion"`
+	ApiServerEndpoint    string   `yaml:"apiserverEndpoint"`
+	ImageRegistry        string   `yaml:"imageRegistry"`
+	PauseImage           string   `yaml:"pauseImage"`
+	ReleaseImageURL      string   `json:"releaseImageURL" yaml:"releaseImageURL,omitempty"`
+	Token                string   `json:"token" yaml:"token,omitempty"`
 	AdminKubeConfig      string   `yaml:"adminKubeconfig"`
 	CertificateKey       string   `yaml:"certificateKey"`
 	CaCertHash           string   `json:"-" yaml:"-"`
@@ -217,13 +217,13 @@ type Kubernetes struct {
 type Network struct {
 	ServiceSubnet string `yaml:"serviceSubnet"`
 	PodSubnet     string `yaml:"podSubnet"`
-	Plugin        string
+	Plugin        string `yaml:"plugin"`
 }
 
 type Housekeeper struct {
-	DeployHousekeeper  bool   `yaml:"deployHousekeeper"`
-	OperatorImageURL   string `yaml:"operatorImageURL"`
-	ControllerImageURL string `yaml:"controllerImageURL"`
+	DeployHousekeeper  bool   `json:"deployHousekeeper,omitempty"`
+	OperatorImageURL   string `json:"operatorImageURL,omitempty"`
+	ControllerImageURL string `json:"controllerImageURL,omitempty"`
 	KubeVersion        string `json:"-" yaml:"-"`
 	EvictPodForce      bool   `json:"-" yaml:"-"`
 	MaxUnavailable     uint   `json:"-" yaml:"-"`
@@ -423,20 +423,20 @@ func GetDefaultClusterConfig(arch string, platform string) (*ClusterAsset, error
 		return nil, errors.New("unsupported platform")
 	}
 
-	clusterAsset.Runtime = "isulad"
+	clusterAsset.Runtime = "crio"
 	clusterAsset.Kubernetes = Kubernetes{
-		KubernetesVersion:    "v1.23.10",
+		KubernetesVersion:    "v1.29.1",
 		KubernetesAPIVersion: "v1beta3",
 		ApiServerEndpoint:    "",
-		ImageRegistry:        "k8s.gcr.io",
-		PauseImage:           "pause:3.6",
+		ImageRegistry:        "registry.k8s.io",
+		PauseImage:           "pause:3.9",
 		ReleaseImageURL:      "",
 		Token:                GenerateToken(),
 		CertificateKey:       "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
 		Network: Network{
 			ServiceSubnet: "10.96.0.0/16",
 			PodSubnet:     "10.244.0.0/16",
-			Plugin:        "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
+			Plugin:        "",
 		},
 	}
 
