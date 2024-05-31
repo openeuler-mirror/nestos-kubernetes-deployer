@@ -206,7 +206,7 @@ type Kubernetes struct {
 	PauseImage           string `yaml:"pauseImage"`
 	ReleaseImageURL      string `yaml:"releaseImageURL"`
 	Token                string
-	AdminKubeConfig      string   `yaml:"adminKubeConfig"`
+	AdminKubeConfig      string   `yaml:"adminKubeconfig"`
 	CertificateKey       string   `yaml:"certificateKey"`
 	CaCertHash           string   `json:"-" yaml:"-"`
 	PackageList          []string `json:"packageList" yaml:"packageList,omitempty"`
