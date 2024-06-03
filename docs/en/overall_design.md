@@ -41,9 +41,7 @@ NKD relies on certificates for the creation of cluster nodes and access to resou
 ![certmanager_design](/docs/en/figures/certmanager_design.jpg)
 
 ### Ignition module design
-NKD utilizes the Ignition mechanism to inject dynamic configurations required after system deployment when creating infrastructure. For more details, please refer to the [design document](./ignition_design.md)。It also supports converting user configurations to ignition files via command line arguments or configuration files.After the deployment completes the operating system boot, the node automatically completes the cluster creation during the operating system boot phase through the Ignition mechanism, without manual intervention. The Ignition file creation process for each cluster node is shown below:
-
-![ignition_design](/docs/en/figures/ignition_design.jpg)
+When creating the infrastructure, NKD needs to pass the dynamic configuration required after system deployment through the ignition mechanism to support user deployment of Kubernetes resources. The ignition mechanism can convert user-written configuration files into configuration files used during machine boot. For immutable infrastructure operating systems, the ignition module will generate Ignition files. If the underlying operating system is a general-purpose operating system, a cloudinit file will be generated when deploying the cluster on a virtualization platform, while a kickstart file will be generated when deploying the cluster on a bare metal platform. For more details, see the [design document](./ignition_design.md).
 
 ### housekeeper module design
 During the cluster deployment phase, users can choose whether to deploy housekeeper.

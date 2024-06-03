@@ -31,8 +31,8 @@
 ### OpenStack
 在OpenStack平台部署集群时，需要提前搭建好OpenStack环境
 
-### PXE
-在PXE平台部署集群时，需要提前准备物理机
+### 裸金属
+在裸金属平台部署集群时，需要提前准备物理机
 
 ## 编译安装
 
@@ -59,8 +59,8 @@
 
 #### 点火服务配置参数：
 NKD部署集群过程中集群节点需要访问NKD提供的点火服务，通过以下全局配置参数对点火服务进行配置：
-* bootstrap_ign_host：点火服务地址（域名或ip，一般为NKD运行环境）
-* bootstrap_ign_port：点火服务端口（默认9080，需自行开放防火墙端口）
+* bootstrapIgnHost：点火服务地址（域名或ip，一般为NKD运行环境）
+* bootstrapIgnPort：点火服务端口（默认9080，需自行开放防火墙端口）
 
 为适配多网卡环境，点火服务真实监听地址为0.0.0.0。
 * 简单网络环境下，部署集群节点可直接访问NKD服务，"bootstrap_ign_host"参数项可以为空，此时NKD会探测路由表默认最高优先级的IP地址作为访问点火服务URL的host；
@@ -162,7 +162,7 @@ NKD部署集群过程中集群节点需要访问NKD提供的点火服务，通�
     --log-level string   日志级别 (例如 "debug | info | warn | error") (默认 "info")
 
   # 应用可选配置项参数部署集群
-  $ nkd deploy --platform [platform] --master-ips [master-ip-01] --master-ips [master-ip-02] --master-hostname [master-hostname-01] --master-hostname [master-hostname-02] --master-cpu [master-cpu-cores] --worker-hostname [worker-hostname-01] --worker-disk [worker-disk-size]
+  $ nkd deploy --platform [platform] --master-ips [master-ip-01] --master-ips [master-ip-02] --master-hostname [master-hostname-01] --master-hostname [master-hostname-02] --master-cpu [master-cpu-cores] --worker-hostname [worker-hostname-01] --worker-disk [worker-disk-size] ...
   ```
 
 ## 部署过程展示
@@ -192,13 +192,9 @@ NKD部署集群过程中集群节点需要访问NKD提供的点火服务，通�
 
 ## 部署集群
 
- - 不添加任何配置项，通过默认配置部署集群。默认选择libvirt平台，并创建1个master节点、1个worker节点
-    ``` shell
-    $ nkd deploy
-    ```
  - 添加可选参数项部署集群，命令示例：
     ``` shell
-    $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50
+    $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50 ...
     ```
  - 此外更精细化的配置，可以通过集群配置文件部署集群，详情见配置管理。
     ``` shell

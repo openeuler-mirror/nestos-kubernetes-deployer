@@ -7,13 +7,13 @@
   * Installation of the tofu software package
     ``` shell
     # Install amd64 version
-    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_amd64.rpm
-    $ rpm -ivh tofu_1.6.0-rc1_amd64.rpm
+    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.2/tofu_1.6.2_amd64.rpm
+    $ rpm -ivh tofu_1.6.2_amd64.rpm
     ``` 
     ``` shell
     # Install arm64 version
-    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.0-rc1/tofu_1.6.0-rc1_arm64.rpm
-    $ rpm -ivh tofu_1.6.0-rc1_arm64.rpm
+    $ wget https://github.com/opentofu/opentofu/releases/download/v1.6.2/tofu_1.6.2_arm64.rpm
+    $ rpm -ivh tofu_1.6.2_arm64.rpm
     ``` 
 
 * Install NKD
@@ -30,6 +30,9 @@ Deploying clusters on the libvirt platform requires pre-installation of the libv
 
 ### openstack
 Deploying clusters on the OpenStack platform requires pre-setup of the OpenStack environment.
+
+### Bare Metal
+When deploying a cluster on a bare metal platform, it is necessary to prepare the physical machines in advance.
 
 ## Compilation and Installation
 
@@ -106,22 +109,44 @@ Supports deploying the cluster using application configuration parameters, in ad
   -f, --file string                   Location of the cluster deploy config file
   -h, --help                          help for deploy
       --image-registry string         Registry address for Kubernetes component container images
+      --ipxe-filePath string          Path of config file for iPXE
+      --ipxe-ip string                IP address of local machine for iPXE
+      --ipxe-osInstallTreePath string Path of OS install tree for iPXE. (default: /var/www/html/)
       --kubernetes-apiversion uint    Sets the Kubernetes API version. Acceptable reference values:
                                         - 1 for Kubernetes versions < v1.15.0,
                                         - 2 for Kubernetes versions >= v1.15.0 && < v1.22.0,
                                         - 3 for Kubernetes versions >= v1.22.0
       --kubeversion string            Version of Kubernetes to deploy
+      --libvirt-cidr string           CIDR for libvirt (default: 192.168.132.0/24)
+      --libvirt-gateway string        Gateway for libvirt (default: 192.168.132.1)
+      --libvirt-osPath string         OS path for libvirt
+      --libvirt-uri string            URI for libvirt (default: qemu:///system)
       --master-cpu uint               CPU allocation for master nodes (units: cores)
       --master-disk uint              Disk size allocation for master nodes (units: GB)
       --master-hostname stringArray   Hostnames of master nodes (e.g., --master-hostname [master-01] --master-hostname [master-02] ...)
       --master-ips stringArray        IP addresses of master nodes (e.g., --master-ips [master-ip-01] --master-ips [master-ip-02] ...)
       --master-ram uint               RAM allocation for master nodes (units: MB)
       --network-plugin-url string     The deployment yaml URL of the network plugin
+      --openstack-authURL string            AuthURL for openstack (default: http://controller:5000/v3)
+      --openstack-availabilityZone string   AvailabilityZone for openstack (default: nova)
+      --openstack-externalNetwork string    ExternalNetwork for openstack
+      --openstack-glanceName string         GlanceName for openstack
+      --openstack-internalNetwork string    InternalNetwork for openstack
+      --openstack-password string           Password for openstack
+      --openstack-region string       Region for openstack (default: RegionOne)
+      --openstack-tenantName string   TenantName for openstack (default: admin)
+      --openstack-username string     UserName for openstack (default: admin)
       --operator-image-url string     URL of the container image for the housekeeper operator component
+      --os-type string                Operating system type for Kubernetes cluster deployment (e.g., nestos or generalos)
       --password string               Password for node login
       --pause-image string            Image for the pause container (e.g., pause:TAG)
       --platform string               Infrastructure platform for deploying the cluster (supports 'libvirt' or 'openstack')
       --pod-subnet string             Subnet used for Kubernetes Pods. (default: 10.244.0.0/16)
+      --posthook-yaml string          Specify a YAML file or directory to apply after cluster deployment using 'kubectl apply'
+      --prehook-script string         Specify a script file or directory to execute before cluster deployment as hooks
+      --pxe-httpRootDir string        Root directory of HTTP server for PXE (default: /var/www/html/)
+      --pxe-ip string                 IP address of local machine for PXE
+      --pxe-tftpRootDir string        Root directory of TFTP server for PXE (default: /var/lib/tftpboot/)
       --release-image-url string      URL of the NestOS container image containing Kubernetes component
       --runtime string                Container runtime type (docker, isulad or crio)
       --service-subnet string         Subnet used by Kubernetes services. (default: 10.96.0.0/16)
@@ -134,7 +159,7 @@ Supports deploying the cluster using application configuration parameters, in ad
       --worker-ips stringArray        IP addresses of worker nodes (e.g., --worker-ips [worker-ip-01] --worker-ips [worker-ip-02] ...)
       --worker-ram uint               RAM allocation for worker nodes (units: MB)
   # Deploying the cluster with optional application configuration parameters
-  $ nkd deploy --platform [platform] --master-ips [master-ip-01] --master-ips [master-ip-02] --master-hostname [master-hostname-01] --master-hostname [master-hostname-02] --master-cpu [master-cpu-cores] --worker-hostname [worker-hostname-01] --worker-disk [worker-disk-size]
+  $ nkd deploy --platform [platform] --master-ips [master-ip-01] --master-ips [master-ip-02] --master-hostname [master-hostname-01] --master-hostname [master-hostname-02] --master-cpu [master-cpu-cores] --worker-hostname [worker-hostname-01] --worker-disk [worker-disk-size] ...
   ```
 
 ## Deployment Process Demonstration
@@ -157,19 +182,16 @@ Deploying the Cluster with Application Configuration Files
       ``` dockerfile
       FROM nestos_base_image
       COPY kube* /usr/bin/
+      COPY crictl /usr/bin/
       RUN ostree container commit
       ```
 Note: Users need to customize building deployment images before deploying the cluster.
 
 ## Create Cluster
 
- - Deploy the cluster using default configurations without adding any parameters. The default platform is libvirt, and it creates one master node and one worker node
-    ``` shell
-    $ nkd deploy
-    ```
  - Deploy the cluster with optional parameters. Example command:
     ``` shell
-    $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50
+    $ nkd deploy --master-ips 192.168.132.11 --master-ips 192.168.132.12 --master-hostname k8s-master01 --master-hostname k8s-master02 --master-cpu 8 --worker-hostname k8s-worker01 --worker-disk 50 ...
     ```
  - Additionally, for more fine-grained configurations, you can deploy the cluster using a cluster configuration file. See configuration management for details.
     ``` shell
