@@ -54,6 +54,9 @@ func NewExtendCommand() *cobra.Command {
 }
 
 func runExtendCmd(cmd *cobra.Command, args []string) error {
+	cleanup := command.SetuploggerHook(opts.Opts.RootOptDir)
+	defer cleanup()
+
 	clusterID, err := cmd.Flags().GetString("cluster-id")
 	if err != nil {
 		logrus.Errorf("Failed to get cluster-id: %v", err)

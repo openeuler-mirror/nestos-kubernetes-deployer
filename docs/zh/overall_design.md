@@ -33,10 +33,11 @@ NKD部署集群提供了不同的应用配置方式，以方便不同的用户�
 
 ### 证书模块设计
 集群节点的创建、资源的访问都依赖证书，NKD在集群外创建证书并本地存储ca证书和admin.conf文件，更详细内容见[设计文档](./certmanager_design.md)。证书创建流程如图：
+
 ![certmanager_design](/docs/zh/figures/certmanager_design.jpg)
 
 ### 点火模块设计
-在创建基础设施时，NKD 需要通过点火机制传入系统部署后所需的动态配置，以支持用户部署Kubernetes资源。点火机制能够将用户编写的配置文件转化为机器引导时的配置文件。对于不可变基础设施的操作系统，点火模块将生成Ignition文件。如果底层操作系统为通用操作系统，则在虚拟化平台部署集群时会生成cloudInit 文件，而在裸金属平台部署集群时会生成kickstart文件。详细内容见[设计文档](./ignition_design.md)。
+在创建基础设施时，NKD 需要通过点火机制传入系统部署后所需的动态配置，以支持用户部署Kubernetes资源。点火机制能够将用户编写的配置文件转化为机器引导时的配置文件。对于不可变基础设施的操作系统，点火模块将生成Ignition文件。如果底层操作系统为通用操作系统，则在虚拟化平台部署集群时会生成cloudinit 文件，而在裸金属平台部署集群时会生成kickstart文件。详细内容见[设计文档](./ignition_design.md)。
 
 ### housekeeper模块设计
 在集群部署阶段，用户可以选择是否部署housekeeper

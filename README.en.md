@@ -7,7 +7,7 @@ NKD (NestOS Kubernetes Deployer) is a solution designed for deploying and  maint
 
 #### Support Platforms
 
-It supports multiple deployment platforms, and NKD dynamically creates the required IaaS resources by connecting infrastructure providers  according to the needs of the cluster, and currently supports OpenStack  and libvirt platforms. 
+It supports multiple deployment platforms, and NKD dynamically creates the required IaaS resources by connecting infrastructure providers  according to the needs of the cluster, and currently supports OpenStack libvirt and Bare Metal platforms. 
 
 ## Software architecture
 
