@@ -91,12 +91,13 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	newHostnames := extendArray(clusterConfig, int(num))
+
 	if err := extendCluster(clusterConfig, httpService); err != nil {
 		logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
 		return err
 	}
 
-	newHostnames := extendArray(clusterConfig, int(num))
 	logrus.Infof("Waiting for cluster extend nodes to be ready...")
 	if err := checkNodesReady(clusterConfig, newHostnames); err != nil {
 		return err
