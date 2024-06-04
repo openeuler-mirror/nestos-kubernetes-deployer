@@ -80,18 +80,13 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
 	defer httpService.Stop()
 
-	if strings.ToLower(clusterConfig.Platform) == "pxe" || strings.ToLower(clusterConfig.Platform) == "ipxe" {
-		if err := extendCluster(clusterConfig, httpService); err != nil {
-			logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
-			return err
-		}
-		return nil
-	}
-
 	num, err := cmd.Flags().GetUint("num")
 	if err != nil {
-		logrus.Errorf("Failed to get the number of extended nodes: %v", err)
-		return err
+		platform := strings.ToLower(clusterConfig.Platform)
+		if platform != "pxe" && platform != "ipxe" {
+			logrus.Errorf("Failed to get the number of extended nodes: %v", err)
+			return err
+		}
 	}
 
 	newHostnames := extendArray(clusterConfig, int(num))

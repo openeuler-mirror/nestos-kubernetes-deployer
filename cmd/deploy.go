@@ -122,14 +122,6 @@ func deployCluster(conf *asset.ClusterAsset) error {
 	hs := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
 	defer hs.Stop()
 
-	if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
-		if err := createCluster(conf, hs); err != nil {
-			logrus.Errorf("Failed to create cluster: %v", err)
-			return err
-		}
-		return nil
-	}
-
 	if err := createCluster(conf, hs); err != nil {
 		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
