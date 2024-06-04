@@ -12,7 +12,6 @@ lang zh_CN.UTF-8
 
 # Network information
 network  --bootproto=dhcp --device=enp4s0 --ipv6=auto --activate
-network  --hostname=openeuler.com
 # Root password
 rootpw --iscrypted {{.Password}}
 # Run the Setup Agent on first boot
@@ -30,6 +29,13 @@ timezone Asia/Shanghai --utc
 %end
 
 %post --log=/var/log/ks-post.log
+# Set the hostname
+prefix="k8s-"
+random_string=$(uuidgen | tr -d '-' | head -c $((12 - ${#prefix})))
+hostname="${prefix}${random_string}"
+echo $hostname > /etc/hostname
+hostnamectl set-hostname $hostname
+
 mkdir -p /etc/nkdfiles/hookfiles/
 
 {{if .IsDocker -}}

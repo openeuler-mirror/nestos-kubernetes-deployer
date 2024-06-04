@@ -13,6 +13,7 @@ import (
 )
 
 type KsTempData struct {
+	Hostname string
 	Password string
 	Files    []File
 	Systemds []string
@@ -53,6 +54,12 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 	if nodeType == constants.Controlplane {
 		tmplData.IsControlPlane = true
 		tmplData.CertsUrl = utils.ConstructURL(url, constants.CertsFiles)
+
+		ksData.Hostname = t.clusterAsset.Master[0].Hostname
+	} else if nodeType == constants.Master {
+		for i := 1; i < len(t.clusterAsset.Master); i++ {
+			ksData.Hostname = t.clusterAsset.Master[i].Hostname
+		}
 	}
 
 	engine, err := runtime.GetRuntime(t.clusterAsset.Runtime)
@@ -106,7 +113,7 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 	}
 	ksData.Systemds = append(ksData.Systemds, fmt.Sprintf("systemctl enable %s", constants.KubeletService))
 
-	file, err := data.Assets.Open("bootconfig/kickstart.cfg.template")
+	file, err := data.Assets.Open("kickstart/" + nodeType + "/kickstart.cfg.template")
 	if err != nil {
 		return fmt.Errorf("failed to open kickstart template file: %v", err)
 	}
