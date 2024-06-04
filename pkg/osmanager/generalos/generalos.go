@@ -65,6 +65,7 @@ func (g *GeneralOS) GenerateResourceFiles() error {
 		return err
 	}
 	g.conf.CaCertHash = g.certs.CaCertHash
+	logrus.Infof("Certificates generated successfully")
 
 	switch strings.ToLower(g.conf.Platform) {
 	case "libvirt", "openstack":

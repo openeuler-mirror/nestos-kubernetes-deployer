@@ -74,6 +74,8 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 	} else if runtime.IsDocker(engine) {
 		t.enabledFiles = append(t.enabledFiles, constants.DockerConfig)
 		ksData.IsDocker = true
+	} else if runtime.IsCrio(engine) {
+		t.enabledFiles = append(t.enabledFiles, constants.KubeletServiceConf)
 	}
 
 	if err := bootconfig.AppendStorageFiles(&files, "/", constants.BootConfigFilesPath, tmplData, t.enabledFiles); err != nil {

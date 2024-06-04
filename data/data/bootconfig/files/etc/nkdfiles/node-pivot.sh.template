@@ -207,6 +207,7 @@ define_installer_packages() {
         containernetworking-plugins
         iptables
         jq
+        wget
     )
     {{if .IsDocker -}}
     packages+=(docker-engine)

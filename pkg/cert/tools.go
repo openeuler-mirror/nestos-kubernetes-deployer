@@ -111,7 +111,7 @@ func SaveFileToLocal(savepath string, file []byte) error {
 		return err
 	}
 
-	logrus.Infof("Successfully saved %s", savepath)
+	// logrus.Infof("Successfully saved %s", savepath)
 
 	return nil
 }
