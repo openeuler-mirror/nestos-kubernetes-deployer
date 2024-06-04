@@ -90,7 +90,7 @@ resource "libvirt_cloudinit_disk" "cloudinit" {
 
 data "template_file" "user_data" {
   count    = var.instance_count
-  template = file(var.instance_cloudinit[count.index])
+  template = templatefile(var.instance_cloudinit[count.index], { hostname = var.instance_hostname[count.index] })
 }
 
 resource "libvirt_network" "network" {
