@@ -132,5 +132,14 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 		t.config.RunCmds = append(t.config.RunCmds, "systemctl enable "+u.Name)
 		t.config.RunCmds = append(t.config.RunCmds, "systemctl start "+u.Name)
 	}
+	hf := WriteFile{
+		Content:     bootconfig.CreateSetHostnameUnit(),
+		Path:        fmt.Sprintf("/etc/systemd/system/%s", constants.SetHostname),
+		Permissions: constants.SystemdServiceMode,
+	}
+	t.config.WriteFiles = append(t.config.WriteFiles, hf)
+	t.config.RunCmds = append(t.config.RunCmds, "systemctl eneable "+constants.SetHostname)
+	t.config.RunCmds = append(t.config.RunCmds, "systemctl start "+constants.SetHostname)
+
 	return nil
 }

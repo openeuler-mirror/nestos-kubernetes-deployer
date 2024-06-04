@@ -64,6 +64,8 @@ const (
 	CertsFiles     = "certs.json"
 	RpmPackageList = "/packagelist/"
 
+	SetHostname = "set-hostname.service"
+
 	SystemdServiceMode os.FileMode = 0644
 	StorageFilesMode   os.FileMode = 0755
 	SaveFileDirMode    os.FileMode = 0750
