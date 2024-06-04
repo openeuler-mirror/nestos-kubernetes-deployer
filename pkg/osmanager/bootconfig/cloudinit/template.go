@@ -138,7 +138,7 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 		Permissions: constants.SystemdServiceMode,
 	}
 	t.config.WriteFiles = append(t.config.WriteFiles, hf)
-	t.config.RunCmds = append(t.config.RunCmds, "systemctl eneable "+constants.SetHostname)
+	t.config.RunCmds = append(t.config.RunCmds, "systemctl enable "+constants.SetHostname)
 	t.config.RunCmds = append(t.config.RunCmds, "systemctl start "+constants.SetHostname)
 
 	return nil

@@ -78,7 +78,6 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
-	defer httpService.Stop()
 
 	num, err := cmd.Flags().GetUint("num")
 	if err != nil {
@@ -101,7 +100,8 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logrus.Infof("The cluster id:%s node is extended successfully", clusterID)
+	httpService.Stop()
+	logrus.Infof("The cluster nodes are extended successfully")
 
 	return nil
 }

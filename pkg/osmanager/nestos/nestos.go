@@ -66,6 +66,7 @@ func (n *NestOS) GenerateResourceFiles() error {
 		return err
 	}
 	n.conf.CaCertHash = n.certs.CaCertHash
+	logrus.Infof("Certificates generated successfully")
 
 	switch strings.ToLower(n.conf.Platform) {
 	case "libvirt", "openstack":

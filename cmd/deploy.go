@@ -351,7 +351,7 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 		}
 
 		if allReady {
-			logrus.Infof("All Pods in namespace %s are in Ready state", namespace)
+			// logrus.Infof("All Pods in namespace %s are in Ready state", namespace)
 			return true, nil
 		}
 		return false, nil
