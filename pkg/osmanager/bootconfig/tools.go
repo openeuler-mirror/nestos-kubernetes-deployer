@@ -288,3 +288,20 @@ func appendFiles(files []File, file File) []File {
 	files = append(files, file)
 	return files
 }
+
+// set-hostname.service用于动态设置节点hostname，
+// ${hostname}变量会通过基础设施模块(terraform)为变量赋值(参见https://developer.hashicorp.com/terraform/language/functions/templatefile)
+// terraform模板文件修改部分：templatefile(var.instance_ign[count.index], { hostname = var.instance_hostname[count.index] })
+func CreateSetHostnameUnit() string {
+	unit := `[Unit]
+Description=Set hostname
+ConditionPathExists=!/var/log/set-hostname.stamp
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/hostnamectl set-hostname ${hostname}
+ExecStart=/bin/touch /var/log/set-hostname.stamp
+[Install]
+WantedBy=multi-user.target`
+	return unit
+}

@@ -16,31 +16,16 @@ limitations under the License.
 package ignition
 
 import (
+	"nestos-kubernetes-deployer/pkg/constants"
+	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig"
 	"nestos-kubernetes-deployer/pkg/utils"
 
 	ignutil "github.com/coreos/ignition/v2/config/util"
 	igntypes "github.com/coreos/ignition/v2/config/v3_2/types"
 )
 
-// set-hostname.service用于动态设置节点hostname，
-// ${hostname}变量会通过基础设施模块(terraform)为变量赋值(参见https://developer.hashicorp.com/terraform/language/functions/templatefile)
-// terraform模板文件修改部分：templatefile(var.instance_ign[count.index], { hostname = var.instance_hostname[count.index] })
-func createSetHostnameUnit() string {
-	unit := `[Unit]
-Description=Set hostname
-ConditionPathExists=!/var/log/set-hostname.stamp
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/bin/hostnamectl set-hostname ${hostname}
-ExecStart=/bin/touch /var/log/set-hostname.stamp
-[Install]
-WantedBy=multi-user.target`
-	return unit
-}
-
 func generateMergeIgnition(bootstrapIgnitionHost string, role string) *igntypes.Config {
-	setHostnameUnit := createSetHostnameUnit()
+	setHostnameUnit := bootconfig.CreateSetHostnameUnit()
 
 	ign := igntypes.Config{
 		Ignition: igntypes.Ignition{
@@ -55,7 +40,7 @@ func generateMergeIgnition(bootstrapIgnitionHost string, role string) *igntypes.
 			Units: []igntypes.Unit{
 				{
 					Contents: &setHostnameUnit,
-					Name:     "set-hostname.service",
+					Name:     constants.SetHostname,
 					Enabled:  ignutil.BoolToPtr(true),
 				},
 			},
