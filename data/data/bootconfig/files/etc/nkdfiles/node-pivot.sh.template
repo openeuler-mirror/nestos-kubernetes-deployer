@@ -120,6 +120,7 @@ update_kubelet_config() {
         echo "Kubelet configuration updated successfully."
     else
         echo "Error:kubelet configuration file not found."
+        exit 1
     fi
 }
 
