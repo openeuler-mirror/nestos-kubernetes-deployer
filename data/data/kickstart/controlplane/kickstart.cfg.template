@@ -31,6 +31,7 @@ timezone Asia/Shanghai --utc
 
 %post --log=/var/log/ks-post.log
 mkdir -p /etc/nkdfiles/hookfiles/
+mkdir -p /etc/systemd/system/kubelet.service.d
 
 {{if .IsDocker -}}
 mkdir -p /etc/docker

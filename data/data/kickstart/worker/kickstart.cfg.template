@@ -37,6 +37,7 @@ echo $hostname > /etc/hostname
 hostnamectl set-hostname $hostname
 
 mkdir -p /etc/nkdfiles/hookfiles/
+mkdir -p /etc/systemd/system/kubelet.service.d
 
 {{if .IsDocker -}}
 mkdir -p /etc/docker
