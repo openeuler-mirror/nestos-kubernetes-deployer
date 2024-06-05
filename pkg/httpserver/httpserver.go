@@ -186,3 +186,11 @@ func (hs *HTTPService) Stop() error {
 	hs.server = nil
 	return nil
 }
+
+func StartHTTPService(httpService *HTTPService) {
+	go func() {
+		if err := httpService.Start(); err != nil {
+			logrus.Errorf("error starting HTTP service: %v", err)
+		}
+	}()
+}
