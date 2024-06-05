@@ -6,6 +6,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/osmanager/bootconfig"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Kickstart struct {
@@ -34,17 +35,20 @@ var (
 )
 
 func (c *Kickstart) GenerateBootConfig() error {
-	if err := c.generateNodeConfig(constants.Controlplane, constants.InitClusterService, constants.InitClusterYaml, constants.ControlplaneKS); err != nil {
+	if err := c.generateNodeConfig(constants.Controlplane, constants.InitClusterService, constants.InitClusterYaml, c.ClusterAsset.Master[0].Hostname+constants.KickstartSuffix); err != nil {
 		return err
 	}
 
-	if len(c.ClusterAsset.Master) > 1 {
-		if err := c.generateNodeConfig(constants.Master, constants.JoinMasterService, "", constants.MasterKS); err != nil {
-			return err
+	n := len(c.ClusterAsset.Master)
+	if n > 1 {
+		for i := 1; i < n; i++ {
+			if err := c.generateNodeConfig(constants.Master, constants.JoinMasterService, "", c.ClusterAsset.Master[i].Hostname+constants.KickstartSuffix); err != nil {
+				return err
+			}
 		}
 	}
 
-	if err := c.generateNodeConfig(constants.Worker, constants.JoinWorkerService, "", constants.WorkerKS); err != nil {
+	if err := c.generateNodeConfig(constants.Worker, constants.JoinWorkerService, "", constants.Worker+constants.KickstartSuffix); err != nil {
 		return err
 	}
 
@@ -56,7 +60,7 @@ func (c *Kickstart) generateNodeConfig(nodeType, service string, yamlPath string
 	if yamlPath != "" {
 		tmpl.enabledFiles = append(tmpl.enabledFiles, yamlPath)
 	}
-	if err := tmpl.GenerateBootConfig(c.BootstrapBaseurl, nodeType); err != nil {
+	if err := tmpl.GenerateBootConfig(c.BootstrapBaseurl, nodeType, strings.TrimSuffix(filename, constants.KickstartSuffix)); err != nil {
 		return err
 	}
 	savePath := bootconfig.GetSavePath(c.ClusterAsset.ClusterID)
@@ -77,10 +81,10 @@ func (c *Kickstart) generateNodeConfig(nodeType, service string, yamlPath string
 			Path:    ksPath,
 		}
 	case constants.Master:
-		c.ClusterAsset.BootConfig.Master = asset.BootFile{
+		c.ClusterAsset.BootConfig.KickstartMaster = append(c.ClusterAsset.BootConfig.KickstartMaster, asset.BootFile{
 			Content: ksContent,
 			Path:    ksPath,
-		}
+		})
 	case constants.Worker:
 		c.ClusterAsset.BootConfig.Worker = asset.BootFile{
 			Content: ksContent,

@@ -172,6 +172,8 @@ type NodeType struct {
 	Controlplane BootFile `yaml:"controlplane,omitempty"`
 	Master       BootFile `yaml:"master,omitempty"`
 	Worker       BootFile `yaml:"worker,omitempty"`
+
+	KickstartMaster []BootFile `yaml:"-"`
 }
 
 type BootFile struct {

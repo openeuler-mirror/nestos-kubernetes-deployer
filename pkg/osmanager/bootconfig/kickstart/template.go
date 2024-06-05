@@ -41,10 +41,13 @@ func newTemplate(clusterAsset *asset.ClusterAsset, enabledServices, enabledFiles
 	}
 }
 
-func (t *template) GenerateBootConfig(url string, nodeType string) error {
+func (t *template) GenerateBootConfig(url string, nodeType string, hostname string) error {
 	files := []bootconfig.File{}
 	systemds := bootconfig.Systemd{}
-	ksData := KsTempData{Password: t.clusterAsset.Password}
+	ksData := KsTempData{
+		Password: t.clusterAsset.Password,
+		Hostname: hostname,
+	}
 
 	tmplData, err := bootconfig.GetTmplData(t.clusterAsset)
 	if err != nil {
@@ -54,12 +57,6 @@ func (t *template) GenerateBootConfig(url string, nodeType string) error {
 	if nodeType == constants.Controlplane {
 		tmplData.IsControlPlane = true
 		tmplData.CertsUrl = utils.ConstructURL(url, constants.CertsFiles)
-
-		ksData.Hostname = t.clusterAsset.Master[0].Hostname
-	} else if nodeType == constants.Master {
-		for i := 1; i < len(t.clusterAsset.Master); i++ {
-			ksData.Hostname = t.clusterAsset.Master[i].Hostname
-		}
 	}
 
 	engine, err := runtime.GetRuntime(t.clusterAsset.Runtime)

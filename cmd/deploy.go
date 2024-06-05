@@ -487,18 +487,21 @@ func addIgnitionFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAs
 
 func addKickstartFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAsset) error {
 	// Only one master node
-	if err := httpService.AddFileToCache(constants.ControlplaneKS, conf.BootConfig.Controlplane.Content); err != nil {
+	if err := httpService.AddFileToCache(conf.Master[0].Hostname+constants.KickstartSuffix, conf.BootConfig.Controlplane.Content); err != nil {
 		return fmt.Errorf("error adding control plane kickstart file to cache: %v", err)
 	}
 
 	// multiple master nodes
-	if len(conf.Master) > 1 {
-		if err := httpService.AddFileToCache(constants.MasterKS, conf.BootConfig.Master.Content); err != nil {
-			return fmt.Errorf("error adding master kickstart file to cache: %v", err)
+	n := len(conf.Master)
+	if n > 1 {
+		for i := 1; i < n; i++ {
+			if err := httpService.AddFileToCache(conf.Master[i].Hostname+constants.KickstartSuffix, conf.BootConfig.KickstartMaster[i-1].Content); err != nil {
+				return fmt.Errorf("error adding master kickstart file to cache: %v", err)
+			}
 		}
 	}
 
-	if err := httpService.AddFileToCache(constants.WorkerKS, conf.BootConfig.Worker.Content); err != nil {
+	if err := httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, conf.BootConfig.Worker.Content); err != nil {
 		return fmt.Errorf("error adding worker kickstart file to cache: %v", err)
 	}
 
