@@ -32,6 +32,14 @@ type TFTPService struct {
 	server  *tftp.Server
 }
 
+func NewTFTPService(ip string, port string, rootDir string) *TFTPService {
+	return &TFTPService{
+		IP:      ip,
+		Port:    port,
+		RootDir: rootDir,
+	}
+}
+
 func (t *TFTPService) Start() error {
 	tftpHandler := TFTPHandler{
 		RootDir: t.RootDir,

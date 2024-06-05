@@ -30,6 +30,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/osmanager"
 	"nestos-kubernetes-deployer/pkg/terraform"
+	"nestos-kubernetes-deployer/pkg/tftpserver"
 	"os"
 	"strings"
 	"time"
@@ -77,8 +78,6 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
-
 	num, err := cmd.Flags().GetUint("num")
 	if err != nil {
 		platform := strings.ToLower(clusterConfig.Platform)
@@ -90,17 +89,11 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 
 	newHostnames := extendArray(clusterConfig, int(num))
 
-	if err := extendCluster(clusterConfig, httpService); err != nil {
+	if err := extendCluster(clusterConfig, newHostnames); err != nil {
 		logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
 		return err
 	}
 
-	logrus.Infof("Waiting for cluster extend nodes to be ready...")
-	if err := checkNodesReady(clusterConfig, newHostnames); err != nil {
-		return err
-	}
-
-	httpService.Stop()
 	logrus.Infof("The cluster nodes are extended successfully")
 
 	return nil
@@ -125,7 +118,10 @@ func extendArray(c *asset.ClusterAsset, count int) []string {
 	return newHostnames
 }
 
-func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService) error {
+func extendCluster(conf *asset.ClusterAsset, nodeNames []string) error {
+	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
+	defer httpService.Stop()
+
 	data, err := os.ReadFile(conf.BootConfig.Worker.Path)
 	if err != nil {
 		logrus.Errorf("error reading boot config file: %v", err)
@@ -152,12 +148,7 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	p := infra.InfraPlatform{}
 	switch strings.ToLower(conf.Platform) {
 	case "libvirt":
-		go func() {
-			if err := httpService.Start(); err != nil {
-				logrus.Errorf("error starting http service: %v", err)
-				return
-			}
-		}()
+		httpserver.StartHTTPService(httpService)
 
 		// regenerate worker.tf
 		var worker terraform.Infra
@@ -178,12 +169,7 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			return err
 		}
 	case "openstack":
-		go func() {
-			if err := httpService.Start(); err != nil {
-				logrus.Errorf("error starting http service: %v", err)
-				return
-			}
-		}()
+		httpserver.StartHTTPService(httpService)
 
 		// regenerate worker.tf
 		var worker terraform.Infra
@@ -205,34 +191,37 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 		}
 	case "pxe":
 		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
-		pxe := &infra.PXE{
-			IP:             pxeConfig.IP,
-			HTTPServerPort: pxeConfig.HTTPServerPort,
-			HTTPRootDir:    pxeConfig.HTTPRootDir,
-			TFTPServerPort: pxeConfig.TFTPServerPort,
-			TFTPRootDir:    pxeConfig.TFTPRootDir,
-			HTTPService:    httpService,
-		}
-		p.SetInfra(pxe)
-		if err := p.Extend(); err != nil {
-			logrus.Errorf("Failed to extend worker nodes:%v", err)
-			return err
-		}
+		httpService.Port = pxeConfig.HTTPServerPort
+		httpService.DirPath = pxeConfig.HTTPRootDir
+		httpserver.StartHTTPService(httpService)
+
+		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
+		go func() {
+			if err := tftpService.Start(); err != nil {
+				logrus.Errorf("error starting http service: %v", err)
+				return
+			}
+		}()
+		defer tftpService.Stop()
+
 	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
-		ipxe := &infra.IPXE{
-			Port:              ipxeConfig.Port,
-			FilePath:          ipxeConfig.FilePath,
-			OSInstallTreePath: ipxeConfig.OSInstallTreePath,
-			HTTPService:       httpService,
-		}
-		p.SetInfra(ipxe)
-		if err := p.Extend(); err != nil {
-			logrus.Errorf("Failed to extend worker nodes:%v", err)
+		httpService.Port = ipxeConfig.Port
+		httpService.DirPath = ipxeConfig.OSInstallTreePath
+		fileContent, err := os.ReadFile(ipxeConfig.FilePath)
+		if err != nil {
 			return err
 		}
+		httpService.AddFileToCache(constants.IPXECfg, fileContent)
+		httpserver.StartHTTPService(httpService)
+
 	default:
 		return errors.New("unsupported platform")
+	}
+
+	logrus.Infof("Waiting for cluster extend nodes to be ready...")
+	if err := checkNodesReady(conf, nodeNames); err != nil {
+		return err
 	}
 
 	return nil

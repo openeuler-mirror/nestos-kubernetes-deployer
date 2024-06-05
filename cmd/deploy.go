@@ -32,6 +32,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
 	"nestos-kubernetes-deployer/pkg/osmanager"
+	"nestos-kubernetes-deployer/pkg/tftpserver"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"net/http"
 	"os"
@@ -78,11 +79,12 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := deployCluster(config); err != nil {
-		logrus.Errorf("Failed to deploy %s cluster: %v", clusterID, err)
+	if err := createCluster(config); err != nil {
+		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
 	}
 
+	logrus.Info("Cluster deployment completed successfully!")
 	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 	return nil
 }
@@ -118,55 +120,10 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 	return config, nil
 }
 
-func deployCluster(conf *asset.ClusterAsset) error {
-	hs := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
-	defer hs.Stop()
+func createCluster(conf *asset.ClusterAsset) error {
+	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
+	defer httpService.Stop()
 
-	if err := createCluster(conf, hs); err != nil {
-		logrus.Errorf("Failed to create cluster: %v", err)
-		return err
-	}
-
-	kubeClient, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
-	if err != nil {
-		logrus.Errorf("Failed to create kubernetes client %v", err)
-		return err
-	}
-
-	if err := waitForAPIReady(kubeClient); err != nil {
-		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
-		return err
-	}
-	// Set kubeconfig environment variable
-	os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
-
-	// Apply network plugin
-	if err := applyNetworkPlugin(conf.Network.Plugin, conf.IsNestOS); err != nil {
-		logrus.Errorf("Failed to apply network plugin: %v", err)
-		return err
-	}
-	logrus.Info("Network plugin deployment completed successfully.")
-
-	if conf.Housekeeper.DeployHousekeeper {
-		logrus.Info("Starting deployment of Housekeeper...")
-		if err := deployHousekeeper(conf.Housekeeper, conf.Kubernetes.AdminKubeConfig); err != nil {
-			logrus.Errorf("Failed to deploy operator: %v", err)
-			return err
-		}
-		logrus.Info("Housekeeper deployment completed successfully.")
-	}
-
-	// Wait for pods to be ready
-	if err := waitForPodsReady(kubeClient); err != nil {
-		logrus.Errorf("Failed while waiting for pods to be in 'Ready' state: %v", err)
-		return err
-	}
-
-	logrus.Info("Cluster deployment completed successfully!")
-	return nil
-}
-
-func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService) error {
 	osMgr := osmanager.NewOSManager(conf)
 	if err := osMgr.GenerateOSConfig(); err != nil {
 		logrus.Errorf("Error generating OS config: %v", err)
@@ -203,12 +160,7 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	p := infra.InfraPlatform{}
 	switch strings.ToLower(conf.Platform) {
 	case "libvirt":
-		go func() {
-			if err := httpService.Start(); err != nil {
-				logrus.Errorf("error starting http service: %v", err)
-				return
-			}
-		}()
+		httpserver.StartHTTPService(httpService)
 
 		libvirtMaster := &infra.Libvirt{
 			PersistDir: configmanager.GetPersistDir(),
@@ -235,12 +187,7 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 			return err
 		}
 	case "openstack":
-		go func() {
-			if err := httpService.Start(); err != nil {
-				logrus.Errorf("error starting http service: %v", err)
-				return
-			}
-		}()
+		httpserver.StartHTTPService(httpService)
 
 		openstackMaster := &infra.OpenStack{
 			PersistDir: configmanager.GetPersistDir(),
@@ -267,36 +214,83 @@ func createCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 		}
 	case "pxe":
 		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
-		pxe := &infra.PXE{
-			IP:             pxeConfig.IP,
-			HTTPServerPort: pxeConfig.HTTPServerPort,
-			HTTPRootDir:    pxeConfig.HTTPRootDir,
-			TFTPServerPort: pxeConfig.TFTPServerPort,
-			TFTPRootDir:    pxeConfig.TFTPRootDir,
-			HTTPService:    httpService,
-		}
-		p.SetInfra(pxe)
-		if err := p.Deploy(); err != nil {
-			logrus.Errorf("Failed to deploy PXE:%v", err)
-			return err
-		}
+		httpService.Port = pxeConfig.HTTPServerPort
+		httpService.DirPath = pxeConfig.HTTPRootDir
+		httpserver.StartHTTPService(httpService)
+
+		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
+		go func() {
+			select {
+			case <-httpService.Ch:
+				logrus.Info("tftp server stop")
+				tftpService.Stop()
+				return
+			}
+		}()
+		go func() {
+			if err := tftpService.Start(); err != nil {
+				logrus.Errorf("error starting http service: %v", err)
+				return
+			}
+		}()
+		defer tftpService.Stop()
+
 	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
-		ipxe := &infra.IPXE{
-			Port:              ipxeConfig.Port,
-			FilePath:          ipxeConfig.FilePath,
-			OSInstallTreePath: ipxeConfig.OSInstallTreePath,
-			HTTPService:       httpService,
-		}
-		p.SetInfra(ipxe)
-		if err := p.Deploy(); err != nil {
-			logrus.Errorf("Failed to deploy IPXE:%v", err)
+		httpService.Port = ipxeConfig.Port
+		httpService.DirPath = ipxeConfig.OSInstallTreePath
+		fileContent, err := os.ReadFile(ipxeConfig.FilePath)
+		if err != nil {
 			return err
 		}
+		httpService.AddFileToCache(constants.IPXECfg, fileContent)
+		httpserver.StartHTTPService(httpService)
+
 	default:
 		return errors.New("unsupported platform")
 	}
 
+	if err := clusterCreatePost(conf); err != nil {
+		return err
+	}
+	return nil
+}
+
+func clusterCreatePost(conf *asset.ClusterAsset) error {
+	kubeClient, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
+	if err != nil {
+		logrus.Errorf("Failed to create kubernetes client %v", err)
+		return err
+	}
+
+	if err := waitForAPIReady(kubeClient); err != nil {
+		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
+		return err
+	}
+	// Set kubeconfig environment variable
+	os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
+
+	// Apply network plugin
+	if err := applyNetworkPlugin(conf.Network.Plugin, conf.IsNestOS); err != nil {
+		logrus.Errorf("Failed to apply network plugin: %v", err)
+		return err
+	}
+	logrus.Info("Network plugin deployment completed successfully.")
+
+	if conf.Housekeeper.DeployHousekeeper {
+		logrus.Info("Starting deployment of Housekeeper...")
+		if err := deployHousekeeper(conf.Housekeeper, conf.Kubernetes.AdminKubeConfig); err != nil {
+			logrus.Errorf("Failed to deploy operator: %v", err)
+			return err
+		}
+		logrus.Info("Housekeeper deployment completed successfully.")
+	}
+
+	// Wait for pods to be ready
+	if err := waitForPodsReady(kubeClient); err != nil {
+		logrus.Errorf("Failed while waiting for pods to be in 'Ready' state: %v", err)
+		return err
+	}
 	return nil
 }
 
