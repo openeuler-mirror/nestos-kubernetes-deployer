@@ -56,9 +56,7 @@ const (
 	MasterMergeIgn       = "master-merge.ign"
 	WorkerIgn            = "worker.ign"
 	WorkerMergeIgn       = "worker-merge.ign"
-	ControlplaneKS       = "controlplane.cfg"
-	MasterKS             = "master.cfg"
-	WorkerKS             = "worker.cfg"
+	KickstartSuffix      = ".cfg"
 	IPXECfg              = "ipxe.cfg"
 
 	CertsFiles     = "certs.json"

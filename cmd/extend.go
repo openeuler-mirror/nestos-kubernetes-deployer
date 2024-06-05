@@ -138,7 +138,7 @@ func extendCluster(conf *asset.ClusterAsset, httpService *httpserver.HTTPService
 	}
 	if osMgr.IsGeneralOS() {
 		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
-			httpService.AddFileToCache(constants.WorkerKS, data)
+			httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, data)
 		}
 	}
 

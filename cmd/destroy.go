@@ -16,9 +16,11 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"strings"
 
@@ -113,9 +115,17 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	case "pxe":
-		logrus.Println("If necessary, manually delete the configuration file for deploying the PXE server")
+		logrus.Println("If necessary, manually destroy the config for the PXE server:\n",
+			"1. Stop dhcpd service\n",
+			fmt.Sprintf("2. Delete http root dir: %s\n", clusterConfig.InfraPlatform.(*infraasset.PXEAsset).HTTPRootDir),
+			fmt.Sprintf("3. Delete tftp root dir: %s", clusterConfig.InfraPlatform.(*infraasset.PXEAsset).TFTPRootDir),
+		)
 	case "ipxe":
-		logrus.Println("If necessary, manually delete the configuration file for deploying the iPXE server")
+		logrus.Println("If necessary, manually destroy the config for the iPXE server:\n",
+			"1. Stop dhcpd service\n",
+			fmt.Sprintf("2. Delete ipxe config: %s\n", clusterConfig.InfraPlatform.(*infraasset.IPXEAsset).FilePath),
+			fmt.Sprintf("3. Delete OS install tree: %s", clusterConfig.InfraPlatform.(*infraasset.IPXEAsset).OSInstallTreePath),
+		)
 	default:
 		logrus.Errorf("unsupported platform")
 		return err
