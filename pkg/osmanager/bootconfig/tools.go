@@ -61,6 +61,7 @@ type TmplData struct {
 	IsGeneralOS       bool
 	PackageList       []string
 	RpmPackageCurl    string
+	RegistryMirrors   string
 }
 
 func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
@@ -82,6 +83,8 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 	if c.IsGeneralOS && len(c.Kubernetes.RpmPackagePath) > 0 {
 		rpmPackageCurl = utils.ConstructURL(configmanager.GetBootstrapIgnHostPort(), constants.RpmPackageList)
 	}
+
+	deflash := strings.TrimPrefix(strings.TrimPrefix(c.Kubernetes.RegistryMirror, "http://"), "https://")
 
 	return &TmplData{
 		APIServerURL:      c.Kubernetes.ApiServerEndpoint,
@@ -106,6 +109,7 @@ func GetTmplData(c *asset.ClusterAsset) (*TmplData, error) {
 		IsGeneralOS:       c.IsGeneralOS,
 		PackageList:       c.PackageList,
 		RpmPackageCurl:    rpmPackageCurl,
+		RegistryMirrors:   deflash,
 	}, nil
 }
 

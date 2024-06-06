@@ -10,6 +10,7 @@ pause_image="{{.PauseImage}}"
 release_image_url="{{.ReleaseImageURl}}"
 certs_url="{{.CertsUrl}}"
 package_list=({{range .PackageList}}"{{.}}" {{end}})
+registry_mirrors="{{.RegistryMirrors}}"
 
 # Function to manage services
 manage_service() {
@@ -105,6 +106,38 @@ configure_crio_runtime() {
     fi
 }
 
+# Function to configure CRI-O registry
+configure_crio_registry() {
+    local config_file="/etc/containers/registries.conf"
+    
+    if ! grep -qE '^\s*(#?\s*)unqualified-search-registries\s*=' "$config_file"; then
+        # Define unqualified-search-registries if it doesn't exist or if it's commented out
+        echo "unqualified-search-registries = [\"docker.io\"]" | sudo tee -a "$config_file" >/dev/null
+    fi
+
+    if [ -n "$registry_mirrors" ]; then
+        local config_content=$(cat <<EOF
+[[registry]]
+prefix = "docker.io"
+location = "docker.io"
+
+[[registry.mirror]]
+location = "$registry_mirrors"
+EOF
+        )
+        
+        echo "$config_content" | sudo tee -a "$config_file" >/dev/null
+        echo "CRI-O registry configuration completed"
+        
+        if systemctl restart crio; then
+            echo "Successfully restarted CRI-O"
+        else
+            echo "Failed to restart CRI-O"
+            exit 1
+        fi
+    fi
+}
+
 update_kubelet_config() {
     local kubelet_conf_dir="/etc/systemd/system/kubelet.service.d"
     local new_conf="$kubelet_conf_dir/10-kubeadm.conf"
@@ -141,6 +174,37 @@ configure_containerd_runtime() {
     else
         echo "Failed to restart containerd"
         exit 1
+    fi
+}
+
+# Function to configure containerd registry mirrors
+configure_containerd_registry() {
+    local config_file="/etc/containerd/config.toml"
+    
+    if [ -n "$registry_mirrors" ]; then
+        local config_content=$(cat <<EOF
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = ["$registry_mirrors"]
+EOF
+        )
+        
+        if [ ! -f "$config_file" ]; then
+            echo "Configuration file $config_file does not exist."
+        fi
+
+        local temp_file=$(mktemp)
+        sudo sed "/registry.mirrors/r /dev/stdin" "$config_file" <<< "$config_content" > "$temp_file"
+
+        sudo mv "$temp_file" "$config_file"
+        echo "containerd registry mirrors configuration completed"
+
+        # Restart containerd service
+        if sudo systemctl restart containerd; then
+            echo "Successfully restarted containerd"
+        else
+            echo "Failed to restart containerd"
+            exit 1
+        fi
     fi
 }
 
@@ -361,21 +425,22 @@ systemctl restart set-kernel-para.service
 # Start necessary services
 check_and_start_service "${runtime}"
 
-{{if .IsCrio -}}
-# Configure CRI-O runtime
-configure_crio_runtime
-{{end -}}
-
-{{if .IsContainerd}}
-configure_containerd_runtime
-create_crictl_config
-{{end -}}
-
 # Call the function to disable swap
 disable_swap
 
 # Call the function to disable SELinux
 disable_selinux
+
+{{if .IsCrio -}}
+configure_crio_runtime
+configure_crio_registry
+{{end -}}
+
+{{if .IsContainerd}}
+configure_containerd_runtime
+create_crictl_config
+configure_containerd_registry
+{{end -}}
 
 # Perform OSTree rebase for nestos
 {{if .IsNestOS -}}
