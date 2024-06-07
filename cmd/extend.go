@@ -118,15 +118,14 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 
 	httpService.AddFileToCache(constants.WorkerIgn, data)
 
-	if err := configmanager.Persist(); err != nil {
-		logrus.Errorf("Failed to persist the cluster asset: %v", err)
-		return err
-	}
-
 	p := infra.InfraPlatform{}
 	switch strings.ToLower(conf.Platform) {
 	case "libvirt":
 		httpserver.StartHTTPService(httpService)
+
+		if err := extendArray(conf, int(num)); err != nil {
+			return err
+		}
 
 		// regenerate worker.tf
 		var worker terraform.Infra
@@ -148,6 +147,10 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		}
 	case "openstack":
 		httpserver.StartHTTPService(httpService)
+
+		if err := extendArray(conf, int(num)); err != nil {
+			return err
+		}
 
 		// regenerate worker.tf
 		var worker terraform.Infra
@@ -205,6 +208,33 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 	}
 
 	if err := checkNodesReady(context.Background(), conf, int(num)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func extendArray(c *asset.ClusterAsset, count int) error {
+	if count <= 0 {
+		return fmt.Errorf("the number of nodes to be extended should be greater than 0")
+	}
+
+	num := len(c.Worker)
+	for i := 0; i < count; i++ {
+		hostname := fmt.Sprintf("k8s-worker%02d", num+i+1)
+		c.Worker = append(c.Worker, asset.NodeAsset{
+			Hostname: hostname,
+			IP:       "",
+			HardwareInfo: asset.HardwareInfo{
+				CPU:  c.Worker[i].CPU,
+				RAM:  c.Worker[i].RAM,
+				Disk: c.Worker[i].Disk,
+			},
+		})
+	}
+
+	if err := configmanager.Persist(); err != nil {
+		logrus.Errorf("Failed to persist the extended cluster asset: %v", err)
 		return err
 	}
 
