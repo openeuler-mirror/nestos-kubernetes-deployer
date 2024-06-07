@@ -243,7 +243,9 @@ func createCluster(conf *asset.ClusterAsset) error {
 		if err != nil {
 			return err
 		}
-		httpService.AddFileToCache(constants.IPXECfg, fileContent)
+		if err := httpService.AddFileToCache(constants.IPXECfg, fileContent); err != nil {
+			return fmt.Errorf("error adding ipxe config file to cache: %v", err)
+		}
 		httpserver.StartHTTPService(httpService)
 
 	default:
