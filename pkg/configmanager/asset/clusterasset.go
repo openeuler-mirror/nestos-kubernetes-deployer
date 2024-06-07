@@ -205,6 +205,7 @@ type Kubernetes struct {
 	KubernetesAPIVersion string   `yaml:"kubernetesApiVersion"`
 	ApiServerEndpoint    string   `yaml:"apiserverEndpoint"`
 	ImageRegistry        string   `yaml:"imageRegistry"`
+	RegistryMirror       string   `json:"registryMirror" yaml:"registryMirror,omitempty"`
 	PauseImage           string   `yaml:"pauseImage"`
 	ReleaseImageURL      string   `json:"releaseImageURL" yaml:"releaseImageURL,omitempty"`
 	Token                string   `json:"token" yaml:"token,omitempty"`
