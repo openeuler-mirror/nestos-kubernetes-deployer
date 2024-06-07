@@ -116,14 +116,14 @@ configure_crio_registry() {
     fi
 
     if [ -n "$registry_mirrors" ]; then
-        local config_content=$(cat <<EOF
+        local config_content=$(cat <<EOF_CRIO_REG
 [[registry]]
 prefix = "docker.io"
 location = "docker.io"
 
 [[registry.mirror]]
 location = "$registry_mirrors"
-EOF
+EOF_CRIO_REG
         )
         
         echo "$config_content" | sudo tee -a "$config_file" >/dev/null
@@ -182,10 +182,10 @@ configure_containerd_registry() {
     local config_file="/etc/containerd/config.toml"
     
     if [ -n "$registry_mirrors" ]; then
-        local config_content=$(cat <<EOF
+        local config_content=$(cat <<EOF_CONT_REG
         [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
           endpoint = ["$registry_mirrors"]
-EOF
+EOF_CONT_REG
         )
         
         if [ ! -f "$config_file" ]; then
