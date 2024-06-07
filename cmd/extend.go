@@ -37,8 +37,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -87,9 +86,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	newHostnames := extendArray(clusterConfig, int(num))
-
-	if err := extendCluster(clusterConfig, newHostnames); err != nil {
+	if err := extendCluster(clusterConfig, num); err != nil {
 		logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
 		return err
 	}
@@ -99,26 +96,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func extendArray(c *asset.ClusterAsset, count int) []string {
-	num := len(c.Worker)
-	var newHostnames []string
-	for i := 0; i < count; i++ {
-		hostname := fmt.Sprintf("k8s-worker%02d", num+i+1)
-		c.Worker = append(c.Worker, asset.NodeAsset{
-			Hostname: hostname,
-			IP:       "",
-			HardwareInfo: asset.HardwareInfo{
-				CPU:  c.Worker[i].CPU,
-				RAM:  c.Worker[i].RAM,
-				Disk: c.Worker[i].Disk,
-			},
-		})
-		newHostnames = append(newHostnames, hostname)
-	}
-	return newHostnames
-}
-
-func extendCluster(conf *asset.ClusterAsset, nodeNames []string) error {
+func extendCluster(conf *asset.ClusterAsset, num uint) error {
 	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
 	defer httpService.Stop()
 
@@ -197,13 +175,20 @@ func extendCluster(conf *asset.ClusterAsset, nodeNames []string) error {
 
 		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
 		go func() {
+			select {
+			case <-httpService.Ch:
+				logrus.Info("tftp server stop")
+				tftpService.Stop()
+				return
+			}
+		}()
+		go func() {
 			if err := tftpService.Start(); err != nil {
 				logrus.Errorf("error starting http service: %v", err)
 				return
 			}
 		}()
 		defer tftpService.Stop()
-
 	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
 		httpService.Port = ipxeConfig.Port
@@ -219,16 +204,62 @@ func extendCluster(conf *asset.ClusterAsset, nodeNames []string) error {
 		return errors.New("unsupported platform")
 	}
 
-	logrus.Infof("Waiting for cluster extend nodes to be ready...")
-	if err := checkNodesReady(conf, nodeNames); err != nil {
+	if err := checkNodesReady(context.Background(), conf, int(num)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// waitUntilNodesReady waits until all nodes are ready within a given timeout
-func waitUntilNodesReady(ctx context.Context, clientset *kubernetes.Clientset, nodeNames []string, timeout time.Duration) error {
+// checkNodesReady waits for all nodes to be ready
+func checkNodesReady(ctx context.Context, conf *asset.ClusterAsset, num int) error {
+	clientset, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
+	if err != nil {
+		logrus.Errorf("error creating Kubernetes client: %v", err)
+		return err
+	}
+
+	// Get the current number of ready nodes
+	readyNodesCount, err := getReadyNodesCount(ctx, clientset)
+	if err != nil {
+		logrus.Errorf("error getting current ready nodes count: %v", err)
+		return err
+	}
+	allNodeNums := readyNodesCount + num
+
+	// Wait for nodes to be ready
+	timeout := 30 * time.Minute
+	err = waitForMinimumReadyNodes(ctx, clientset, allNodeNums, timeout)
+	if err != nil {
+		logrus.Errorf("error waiting for nodes to be ready: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// getReadyNodesCount returns the number of ready nodes in the cluster
+func getReadyNodesCount(ctx context.Context, clientset *kubernetes.Clientset) (int, error) {
+	nodeList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, fmt.Errorf("failed to list nodes: %v", err)
+	}
+
+	readyNodesCount := 0
+	for _, node := range nodeList.Items {
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == v1.NodeReady && condition.Status == v1.ConditionTrue {
+				readyNodesCount++
+				break
+			}
+		}
+	}
+
+	return readyNodesCount, nil
+}
+
+func waitForMinimumReadyNodes(ctx context.Context, clientset *kubernetes.Clientset, requiredReadyNodes int, timeout time.Duration) error {
+	logrus.Infof("Waiting for cluster extend nodes to be ready...")
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -238,42 +269,14 @@ func waitUntilNodesReady(ctx context.Context, clientset *kubernetes.Clientset, n
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			allNodesReady := true
-			for _, nodeName := range nodeNames {
-				node, err := clientset.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-				if err != nil {
-					allNodesReady = false
-					break
-				}
-				for _, condition := range node.Status.Conditions {
-					if condition.Type == corev1.NodeReady && condition.Status != corev1.ConditionTrue {
-						allNodesReady = false
-						break
-					}
-				}
+			readyNodeCount, err := getReadyNodesCount(ctx, clientset)
+			if err != nil {
+				return err
 			}
-			if allNodesReady {
+
+			if readyNodeCount >= requiredReadyNodes {
 				return nil
 			}
 		}
 	}
-}
-
-// checkNodesReady waits for all nodes to be ready
-func checkNodesReady(conf *asset.ClusterAsset, nodeNames []string) error {
-	clientset, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
-	if err != nil {
-		logrus.Errorf("error creating Kubernetes client: %v", err)
-		return err
-	}
-
-	// Wait for nodes to be ready
-	timeout := 30 * time.Minute
-	err = waitUntilNodesReady(context.Background(), clientset, nodeNames, timeout)
-	if err != nil {
-		logrus.Errorf("error waiting for nodes to be ready: %v", err)
-		return err
-	}
-
-	return nil
 }
