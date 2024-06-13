@@ -4,9 +4,6 @@
 ## 介绍
 NKD（NestOS Kubernetes Deployer）是NestOS团队面向容器云场景开发的集群部署运维工具。涵盖了基础设施和Kubernetes核心组件的部署、更新和配置管理等一系列功能，为用户提供了一站式的解决方案。支持自定义多种容器运行时（包括crio、iSulad、docker和containerd），并且兼容多种平台部署，确保用户能够轻松应对各种复杂的部署需求。此外，NKD具备集群自签名证书创建的能力，并支持部署多种版本的Kubernetes集群，从而覆盖实际使用中可能遇到的各种场景。
 
-#### 支持平台
-NKD根据集群需求，连接基础设施提供商动态创建所需的IaaS资源，目前支持OpenStack、libvirt和裸金属平台。
-
 ## 软件架构
 详细内容请见[软件架构说明](docs/zh/overall_design.md)
 
