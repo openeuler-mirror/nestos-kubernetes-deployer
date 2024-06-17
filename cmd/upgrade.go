@@ -51,14 +51,9 @@ func getFlagString(cmd *cobra.Command, flagName string) string {
 
 func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 	clusterId := getFlagString(cmd, "cluster-id")
-	kubeVersion := getFlagString(cmd, "kube-version")
 	imageURL := getFlagString(cmd, "imageurl")
 	if clusterId == "" {
 		return errors.New("cluster-id is required")
-	}
-
-	if kubeVersion == "" {
-		return errors.New("kube-version is required")
 	}
 
 	if imageURL == "" {
@@ -78,7 +73,6 @@ func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 	if err := upgradeCluster(clusterConfig); err != nil {
 		return err
 	}
-
 	return nil
 }
 
