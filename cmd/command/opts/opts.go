@@ -18,6 +18,10 @@ package opts
 
 var Opts OptionsList
 
+var RootOpts struct {
+	LogLevel string
+}
+
 type OptionsList struct {
 	RootOptDir        string
 	Arch              string
@@ -25,6 +29,7 @@ type OptionsList struct {
 	KubeConfigFile    string
 	NKD               NKDConfig
 	InfraPlatform
+	OSImage
 
 	ClusterID string
 	Platform  string
@@ -44,13 +49,15 @@ type OptionsList struct {
 	KubernetesAPIVersion uint
 	Token                string
 	CertificateKey       string
+	PreHookScript        string
+	PostHookYaml         string
 
 	NetWork NetworkConfig
 	Housekeeper
 }
 
 type NKDConfig struct {
-	Log_Level string
+	LogLevel string
 	BootstrapUrl
 }
 
@@ -59,28 +66,49 @@ type BootstrapUrl struct {
 	BootstrapIgnPort string
 }
 
+type OSImage struct {
+	Type string
+}
+
 type InfraPlatform struct {
 	OpenStack
 	Libvirt
+	PXE
+	IPXE
 }
 
 type OpenStack struct {
-	UserName          string
-	Password          string
-	Tenant_Name       string
-	Auth_URL          string
-	Region            string
-	Internal_Network  string
-	External_Network  string
-	Glance_Name       string
-	Availability_Zone string
+	UserName         string
+	Password         string
+	TenantName       string
+	AuthURL          string
+	Region           string
+	InternalNetwork  string
+	ExternalNetwork  string
+	GlanceName       string
+	AvailabilityZone string
 }
 
 type Libvirt struct {
 	URI     string
-	OSImage string
+	OSPath  string
 	CIDR    string
 	Gateway string
+}
+
+type PXE struct {
+	IP             string
+	HTTPServerPort string
+	HTTPRootDir    string
+	TFTPServerPort string
+	TFTPRootDir    string
+}
+
+type IPXE struct {
+	IP                string
+	Port              string
+	FilePath          string
+	OSInstallTreePath string
 }
 
 type MasterConfig struct {

@@ -16,10 +16,15 @@ limitations under the License.
 package main
 
 import (
+	"io"
 	"nestos-kubernetes-deployer/cmd"
+	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	terminal "golang.org/x/term"
 )
 
 func main() {
@@ -43,9 +48,29 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "nkd",
-		Short: "Creates Kubernetes Clusters",
+		Use:              "nkd",
+		Short:            "Creates Kubernetes Clusters",
+		PersistentPreRun: runRootCmd,
 	}
+
 	cmd.PersistentFlags().StringVar(&opts.Opts.RootOptDir, "dir", "/etc/nkd", "Assets directory")
+	cmd.PersistentFlags().StringVar(&opts.RootOpts.LogLevel, "log-level", "info", "log level (e.g. \"debug | info | warn | error\")")
 	return cmd
+}
+
+func runRootCmd(cmd *cobra.Command, args []string) {
+	logrus.SetOutput(io.Discard)
+
+	level, err := logrus.ParseLevel(opts.RootOpts.LogLevel)
+	if err != nil {
+		level = logrus.InfoLevel
+	}
+
+	fmt := &logrus.TextFormatter{
+		ForceColors:            terminal.IsTerminal(int(os.Stderr.Fd())),
+		DisableTimestamp:       true,
+		DisableLevelTruncation: true,
+		DisableQuote:           true,
+	}
+	logrus.AddHook(command.NewloggerHook(os.Stderr, level, fmt))
 }

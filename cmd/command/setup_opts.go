@@ -25,9 +25,38 @@ import (
 func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags := deployCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "", "Location of the cluster deploy config file")
-	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
+	flags.StringVarP(&opts.Opts.ClusterID, "clusterID", "", "", "Unique identifier for the cluster")
 	flags.StringVar(&opts.Opts.Arch, "arch", "", "Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)")
-	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' or 'openstack')")
+	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
+
+	// libvirt
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.URI, "libvirt-uri", "", "", "URI for libvirt (default: qemu:///system)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.OSPath, "libvirt-osPath", "", "", "OS path for libvirt")
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.CIDR, "libvirt-cidr", "", "", "CIDR for libvirt (default: 192.168.132.0/24)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.Libvirt.Gateway, "libvirt-gateway", "", "", "Gateway for libvirt (default: 192.168.132.1)")
+
+	// openstack
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.UserName, "openstack-username", "", "", "UserName for openstack (default: admin)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.Password, "openstack-password", "", "", "Password for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.TenantName, "openstack-tenantName", "", "", "TenantName for openstack (default: admin)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.AuthURL, "openstack-authURL", "", "", "AuthURL for openstack (default: http://controller:5000/v3)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.Region, "openstack-region", "", "", "Region for openstack (default: RegionOne)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.InternalNetwork, "openstack-internalNetwork", "", "", "InternalNetwork for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.ExternalNetwork, "openstack-externalNetwork", "", "", "ExternalNetwork for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.GlanceName, "openstack-glanceName", "", "", "GlanceName for openstack")
+	flags.StringVarP(&opts.Opts.InfraPlatform.OpenStack.AvailabilityZone, "openstack-availabilityZone", "", "", "AvailabilityZone for openstack (default: nova)")
+
+	// pxe
+	flags.StringVarP(&opts.Opts.InfraPlatform.PXE.IP, "pxe-ip", "", "", "IP address of local machine for PXE")
+	flags.StringVarP(&opts.Opts.InfraPlatform.PXE.HTTPRootDir, "pxe-httpRootDir", "", "", "Root directory of HTTP server for PXE (default: /var/www/html/)")
+	flags.StringVarP(&opts.Opts.InfraPlatform.PXE.TFTPRootDir, "pxe-tftpRootDir", "", "", "Root directory of TFTP server for PXE (default: /var/lib/tftpboot/)")
+
+	// ipxe
+	flags.StringVarP(&opts.Opts.InfraPlatform.IPXE.IP, "ipxe-ip", "", "", "IP address of local machine for iPXE")
+	flags.StringVarP(&opts.Opts.InfraPlatform.IPXE.FilePath, "ipxe-filePath", "", "", "Path of config file for iPXE")
+	flags.StringVarP(&opts.Opts.InfraPlatform.IPXE.OSInstallTreePath, "ipxe-osInstallTreePath", "", "", "Path of OS install tree for iPXE. (default: /var/www/html/)")
+
+	flags.StringVarP(&opts.Opts.OSImage.Type, "os-type", "", "", "Operating system type for Kubernetes cluster deployment (e.g., nestos or generalos)")
 	flags.StringVarP(&opts.Opts.UserName, "username", "", "", "User name for node login")
 	flags.StringVarP(&opts.Opts.Password, "password", "", "", "Password for node login")
 	flags.StringVarP(&opts.Opts.SSHKey, "sshkey", "", "", "SSH key file path used for node authentication (default: ~/.ssh/id_rsa.pub)")
@@ -41,7 +70,7 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.UintVar(&opts.Opts.Worker.RAM, "worker-ram", 0, "RAM allocation for worker nodes (units: MB)")
 	flags.UintVar(&opts.Opts.Worker.Disk, "worker-disk", 0, "Disk size allocation for worker nodes (units: GB)")
 	flags.StringArrayVarP(&opts.Opts.Worker.IP, "worker-ips", "", []string{}, "IP addresses of worker nodes (e.g., --worker-ips [worker-ip-01] --worker-ips [worker-ip-02] ...)")
-	flags.StringVarP(&opts.Opts.Runtime, "runtime", "", "", "Container runtime type (docker, isulad or crio)")
+	flags.StringVarP(&opts.Opts.Runtime, "runtime", "", "", "Container runtime type (docker, isulad, containerd or crio)")
 	flags.StringVarP(&opts.Opts.ImageRegistry, "image-registry", "", "", "Registry address for Kubernetes component container images")
 	flags.StringVarP(&opts.Opts.PauseImage, "pause-image", "", "", "Image for the pause container (e.g., pause:TAG)")
 	flags.StringVarP(&opts.Opts.ReleaseImageUrl, "release-image-url", "", "", "URL of the NestOS container image containing Kubernetes component")
@@ -61,6 +90,8 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags.BoolVarP(&opts.Opts.DeployHousekeeper, "deploy-housekeeper", "", false, "Deploy the Housekeeper Operator. (default: false)")
 	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnHost, "bootstrap-ign-host", "", "", "Ignition service address (domain name or IP)")
 	flags.StringVarP(&opts.Opts.NKD.BootstrapIgnPort, "bootstrap-ign-port", "", "", "Ignition service port (default: 9080)")
+	flags.StringVarP(&opts.Opts.PreHookScript, "prehook-script", "", "", "Specify a script file or directory to execute before cluster deployment as hooks")
+	flags.StringVarP(&opts.Opts.PostHookYaml, "posthook-yaml", "", "", "Specify a YAML file or directory to apply after cluster deployment using 'kubectl apply'")
 }
 
 func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {
@@ -87,4 +118,5 @@ func SetupExtendCmdOpts(extendCmd *cobra.Command) {
 func SetupTemplateCmdOpts(templateCmd *cobra.Command) {
 	flags := templateCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterConfigFile, "output", "o", "", "Generates a default configuration template at the specified location")
+	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
 }

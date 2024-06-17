@@ -22,6 +22,7 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,7 +32,7 @@ import (
 
 // Sets a value of the string type, using the parameter value if the command line argument exists,
 // otherwise using the default value.
-func setStringValue(target *string, value string, defaultValue string) {
+func SetStringValue(target *string, value string, defaultValue string) {
 	if value != "" {
 		*target = value
 	} else if *target == "" {
@@ -40,7 +41,7 @@ func setStringValue(target *string, value string, defaultValue string) {
 }
 
 // Check whether the value is provided
-func checkStringValue(target *string, value string, paramName string) error {
+func CheckStringValue(target *string, value string, paramName string) error {
 	if value != "" {
 		*target = value
 	} else if *target == "" {
@@ -61,7 +62,7 @@ func setUIntValue(target *uint, value uint, defaultValue uint) {
 }
 
 // Generate token
-func generateToken() string {
+func GenerateToken() string {
 	// Generate a character set for lowercase letters and numbers.
 	charset := "abcdefghijklmnopqrstuvwxyz0123456789"
 	charsetLength := len(charset)
@@ -98,7 +99,7 @@ func setMasterConfigs(mc []NodeAsset, opts *opts.MasterConfig) []NodeAsset {
 		}
 	} else {
 		confs = append(confs, mc...)
-		for i, _ := range opts.IP {
+		for i := range opts.IP {
 			if i < len(mc) {
 				confs[i].IP = opts.IP[i]
 				confs[i].Hostname = opts.Hostname[i]
@@ -127,7 +128,7 @@ func setWorkerHostname(wc []NodeAsset, opts *opts.WorkerConfig) []NodeAsset {
 		}
 	} else {
 		confs = append(confs, wc...)
-		for i, _ := range opts.Hostname {
+		for i := range opts.Hostname {
 			if i < len(wc) {
 				confs[i].Hostname = opts.Hostname[i]
 				continue
@@ -149,61 +150,93 @@ func setWorkerHostname(wc []NodeAsset, opts *opts.WorkerConfig) []NodeAsset {
 // ========== Structure method ==========
 
 type ClusterAsset struct {
-	Cluster_ID   string
-	Architecture string
-	Platform     string
-	InfraPlatform
-	UserName string
-	Password string
-	SSHKey   string
-	Master   []NodeAsset
-	Worker   []NodeAsset
-	Runtime  string `yaml:"runtime"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
+	ClusterID     string `yaml:"clusterID"`
+	Architecture  string
+	Platform      string
+	InfraPlatform interface{} `yaml:"infraPlatform"`
+	OSImage       `yaml:"osImage"`
+	UserName      string `yaml:"username"`
+	Password      string
+	SSHKey        string      `yaml:"sshKey"`
+	Master        []NodeAsset `yaml:"master,omitempty"`
+	Worker        []NodeAsset `yaml:"worker,omitempty"`
+	BootConfig    NodeType    `yaml:"bootConfig,omitempty"`
+	Runtime       string      `yaml:"runtime,omitempty"` //后续考虑增加os层面的配置管理，并将runtime放入OS层面的配置中
 	Kubernetes
-	Housekeeper
-	CertAsset
+	Housekeeper `json:"housekeeper" yaml:"-"` //不对housekeeper字段配置
+	CertAsset   `yaml:"certAsset,omitempty"`
+	HookConf    `yaml:"hooks,omitempty"`
 }
 
-type InfraPlatform interface {
+type NodeType struct {
+	Controlplane BootFile `yaml:"controlplane,omitempty"`
+	Master       BootFile `yaml:"master,omitempty"`
+	Worker       BootFile `yaml:"worker,omitempty"`
+
+	KickstartMaster []BootFile `yaml:"-"`
+}
+
+type BootFile struct {
+	Content []byte `json:"content" yaml:"-"`
+	Path    string `json:"path"`
+}
+
+type HookConf struct {
+	PreHookScript string      `yaml:"preHookScript,omitempty"`
+	PostHookYaml  string      `yaml:"postHookYaml,omitempty"`
+	ShellFiles    []ShellFile `yaml:"-"`
+	PostHookFiles []string    `yaml:"-"`
+}
+
+type ShellFile struct {
+	Name    string `json:"name" yaml:"-"`
+	Mode    int    `json:"mode" yaml:"-"`
+	Content []byte `json:"content" yaml:"-"`
+}
+
+type OSImage struct {
+	Type        string
+	IsNestOS    bool `json:"isNestOS" yaml:"-"`
+	IsGeneralOS bool `json:"isGeneralOS" yaml:"-"`
 }
 
 type Kubernetes struct {
-	KubernetesVersion    string `yaml:"kubernetes-version"`
-	KubernetesAPIVersion string `yaml:"kubernetes-apiversion"`
-	ApiServerEndpoint    string `yaml:"apiserver-endpoint"`
-	ImageRegistry        string `yaml:"image-registry"`
-	PauseImage           string `yaml:"pause-image"`
-	ReleaseImageURL      string `yaml:"release-image-url"`
-	Token                string
-	AdminKubeConfig      string
-	CertificateKey       string
-	CaCertHash           string `json:"-" yaml:"-"`
-
+	KubernetesVersion    string   `yaml:"kubernetesVersion"`
+	KubernetesAPIVersion string   `yaml:"kubernetesApiVersion"`
+	ApiServerEndpoint    string   `yaml:"apiserverEndpoint"`
+	ImageRegistry        string   `yaml:"imageRegistry"`
+	RegistryMirror       string   `json:"registryMirror" yaml:"registryMirror,omitempty"`
+	PauseImage           string   `yaml:"pauseImage"`
+	ReleaseImageURL      string   `json:"releaseImageURL" yaml:"releaseImageURL,omitempty"`
+	Token                string   `json:"token" yaml:"token,omitempty"`
+	AdminKubeConfig      string   `yaml:"adminKubeconfig"`
+	CertificateKey       string   `yaml:"certificateKey"`
+	CaCertHash           string   `json:"-" yaml:"-"`
+	PackageList          []string `json:"packageList" yaml:"packageList,omitempty"`
+	RpmPackagePath       string   `json:"rpmPackagePath" yaml:"rpmPackagePath,omitempty"`
 	Network
 }
 
 type Network struct {
-	ServiceSubnet string `yaml:"service-subnet"`
-	PodSubnet     string `yaml:"pod-subnet"`
-	Plugin        string
+	ServiceSubnet string `yaml:"serviceSubnet"`
+	PodSubnet     string `yaml:"podSubnet"`
+	Plugin        string `yaml:"plugin"`
 }
 
 type Housekeeper struct {
-	DeployHousekeeper  bool
-	OperatorImageUrl   string
-	ControllerImageUrl string
+	DeployHousekeeper  bool   `json:"deployHousekeeper,omitempty"`
+	OperatorImageURL   string `json:"operatorImageURL,omitempty"`
+	ControllerImageURL string `json:"controllerImageURL,omitempty"`
 	KubeVersion        string `json:"-" yaml:"-"`
 	EvictPodForce      bool   `json:"-" yaml:"-"`
 	MaxUnavailable     uint   `json:"-" yaml:"-"`
 	OSImageURL         string `json:"-" yaml:"-"`
 }
 
-func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *opts.OptionsList) (*ClusterAsset, error) {
+func (clusterAsset *ClusterAsset) InitClusterAsset(opts *opts.OptionsList) (*ClusterAsset, error) {
 	// bind info
 	// infra platform
-	clusterAsset.InfraPlatform = infraAsset
-
-	cf, err := GetDefaultClusterConfig(clusterAsset.Architecture)
+	cf, err := GetDefaultClusterConfig(clusterAsset.Architecture, strings.ToLower(clusterAsset.Platform))
 	if err != nil {
 		return nil, err
 	}
@@ -219,17 +252,17 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		clusterAsset.Master = setMasterConfigs(clusterAsset.Master, &opts.Master)
 	}
 	if opts.Master.CPU != 0 {
-		for i, _ := range clusterAsset.Master {
+		for i := range clusterAsset.Master {
 			clusterAsset.Master[i].HardwareInfo.CPU = opts.Master.CPU
 		}
 	}
 	if opts.Master.RAM != 0 {
-		for i, _ := range clusterAsset.Master {
+		for i := range clusterAsset.Master {
 			clusterAsset.Master[i].HardwareInfo.RAM = opts.Master.RAM
 		}
 	}
 	if opts.Master.Disk != 0 {
-		for i, _ := range clusterAsset.Master {
+		for i := range clusterAsset.Master {
 			clusterAsset.Master[i].HardwareInfo.Disk = opts.Master.Disk
 		}
 	}
@@ -247,57 +280,66 @@ func (clusterAsset *ClusterAsset) InitClusterAsset(infraAsset InfraAsset, opts *
 		if len(opts.Worker.Hostname) != len(opts.Worker.IP) {
 			return nil, fmt.Errorf("the number of configuration parameters worker hostname and ip should be the same")
 		}
-		for i, _ := range opts.Worker.IP {
+		for i := range opts.Worker.IP {
 			clusterAsset.Worker[i].IP = opts.Worker.IP[i]
 		}
 	}
 
 	if opts.Worker.CPU != 0 {
-		for i, _ := range clusterAsset.Worker {
+		for i := range clusterAsset.Worker {
 			clusterAsset.Worker[i].HardwareInfo.CPU = opts.Worker.CPU
 		}
 	}
 	if opts.Worker.RAM != 0 {
-		for i, _ := range clusterAsset.Worker {
+		for i := range clusterAsset.Worker {
 			clusterAsset.Worker[i].HardwareInfo.RAM = opts.Worker.RAM
 		}
 	}
 	if opts.Worker.Disk != 0 {
-		for i, _ := range clusterAsset.Worker {
+		for i := range clusterAsset.Worker {
 			clusterAsset.Worker[i].HardwareInfo.Disk = opts.Worker.Disk
 		}
 	}
 
 	// cluster info
-	setStringValue(&clusterAsset.Cluster_ID, opts.ClusterID, cf.Cluster_ID)
-	setStringValue(&clusterAsset.UserName, opts.UserName, cf.UserName)
-	setStringValue(&clusterAsset.Password, opts.Password, cf.Password)
-	setStringValue(&clusterAsset.SSHKey, opts.SSHKey, cf.SSHKey)
-	setStringValue(&clusterAsset.Kubernetes.KubernetesVersion, opts.KubeVersion, cf.KubernetesVersion)
-	setStringValue(&clusterAsset.Runtime, opts.Runtime, cf.Runtime)
-	setStringValue(&clusterAsset.Kubernetes.ApiServerEndpoint, opts.ApiServerEndpoint, cf.ApiServerEndpoint)
-	setStringValue(&clusterAsset.Kubernetes.ImageRegistry, opts.ImageRegistry, cf.ImageRegistry)
-	setStringValue(&clusterAsset.Kubernetes.PauseImage, opts.PauseImage, cf.PauseImage)
-	setStringValue(&clusterAsset.Kubernetes.ReleaseImageURL, opts.ReleaseImageUrl, cf.ReleaseImageURL)
-	setStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, opts.CertificateKey)
-	setStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
-	setStringValue(&clusterAsset.Kubernetes.Network.ServiceSubnet, opts.NetWork.ServiceSubnet, cf.ServiceSubnet)
-	setStringValue(&clusterAsset.Kubernetes.Network.PodSubnet, opts.NetWork.PodSubnet, cf.Network.PodSubnet)
-	setStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
+	SetStringValue(&clusterAsset.ClusterID, opts.ClusterID, cf.ClusterID)
+	SetStringValue(&clusterAsset.UserName, opts.UserName, cf.UserName)
+	SetStringValue(&clusterAsset.Password, opts.Password, cf.Password)
+	SetStringValue(&clusterAsset.SSHKey, opts.SSHKey, cf.SSHKey)
+	SetStringValue(&clusterAsset.Kubernetes.KubernetesVersion, opts.KubeVersion, cf.KubernetesVersion)
+	SetStringValue(&clusterAsset.Runtime, opts.Runtime, cf.Runtime)
+	SetStringValue(&clusterAsset.Kubernetes.ApiServerEndpoint, opts.ApiServerEndpoint, clusterAsset.Master[0].IP+":6443")
+	SetStringValue(&clusterAsset.Kubernetes.ImageRegistry, opts.ImageRegistry, cf.ImageRegistry)
+	SetStringValue(&clusterAsset.Kubernetes.PauseImage, opts.PauseImage, cf.PauseImage)
+	SetStringValue(&clusterAsset.Kubernetes.ReleaseImageURL, opts.ReleaseImageUrl, cf.ReleaseImageURL)
+	SetStringValue(&clusterAsset.Kubernetes.CertificateKey, opts.CertificateKey, opts.CertificateKey)
+	SetStringValue(&clusterAsset.Kubernetes.Token, opts.Token, cf.Token)
+	SetStringValue(&clusterAsset.Kubernetes.Network.ServiceSubnet, opts.NetWork.ServiceSubnet, cf.ServiceSubnet)
+	SetStringValue(&clusterAsset.Kubernetes.Network.PodSubnet, opts.NetWork.PodSubnet, cf.Network.PodSubnet)
+	SetStringValue(&clusterAsset.Kubernetes.Network.Plugin, opts.NetWork.Plugin, cf.Network.Plugin)
+	SetStringValue(&clusterAsset.PreHookScript, opts.PreHookScript, "")
+	SetStringValue(&clusterAsset.PostHookYaml, opts.PostHookYaml, "")
+	SetStringValue(&clusterAsset.OSImage.Type, opts.OSImage.Type, "")
+
 	apiVersion, err := utils.GetKubernetesApiVersion(opts.KubernetesAPIVersion)
 	if err != nil {
 		logrus.Errorf("Error getting kubernetes api version: %v\n", err)
 		return nil, err
 	}
-	setStringValue(&clusterAsset.Kubernetes.KubernetesAPIVersion, apiVersion, cf.KubernetesAPIVersion)
+	SetStringValue(&clusterAsset.Kubernetes.KubernetesAPIVersion, apiVersion, cf.KubernetesAPIVersion)
 
 	if clusterAsset.Housekeeper.DeployHousekeeper || opts.Housekeeper.DeployHousekeeper {
-		setStringValue(&clusterAsset.Housekeeper.OperatorImageUrl, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageUrl)
-		setStringValue(&clusterAsset.Housekeeper.ControllerImageUrl, opts.Housekeeper.ControllerImageUrl, cf.ControllerImageUrl)
-		setStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "")
-		setStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "")
+		SetStringValue(&clusterAsset.Housekeeper.OperatorImageURL, opts.Housekeeper.OperatorImageUrl, cf.OperatorImageURL)
+		SetStringValue(&clusterAsset.Housekeeper.ControllerImageURL, opts.Housekeeper.ControllerImageUrl, cf.ControllerImageURL)
+		SetStringValue(&clusterAsset.Housekeeper.KubeVersion, opts.Housekeeper.KubeVersion, "")
+		SetStringValue(&clusterAsset.Housekeeper.OSImageURL, opts.Housekeeper.OSImageURL, "")
 		setUIntValue(&clusterAsset.Housekeeper.MaxUnavailable, opts.Housekeeper.MaxUnavailable, cf.MaxUnavailable)
 		clusterAsset.Housekeeper.EvictPodForce = opts.Housekeeper.EvictPodForce
+	}
+
+	if err := GetCmdHooks(&clusterAsset.HookConf); err != nil {
+		logrus.Errorf("error in initializing cluster hooks config: %v", err)
+		return nil, err
 	}
 
 	return clusterAsset, nil
@@ -324,71 +366,88 @@ func (clusterAsset *ClusterAsset) Persist(dir string) error {
 	return nil
 }
 
-func GetDefaultClusterConfig(arch string) (*ClusterAsset, error) {
+func GetDefaultClusterConfig(arch string, platform string) (*ClusterAsset, error) {
 	var (
-		OperatorImageUrl   string
-		ControllerImageUrl string
+		OperatorImageURL   string
+		ControllerImageURL string
 	)
 	switch arch {
 	case "amd64", "x86_64":
-		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-operator-manager:0.1.0"
-		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-controller-manager:0.1.0"
+		OperatorImageURL = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-operator-manager:0.1.0"
+		ControllerImageURL = "hub.oepkgs.net/nestos/housekeeper/amd64/housekeeper-controller-manager:0.1.0"
 	case "arm64", "aarch64":
-		OperatorImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-operator-manager:0.1.0"
-		ControllerImageUrl = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-controller-manager:0.1.0"
+		OperatorImageURL = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-operator-manager:0.1.0"
+		ControllerImageURL = "hub.oepkgs.net/nestos/housekeeper/arm64/housekeeper-controller-manager:0.1.0"
 	default:
 		return nil, errors.New("unsupported architecture")
 	}
 
-	return &ClusterAsset{
-		Cluster_ID:   "cluster",
-		Architecture: arch,
-		Platform:     "libvirt",
-		UserName:     "root",
-		Password:     "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/",
-		SSHKey:       utils.GetDefaultPubKeyPath(),
-		Master: []NodeAsset{
+	clusterAsset := &ClusterAsset{}
+	clusterAsset.ClusterID = "cluster"
+	clusterAsset.Architecture = arch
+	clusterAsset.Platform = platform
+	clusterAsset.UserName = "root"
+	clusterAsset.SSHKey = utils.GetDefaultPubKeyPath()
+
+	switch platform {
+	case "libvirt", "openstack":
+		clusterAsset.Master = []NodeAsset{
 			{
 				Hostname: "k8s-master01",
+				IP:       "",
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
 					RAM:  8192,
 					Disk: 50,
 				},
-				IP: "192.168.132.11",
 			},
-		},
-		Worker: []NodeAsset{
+		}
+		clusterAsset.Worker = []NodeAsset{
 			{
 				Hostname: "k8s-worker01",
+				IP:       "",
 				HardwareInfo: HardwareInfo{
 					CPU:  4,
 					RAM:  8192,
 					Disk: 50,
 				},
-				IP: "",
 			},
-		},
-		Runtime: "isulad",
-		Kubernetes: Kubernetes{
-			KubernetesVersion:    "v1.23.10",
-			KubernetesAPIVersion: "v1beta3",
-			ApiServerEndpoint:    utils.GetApiServerEndpoint("192.168.132.11"),
-			ImageRegistry:        "k8s.gcr.io",
-			PauseImage:           "pause:3.6",
-			ReleaseImageURL:      "",
-			Token:                generateToken(),
-			CertificateKey:       "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
-			Network: Network{
-				ServiceSubnet: "10.96.0.0/16",
-				PodSubnet:     "10.244.0.0/16",
-				Plugin:        "https://projectcalico.docs.tigera.io/archive/v3.22/manifests/calico.yaml",
+		}
+		clusterAsset.Password = "$1$yoursalt$UGhjCXAJKpWWpeN8xsF.c/"
+	case "pxe", "ipxe":
+		clusterAsset.Master = []NodeAsset{
+			{
+				Hostname: "k8s-master01",
+				IP:       "",
 			},
+		}
+		clusterAsset.Password = "$6$mX6/gt6yDD8LmSqb$rQ95JPHeWBZQ0Gyjvw5/hUbGK57TJXjeXtDauom0Tr4z88mn4qDYtH/yc8nDxE/8HOhy.Fx4WYS1vTTune1l50"
+	default:
+		return nil, errors.New("unsupported platform")
+	}
+
+	clusterAsset.Runtime = "crio"
+	clusterAsset.Kubernetes = Kubernetes{
+		KubernetesVersion:    "v1.29.1",
+		KubernetesAPIVersion: "v1beta3",
+		ApiServerEndpoint:    "",
+		ImageRegistry:        "registry.k8s.io",
+		PauseImage:           "pause:3.9",
+		ReleaseImageURL:      "",
+		Token:                GenerateToken(),
+		CertificateKey:       "a301c9c55596c54c5d4c7173aa1e3b6fd304130b0c703bb23149c0c69f94b8e0",
+		Network: Network{
+			ServiceSubnet: "10.96.0.0/16",
+			PodSubnet:     "10.244.0.0/16",
+			Plugin:        "",
 		},
-		Housekeeper: Housekeeper{
-			OperatorImageUrl:   OperatorImageUrl,
-			ControllerImageUrl: ControllerImageUrl,
-			MaxUnavailable:     2,
-		},
-	}, nil
+	}
+
+	clusterAsset.Housekeeper = Housekeeper{
+		OperatorImageURL:   OperatorImageURL,
+		ControllerImageURL: ControllerImageURL,
+		MaxUnavailable:     2,
+	}
+
+	return clusterAsset, nil
 }

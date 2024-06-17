@@ -25,7 +25,7 @@ import (
 
 func NewVersionCommand() *cobra.Command {
 	var (
-		version = "0.2.2"
+		version = "0.3.0"
 		arch    = fmt.Sprint(runtime.GOOS, "/", runtime.GOARCH)
 	)
 

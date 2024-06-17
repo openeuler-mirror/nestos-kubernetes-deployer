@@ -31,9 +31,9 @@ const GlobalConfigFile = "global_config.yaml"
 
 func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 	globalAsset := &GlobalConfig{
-		Log_Level:          "default log level",
-		ClusterConfig_Path: "",
-		PersistDir:         opts.RootOptDir, // default persist directory
+		LogLevel:          "default log level",
+		ClusterConfigPath: "",
+		PersistDir:        opts.RootOptDir, // default persist directory
 		BootstrapUrl: BootstrapUrl{
 			BootstrapIgnPort: "9080", // default port
 		},
@@ -52,8 +52,8 @@ func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 		}
 	}
 
-	if opts.NKD.Log_Level != "" {
-		globalAsset.Log_Level = opts.NKD.Log_Level
+	if opts.NKD.LogLevel != "" {
+		globalAsset.LogLevel = opts.NKD.LogLevel
 	}
 	if opts.NKD.BootstrapIgnHost != "" {
 		globalAsset.BootstrapIgnHost = opts.NKD.BootstrapIgnHost
@@ -63,7 +63,8 @@ func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 		globalAsset.BootstrapIgnPort = opts.NKD.BootstrapIgnPort
 	}
 	if !utils.IsPortOpen(globalAsset.BootstrapIgnPort) {
-		return nil, fmt.Errorf("The port %s is occupied.", globalAsset.BootstrapIgnPort)
+		errMsg := fmt.Sprintf("The port %s is occupied.", globalAsset.BootstrapIgnPort)
+		return nil, fmt.Errorf(errMsg)
 	}
 
 	if globalAsset.BootstrapIgnHost == "" {
@@ -89,15 +90,15 @@ func InitGlobalConfig(opts *opts.OptionsList) (*GlobalConfig, error) {
 // ========== Structure method ==========
 
 type GlobalConfig struct {
-	Log_Level          string
-	ClusterConfig_Path string
-	PersistDir         string // default: /etc/nkd
+	LogLevel          string `yaml:"logLevel"`
+	ClusterConfigPath string `yaml:"clusterConfigPath"`
+	PersistDir        string // default: /etc/nkd
 	BootstrapUrl
 }
 
 type BootstrapUrl struct {
-	BootstrapIgnHost string `yaml:"bootstrap_ign_host"`
-	BootstrapIgnPort string `yaml:"bootstrap_ign_port"`
+	BootstrapIgnHost string `yaml:"bootstrapIgnHost"`
+	BootstrapIgnPort string `yaml:"bootstrapIgnPort"`
 }
 
 // Delete deletes the global asset.

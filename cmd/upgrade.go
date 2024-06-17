@@ -51,14 +51,9 @@ func getFlagString(cmd *cobra.Command, flagName string) string {
 
 func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 	clusterId := getFlagString(cmd, "cluster-id")
-	kubeVersion := getFlagString(cmd, "kube-version")
 	imageURL := getFlagString(cmd, "imageurl")
 	if clusterId == "" {
 		return errors.New("cluster-id is required")
-	}
-
-	if kubeVersion == "" {
-		return errors.New("kube-version is required")
 	}
 
 	if imageURL == "" {
@@ -78,7 +73,6 @@ func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 	if err := upgradeCluster(clusterConfig); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -98,7 +92,7 @@ spec:
   maxUnavailable: %d
 `, clusterConfig.Housekeeper.OSImageURL, clusterConfig.Housekeeper.KubeVersion, clusterConfig.Housekeeper.EvictPodForce, clusterConfig.Housekeeper.MaxUnavailable)
 
-	adminconfig := filepath.Join(configmanager.GetPersistDir(), clusterConfig.Cluster_ID, "admin.config")
+	adminconfig := filepath.Join(configmanager.GetPersistDir(), clusterConfig.ClusterID, "admin.config")
 	if err := kubeclient.ApplyHousekeeperCR(yamlData, adminconfig); err != nil {
 		logrus.Errorf("Failed to deploy Custom Resource: %v", err)
 		return err

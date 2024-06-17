@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"nestos-kubernetes-deployer/cmd/command"
@@ -25,10 +26,13 @@ import (
 	"nestos-kubernetes-deployer/pkg/cert"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
+	"nestos-kubernetes-deployer/pkg/constants"
 	"nestos-kubernetes-deployer/pkg/httpserver"
-	"nestos-kubernetes-deployer/pkg/ignition/machine"
 	"nestos-kubernetes-deployer/pkg/infra"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
+	"nestos-kubernetes-deployer/pkg/osmanager"
+	"nestos-kubernetes-deployer/pkg/tftpserver"
 	"nestos-kubernetes-deployer/pkg/utils"
 	"net/http"
 	"os"
@@ -62,6 +66,9 @@ const (
 )
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
+	cleanup := command.SetuploggerHook(opts.Opts.RootOptDir)
+	defer cleanup()
+
 	if err := validateDeployConfig(); err != nil {
 		return err
 	}
@@ -72,15 +79,12 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := deployCluster(config); err != nil {
-		logrus.Errorf("Failed to deploy %s cluster: %v", clusterID, err)
-		return err
-	}
-	if err := configmanager.Persist(); err != nil {
-		logrus.Errorf("Failed to persist the cluster asset: %v", err)
+	if err := createCluster(config); err != nil {
+		logrus.Errorf("Failed to create cluster: %v", err)
 		return err
 	}
 
+	logrus.Info("Cluster deployment completed successfully!")
 	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 	return nil
 }
@@ -116,52 +120,146 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 	return config, nil
 }
 
-// startHttpService initializes the HTTP file service, adds files to the cache, and starts the service.
-func startHttpService(conf *asset.ClusterAsset) (*httpserver.HttpFileService, error) {
-	fileService := httpserver.NewFileService(configmanager.GetBootstrapIgnPort())
+func createCluster(conf *asset.ClusterAsset) error {
+	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
+	defer httpService.Stop()
 
-	// Ignition files are divided into three types:
-	// control plane ignition files for initializing the cluster,
-	// master ignition files for master node joining the cluster,
-	// and worker ignition files for worker node joining the cluster.
-	if len(conf.Master) > 0 {
-		fileService.AddFileToCache(machine.ControlplaneIgnFilename, conf.Master[0].CreateIgnContent)
-	}
-	if len(conf.Master) > 1 {
-		fileService.AddFileToCache(machine.MasterIgnFilename, conf.Master[1].CreateIgnContent)
-	}
-	if len(conf.Worker) > 0 {
-		fileService.AddFileToCache(machine.WorkerIgnFilename, conf.Worker[0].CreateIgnContent)
+	osMgr := osmanager.NewOSManager(conf)
+	if err := osMgr.GenerateOSConfig(); err != nil {
+		logrus.Errorf("Error generating OS config: %v", err)
+		return err
 	}
 
-	// Start the HTTP file service
-	if err := fileService.Start(); err != nil {
-		return nil, fmt.Errorf("error starting file service: %v", err)
+	if osMgr.IsNestOS() {
+		if err := addIgnitionFiles(httpService, conf); err != nil {
+			return err
+		}
+	}
+	if osMgr.IsGeneralOS() && len(conf.Master) > 0 {
+		certs, _ := cert.CertsToBytes(conf.Master[0].Certs)
+		if err := httpService.AddFileToCache(constants.CertsFiles, certs); err != nil {
+			return err
+		}
+
+		if len(conf.Kubernetes.RpmPackagePath) > 0 {
+			httpService.PackageDir = conf.Kubernetes.RpmPackagePath
+		}
+
+		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
+			if err := addKickstartFiles(httpService, conf); err != nil {
+				return fmt.Errorf("error adding kickstart file to cache: %v", err)
+			}
+		}
 	}
 
-	return fileService, nil
+	if err := configmanager.Persist(); err != nil {
+		logrus.Errorf("Failed to persist the cluster asset: %v", err)
+		return err
+	}
+
+	p := infra.InfraPlatform{}
+	switch strings.ToLower(conf.Platform) {
+	case "libvirt":
+		httpserver.StartHTTPService(httpService)
+
+		libvirtMaster := &infra.Libvirt{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.ClusterID,
+			Node:       "master",
+			Count:      uint(len(conf.Master)),
+		}
+
+		p.SetInfra(libvirtMaster)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy master nodes:%v", err)
+			return err
+		}
+
+		libvirtWorker := &infra.Libvirt{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.ClusterID,
+			Node:       "worker",
+			Count:      uint(len(conf.Master)),
+		}
+		p.SetInfra(libvirtWorker)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy worker nodes:%v", err)
+			return err
+		}
+	case "openstack":
+		httpserver.StartHTTPService(httpService)
+
+		openstackMaster := &infra.OpenStack{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.ClusterID,
+			Node:       "master",
+			Count:      uint(len(conf.Master)),
+		}
+		p.SetInfra(openstackMaster)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy master nodes:%v", err)
+			return err
+		}
+
+		openstackWorker := &infra.OpenStack{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.ClusterID,
+			Node:       "worker",
+			Count:      uint(len(conf.Master)),
+		}
+		p.SetInfra(openstackWorker)
+		if err := p.Deploy(); err != nil {
+			logrus.Errorf("Failed to deploy worker nodes:%v", err)
+			return err
+		}
+	case "pxe":
+		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
+		httpService.Port = pxeConfig.HTTPServerPort
+		httpService.DirPath = pxeConfig.HTTPRootDir
+		httpserver.StartHTTPService(httpService)
+
+		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
+		go func() {
+			select {
+			case <-httpService.Ch:
+				logrus.Info("tftp server stop")
+				tftpService.Stop()
+				return
+			}
+		}()
+		go func() {
+			if err := tftpService.Start(); err != nil {
+				logrus.Errorf("error starting http service: %v", err)
+				return
+			}
+		}()
+		defer tftpService.Stop()
+
+	case "ipxe":
+		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
+		httpService.Port = ipxeConfig.Port
+		httpService.DirPath = ipxeConfig.OSInstallTreePath
+		fileContent, err := os.ReadFile(ipxeConfig.FilePath)
+		if err != nil {
+			return err
+		}
+		if err := httpService.AddFileToCache(constants.IPXECfg, fileContent); err != nil {
+			return fmt.Errorf("error adding ipxe config file to cache: %v", err)
+		}
+		httpserver.StartHTTPService(httpService)
+
+	default:
+		return errors.New("unsupported platform")
+	}
+
+	if err := clusterCreatePost(conf); err != nil {
+		return err
+	}
+	return nil
 }
 
-func deployCluster(conf *asset.ClusterAsset) error {
-	if err := generateDeployConfig(conf); err != nil {
-		logrus.Errorf("Failed to get cluster deploy config: %v", err)
-		return err
-	}
-
-	// Start HTTP service
-	fileService, err := startHttpService(conf)
-	if err != nil {
-		return err
-	}
-	defer fileService.Stop()
-
-	if err := createCluster(conf); err != nil {
-		logrus.Errorf("Failed to create cluster: %v", err)
-		return err
-	}
-
-	configPath := conf.Kubernetes.AdminKubeConfig
-	kubeClient, err := kubeclient.CreateClient(configPath)
+func clusterCreatePost(conf *asset.ClusterAsset) error {
+	kubeClient, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
 	if err != nil {
 		logrus.Errorf("Failed to create kubernetes client %v", err)
 		return err
@@ -171,10 +269,11 @@ func deployCluster(conf *asset.ClusterAsset) error {
 		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
 	}
+	// Set kubeconfig environment variable
+	os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
 
-	os.Setenv("KUBECONFIG", configPath) // set kubeconfig environment variable
-	// apply network plugin
-	if err := applyNetworkPlugin(conf.Network.Plugin); err != nil {
+	// Apply network plugin
+	if err := applyNetworkPlugin(conf.Network.Plugin, conf.IsNestOS); err != nil {
 		logrus.Errorf("Failed to apply network plugin: %v", err)
 		return err
 	}
@@ -182,105 +281,18 @@ func deployCluster(conf *asset.ClusterAsset) error {
 
 	if conf.Housekeeper.DeployHousekeeper {
 		logrus.Info("Starting deployment of Housekeeper...")
-		if err := deployHousekeeper(conf.Housekeeper, configPath); err != nil {
+		if err := deployHousekeeper(conf.Housekeeper, conf.Kubernetes.AdminKubeConfig); err != nil {
 			logrus.Errorf("Failed to deploy operator: %v", err)
 			return err
 		}
 		logrus.Info("Housekeeper deployment completed successfully.")
 	}
 
+	// Wait for pods to be ready
 	if err := waitForPodsReady(kubeClient); err != nil {
 		logrus.Errorf("Failed while waiting for pods to be in 'Ready' state: %v", err)
 		return err
 	}
-	logrus.Info("Cluster deployment completed successfully!")
-	return nil
-}
-
-func generateDeployConfig(conf *asset.ClusterAsset) error {
-	if err := generateCerts(conf); err != nil {
-		logrus.Errorf("Error generating certificate files: %v", err)
-		return err
-	}
-
-	if err := generateIgnition(conf); err != nil {
-		logrus.Errorf("Error generating ignition files: %v", err)
-		return err
-	}
-
-	if err := generateTF(conf); err != nil {
-		logrus.Errorf("Error generating terraform files: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-func generateCerts(conf *asset.ClusterAsset) error {
-	cg := cert.NewCertGenerator(conf.Cluster_ID, &conf.Master[0])
-	err := cg.GenerateAllFiles()
-	if err != nil {
-		logrus.Errorf("Error generating all certs files: %v", err)
-		return err
-	}
-	conf.CaCertHash = cg.CaCertHash
-	return nil
-}
-
-func generateIgnition(conf *asset.ClusterAsset) error {
-
-	hostport := configmanager.GetBootstrapIgnHost() + ":" + configmanager.GetBootstrapIgnPort()
-
-	master := &machine.Master{
-		ClusterAsset:      conf,
-		Bootstrap_baseurl: hostport,
-	}
-	if err := master.GenerateFiles(); err != nil {
-		logrus.Errorf("Failed to generate master ignition file: %v", err)
-		return err
-	}
-
-	worker := &machine.Worker{
-		ClusterAsset:      conf,
-		Bootstrap_baseurl: hostport,
-	}
-	if err := worker.GenerateFiles(); err != nil {
-		logrus.Errorf("Failed to generate worker ignition file: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-func generateTF(conf *asset.ClusterAsset) error {
-	// generate master.tf
-	var master infra.Infra
-	if err := master.Generate(conf, "master"); err != nil {
-		logrus.Errorf("Failed to generate master terraform file")
-		return err
-	}
-	// generate worker.tf
-	var worker infra.Infra
-	if err := worker.Generate(conf, "worker"); err != nil {
-		logrus.Errorf("Failed to generate worker terraform file")
-		return err
-	}
-	return nil
-}
-
-func createCluster(conf *asset.ClusterAsset) error {
-	persistDir := configmanager.GetPersistDir()
-	masterInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "master", uint(len(conf.Master)))
-	if err := masterInfra.Deploy(); err != nil {
-		logrus.Errorf("Failed to deploy master nodes:%v", err)
-		return err
-	}
-	workerInfra := infra.InstanceCluster(persistDir, conf.Cluster_ID, "worker", uint(len(conf.Worker)))
-	if err := workerInfra.Deploy(); err != nil {
-		logrus.Errorf("Failed to deploy worker nodes:%v", err)
-		return err
-	}
-
 	return nil
 }
 
@@ -335,7 +347,7 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 		}
 
 		if allReady {
-			logrus.Infof("All Pods in namespace %s are in Ready state", namespace)
+			// logrus.Infof("All Pods in namespace %s are in Ready state", namespace)
 			return true, nil
 		}
 		return false, nil
@@ -383,7 +395,7 @@ func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
 	return nil
 }
 
-func applyNetworkPlugin(pluginConfigPath string) error {
+func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 	var content []byte
 	var err error
 
@@ -413,7 +425,7 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 	// "/usr/libexec/kubernetes/kubelet-plugins"，而 FlexVolume 的目录必须是可写入的，
 	// 该功能特性才能正常工作，为了解决这个问题将/usr目录修改为可写目录/opt.
 	// Check if the content contains "/usr/libexec/kubernetes/kubelet-plugins"
-	if strings.Contains(string(content), "/usr/libexec/kubernetes/kubelet-plugins") {
+	if isNestOS && strings.Contains(string(content), "/usr/libexec/kubernetes/kubelet-plugins") {
 		content = []byte(strings.ReplaceAll(string(content),
 			"/usr/libexec/kubernetes/kubelet-plugins",
 			"/opt/libexec/kubernetes/kubelet-plugins"))
@@ -440,6 +452,54 @@ func applyNetworkPlugin(pluginConfigPath string) error {
 			logrus.Errorf("Failed to remove temporary file: %v", err)
 		}
 	}()
+
+	return nil
+}
+
+func addIgnitionFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAsset) error {
+	// Ignition files are divided into three types:
+	// control plane ignition files for initializing the cluster,
+	// master ignition files for master node joining the cluster,
+	// and worker ignition files for worker node joining the cluster.
+
+	// Only one master node
+	if err := httpService.AddFileToCache(constants.ControlplaneIgn, conf.BootConfig.Controlplane.Content); err != nil {
+		return fmt.Errorf("error adding control plane ignition file to cache: %v", err)
+	}
+
+	// multiple master nodes
+	if len(conf.Master) > 1 {
+		if err := httpService.AddFileToCache(constants.MasterIgn, conf.BootConfig.Master.Content); err != nil {
+			return fmt.Errorf("error adding master ignition file to cache: %v", err)
+		}
+	}
+
+	if err := httpService.AddFileToCache(constants.WorkerIgn, conf.BootConfig.Worker.Content); err != nil {
+		return fmt.Errorf("error adding worker ignition file to cache: %v", err)
+	}
+
+	return nil
+}
+
+func addKickstartFiles(httpService *httpserver.HTTPService, conf *asset.ClusterAsset) error {
+	// Only one master node
+	if err := httpService.AddFileToCache(conf.Master[0].Hostname+constants.KickstartSuffix, conf.BootConfig.Controlplane.Content); err != nil {
+		return fmt.Errorf("error adding control plane kickstart file to cache: %v", err)
+	}
+
+	// multiple master nodes
+	n := len(conf.Master)
+	if n > 1 {
+		for i := 1; i < n; i++ {
+			if err := httpService.AddFileToCache(conf.Master[i].Hostname+constants.KickstartSuffix, conf.BootConfig.KickstartMaster[i-1].Content); err != nil {
+				return fmt.Errorf("error adding master kickstart file to cache: %v", err)
+			}
+		}
+	}
+
+	if err := httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, conf.BootConfig.Worker.Content); err != nil {
+		return fmt.Errorf("error adding worker kickstart file to cache: %v", err)
+	}
 
 	return nil
 }

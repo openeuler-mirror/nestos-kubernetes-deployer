@@ -1,0 +1,52 @@
+#version=DEVEL
+ignoredisk --only-use=sda
+autopart --type=lvm
+# Partition clearing information
+clearpart --none --initlabel
+# Use graphical install
+graphical
+# Keyboard layouts
+keyboard --vckeymap=cn --xlayouts='cn'
+# System language
+lang zh_CN.UTF-8
+
+# Network information
+network  --bootproto=dhcp --device=enp4s0 --ipv6=auto --activate
+network  --hostname={{.Hostname}}
+# Root password
+rootpw --iscrypted {{.Password}}
+# Run the Setup Agent on first boot
+firstboot --enable
+# Do not configure the X Window System
+skipx
+# System services
+services --disabled="chronyd"
+# System timezone
+timezone Asia/Shanghai --utc
+
+%packages
+@^minimal-environment
+
+%end
+
+%post --log=/var/log/ks-post.log
+mkdir -p /etc/nkdfiles/hookfiles/
+mkdir -p /etc/systemd/system/kubelet.service.d
+
+{{if .IsDocker -}}
+mkdir -p /etc/docker
+{{end -}}
+
+{{if .IsIsulad -}}
+mkdir -p /etc/isulad
+{{end -}}
+
+{{range .Files}}
+{{.Content}}
+{{.ChangeMod}}
+{{end}}
+
+{{range .Systemds}}
+{{.}}
+{{end}}
+%end

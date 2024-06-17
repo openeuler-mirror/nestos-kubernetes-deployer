@@ -1,0 +1,13 @@
+[Unit]
+Description=set kernel para for Kubernetes
+Requires=release-image-pivot.service
+After=release-image-pivot.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=modprobe br_netfilter
+ExecStart=sysctl -p /etc/sysctl.d/kubernetes.conf
+
+[Install]
+WantedBy=multi-user.target

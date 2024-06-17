@@ -1,0 +1,4 @@
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "registry-mirrors": ["https://registry-1.docker.io"{{if .RegistryMirrors -}},"https://{{.RegistryMirrors}}"{{end -}}]
+}

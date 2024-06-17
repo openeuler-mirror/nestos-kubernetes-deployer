@@ -1,0 +1,450 @@
+#!/bin/bash
+
+exec >> /var/log/nkd_node_pivot.log 2>&1
+
+# Template variables
+hook_files_path="{{.HookFilesPath}}"
+runtime="{{.Runtime}}"
+image_registry="{{.ImageRegistry}}"
+pause_image="{{.PauseImage}}"
+release_image_url="{{.ReleaseImageURl}}"
+certs_url="{{.CertsUrl}}"
+package_list=({{range .PackageList}}"{{.}}" {{end}})
+registry_mirrors="{{.RegistryMirrors}}"
+
+# Function to manage services
+manage_service() {
+    local service_name="$1"
+    if systemctl is-active --quiet "$service_name"; then
+        echo "$service_name is already running"
+    else
+        echo "$service_name is not running, starting..."
+        if systemctl start "$service_name" && systemctl enable "$service_name"; then
+            echo "$service_name starting success."
+        else
+            echo "Unable to start or enable $service_name."
+            exit 1
+        fi
+    fi
+}
+
+# Function to check and start service
+check_and_start_service() {
+    local service_name="$1"
+    if systemctl list-unit-files | grep -q "$service_name.service"; then
+        manage_service "$service_name"
+    else
+        echo "$service_name service does not exist, skipping..."
+    fi
+}
+
+# Function to disable firewall if it's enabled
+disable_firewall() {
+    # Check if firewall is enabled
+    if systemctl is-active --quiet firewalld; then
+        echo "Firewall is running, disabling..."
+        
+        if systemctl stop firewalld && systemctl disable firewalld; then
+            echo "Firewall disabled successfully."
+        else
+            echo "Failed to disable firewall."
+            exit 1
+        fi
+    else
+        echo "Firewall is not running."
+    fi
+}
+
+# Function to execute hook files
+execute_hookfiles() {
+    local directory="$1"
+    if [ ! -d "$directory" ]; then
+        return 
+    fi
+
+    local shell_files=("$directory"/*)
+    if [ ${#shell_files[@]} -eq 0 ]; then
+        echo "No files found in hook directory: $directory"
+        return
+    fi
+
+    for file in "${shell_files[@]}"; do
+        if [ -f "$file" ]; then
+            echo "Executing script: $file"
+            . "$file"
+        fi
+    done
+}
+
+# Function to configure CRI-O runtime
+configure_crio_runtime() {
+    local config_file="/etc/crio/crio.conf"
+
+    # Check if the CRI-O config file exists
+    if [ ! -f "$config_file" ]; then
+        echo "CRI-O config file not found: $config_file"
+        exit 1
+    fi
+
+    if grep -q "\[crio\.image\]" "$config_file"; then
+        # If the line with 'pause_image' doesn't exist, add it directly
+        if ! grep -q "^pause_image" "$config_file"; then
+            sed -i '/^\[crio\.image\]/a pause_image = "'"$image_registry/$pause_image"'"' "$config_file"
+        else
+            # If the line with 'pause_image' exists, replace its value
+            sed -i 's|^pause_image = .*|pause_image = "'"$image_registry/$pause_image"'"|' "$config_file"
+        fi
+    else
+        echo -e "[crio.image]\npause_image = \"$image_registry/$pause_image\"" >> "$config_file"
+    fi
+
+    if systemctl restart crio; then
+        echo "Successfully restarted CRI-O"
+    else
+        echo "Failed to restart CRI-O"
+        exit 1
+    fi
+}
+
+# Function to configure CRI-O registry
+configure_crio_registry() {
+    local config_file="/etc/containers/registries.conf"
+    
+    if ! grep -qE '^\s*(#?\s*)unqualified-search-registries\s*=' "$config_file"; then
+        # Define unqualified-search-registries if it doesn't exist or if it's commented out
+        echo "unqualified-search-registries = [\"docker.io\"]" | sudo tee -a "$config_file" >/dev/null
+    fi
+
+    if [ -n "$registry_mirrors" ]; then
+        local config_content=$(cat <<EOF_CRIO_REG
+[[registry]]
+prefix = "docker.io"
+location = "docker.io"
+
+[[registry.mirror]]
+location = "$registry_mirrors"
+EOF_CRIO_REG
+        )
+        
+        echo "$config_content" | sudo tee -a "$config_file" >/dev/null
+        echo "CRI-O registry configuration completed"
+        
+        if systemctl restart crio; then
+            echo "Successfully restarted CRI-O"
+        else
+            echo "Failed to restart CRI-O"
+            exit 1
+        fi
+    fi
+}
+
+update_kubelet_config() {
+    local kubelet_conf_dir="/etc/systemd/system/kubelet.service.d"
+    local new_conf="$kubelet_conf_dir/10-kubeadm.conf"
+    local old_conf="$kubelet_conf_dir/kubeadm.conf"
+
+    if [ -f "$new_conf" ]; then
+        rm -f "$old_conf"
+        mv "$new_conf" "$old_conf"
+
+        systemctl daemon-reload
+        systemctl restart kubelet
+
+        echo "Kubelet configuration updated successfully."
+    else
+        echo "Error:kubelet configuration file not found."
+        exit 1
+    fi
+}
+
+
+# Function to configure CRI-O runtime
+configure_containerd_runtime() {
+    containerd config default > /etc/containerd/config.toml
+    sandbox_image="$image_registry/$pause_image"
+    
+    if sed -i "s#^\(\s*sandbox_image\s*=\s*\).*\$#\1\"$sandbox_image\"#" /etc/containerd/config.toml; then
+        echo "sandbox_image field in /etc/containerd/config.toml updated successfully."
+    else
+        echo "Failed to update sandbox_image field in /etc/containerd/config.toml."
+    fi
+
+    if systemctl restart containerd; then
+        echo "Successfully restarted containerd"
+    else
+        echo "Failed to restart containerd"
+        exit 1
+    fi
+}
+
+# Function to configure containerd registry mirrors
+configure_containerd_registry() {
+    local config_file="/etc/containerd/config.toml"
+    
+    if [ -n "$registry_mirrors" ]; then
+        local config_content=$(cat <<EOF_CONT_REG
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = ["$registry_mirrors"]
+EOF_CONT_REG
+        )
+        
+        if [ ! -f "$config_file" ]; then
+            echo "Configuration file $config_file does not exist."
+        fi
+
+        local temp_file=$(mktemp)
+        sudo sed "/registry.mirrors/r /dev/stdin" "$config_file" <<< "$config_content" > "$temp_file"
+
+        sudo mv "$temp_file" "$config_file"
+        echo "containerd registry mirrors configuration completed"
+
+        # Restart containerd service
+        if sudo systemctl restart containerd; then
+            echo "Successfully restarted containerd"
+        else
+            echo "Failed to restart containerd"
+            exit 1
+        fi
+    fi
+}
+
+# Function to create crictl configuration file
+create_crictl_config() {
+    local config_file="/etc/crictl.yaml"
+    
+    # Create configuration file
+    cat <<EOF_CRICTL > "$config_file"
+runtime-endpoint: "unix:///run/containerd/containerd.sock"
+image-endpoint: "unix:///run/containerd/containerd.sock"
+timeout: 0
+debug: false
+EOF_CRICTL
+
+    # Check if configuration file is created successfully
+    if [ -f "$config_file" ]; then
+        echo "crictl configuration file created successfully at $config_file."
+    else
+        echo "Failed to create crictl configuration file at $config_file."
+    fi
+}
+
+# Function to perform OSTree rebase
+perform_rebase() {
+    local url="$1"
+    if [ -z "$url" ]; then
+        echo "release_image_url is empty, skipping rpm-ostree rebase."
+    else
+        if rpm-ostree rebase --experimental "ostree-unverified-image:docker://$url" --bypass-driver; then
+            echo "Rebase operation completed successfully. Rebooting the system..."
+            systemctl reboot
+        else
+            echo "Rebase operation failed. System will not be rebooted."
+            exit 1
+        fi
+    fi
+}
+
+# Function to fetch and save certificates
+fetch_and_save_certificates() {
+    local certs_dir="/etc/kubernetes/pki/etcd"
+
+    mkdir -p "$certs_dir"
+    local response=$(curl -s "$certs_url")
+    if [ -z "$response" ]; then
+        echo "Error: Failed to fetch JSON data."
+        exit 1
+    fi
+
+    local path content
+    while IFS= read -r line; do
+        read -r path content <<< "$line"
+        content=$(echo "$content" | base64 -d)
+        echo "$content" > "$path"
+    done < <(echo "$response" | jq -r '.[] | "\(.Path) \(.Content)"')
+}
+
+# Function to define the installer packages based on the environment
+define_installer_packages() {
+    local packages=(
+        conntrack-tools
+        cri-tools
+        socat
+        containernetworking-plugins
+        iptables
+        jq
+        wget
+    )
+    {{if .IsDocker -}}
+    packages+=(docker-engine)
+    {{end -}}
+    {{if .IsIsulad -}}
+    packages+=(iSulad)
+    {{end -}}
+    {{if .IsCrio -}}
+    packages+=(cri-o)
+    {{end -}}
+    {{if .IsContainerd -}}
+    packages+=(containerd)
+    {{end -}}
+    echo "${packages[@]}"
+}
+
+# Function to check and install dependent packages
+check_and_install_dependent_packages() {
+    echo "Installing dependent packages..."
+    local packages_to_install=()
+
+    # check yum package
+    if [[ ${#package_list[@]} -ne 0 && "${package_list[0]}" != "" ]]; then
+        echo "Using configured package list:"
+        packages_to_install+=("${package_list[@]}")
+    fi
+
+    #check rpm package
+    if [ -n "{{.RpmPackageCurl}}" ]; then
+        rpm_url={{.RpmPackageCurl}}
+        architecture=$(uname -m)
+        rpm_package_path="/etc/nkdfiles/packages/$architecture"
+        if [ ! -d "$rpm_package_path" ]; then
+            mkdir -p "$rpm_package_path"
+        fi
+
+        # Fetch package list from the provided URL
+        package_list=$(curl -s "$rpm_url" | grep -oP 'href="\K[^"]+' | grep -E '\.rpm$')
+
+        if [[ -n "$package_list" ]]; then
+            echo "Downloading RPM packages from $rpm_url"
+            for package_filename in $package_list; do
+                package_url="${rpm_url%/}/$package_filename"
+                package_path="$rpm_package_path/$package_filename"
+
+                if [ -f "$package_path" ]; then
+                    echo "Package already exists. Skipping download."
+                else
+                    if wget -P "$rpm_package_path" "$package_url" >/dev/null 2>&1; then
+                        echo "Package $package_filename downloaded successfully."
+                        chmod +x "$package_path"
+                        packages_to_install+=("$package_path")
+                    else
+                        echo "Failed to download package $package_filename."
+                        exit 1
+                    fi
+                fi
+            done
+        else
+            echo "No RPM packages found at $rpm_url"
+        fi
+    fi
+
+    # if package_list and rpm_package_list are empty
+    if [[ ${#packages_to_install[@]} -eq 0 ]]; then
+        echo "Using default package list:"
+        packages_to_install=($(define_installer_packages))
+    fi
+
+    for package in "${packages_to_install[@]}"; do
+        if sudo yum install -y "$package" >/dev/null 2>&1; then
+            echo "Package $package installed successfully."
+        else
+            echo "Failed to install package $package."
+            exit 1
+        fi
+    done
+}
+
+check_and_install_kube_binaries() {
+    local binaries=(
+        "kubeadm"
+        "kubelet"
+        "kubectl"
+    )
+    for binary in "${binaries[@]}"; do
+         if ! command -v "$(basename "$binary")" &>/dev/null; then
+            echo "$binary is missing, installing it using yum."
+            sudo yum install -y /usr/bin/"$binary" 
+            if [ $? -ne 0 ]; then
+                echo "Failed to install $binary."
+                exit 1
+            else
+                echo "$(basename "$binary") installed successfully."
+            fi
+        fi
+    done
+}
+
+# Function to disable swap
+disable_swap() {
+    # Check if the user has sufficient privileges
+    if [[ $EUID -ne 0 ]]; then
+        echo "This function must be run as root" 
+        exit 1
+    fi
+
+    echo "Disabling swap..."
+    swapoff -a
+
+    # Check if swap is disabled
+    if [[ $? -eq 0 ]]; then
+        echo "Swap disabled successfully."
+    else
+        echo "Failed to disable swap."
+        exit 1
+    fi
+}
+
+# Function to disable SELinux
+disable_selinux() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "This function must be run as root" 
+        exit 1
+    fi
+    # Disable SELinux
+    setenforce 0
+    echo "SELinux disabled successfully."
+}
+
+# Execute hook files
+execute_hookfiles "${hook_files_path}"
+
+# Call the function to disable firewall
+disable_firewall
+
+{{if or .IsGeneralOS -}}
+check_and_install_dependent_packages
+check_and_install_kube_binaries
+{{if .IsControlPlane -}}
+fetch_and_save_certificates
+{{end -}}
+{{if .IsCrio -}}
+update_kubelet_config
+{{end -}}
+systemctl enable kubelet.service
+systemctl restart set-kernel-para.service
+{{end -}}
+
+# Start necessary services
+check_and_start_service "${runtime}"
+
+# Call the function to disable swap
+disable_swap
+
+# Call the function to disable SELinux
+disable_selinux
+
+{{if .IsCrio -}}
+configure_crio_runtime
+configure_crio_registry
+{{end -}}
+
+{{if .IsContainerd}}
+configure_containerd_runtime
+create_crictl_config
+configure_containerd_registry
+{{end -}}
+
+# Perform OSTree rebase for nestos
+{{if .IsNestOS -}}
+perform_rebase "$release_image_url"
+{{end -}}
+
+echo "release-image-pivot.service complete"

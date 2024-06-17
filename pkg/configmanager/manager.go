@@ -20,6 +20,7 @@ import (
 	"errors"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
 	"path/filepath"
@@ -77,18 +78,19 @@ func Initial(opts *opts.OptionsList) error {
 
 func initializeClusterAsset(fileData *asset.ClusterAsset, opts *opts.OptionsList) error {
 	// Init infra asset
-	infraAsset, err := asset.InitInfraAsset(fileData, opts)
+	infraAsset, err := infraasset.InitInfraAsset(fileData, opts)
 	if err != nil {
 		return err
 	}
 
 	// Init cluster asset
-	clusterAsset, err := fileData.InitClusterAsset(infraAsset, opts)
+	clusterAsset, err := fileData.InitClusterAsset(opts)
 	if err != nil {
 		return err
 	}
+	clusterAsset.InfraPlatform = infraAsset
 
-	ClusterAsset[fileData.Cluster_ID] = clusterAsset
+	ClusterAsset[fileData.ClusterID] = clusterAsset
 	return nil
 }
 
@@ -108,6 +110,10 @@ func GetBootstrapIgnHost() string {
 	return GlobalConfig.BootstrapIgnHost
 }
 
+func GetBootstrapIgnHostPort() string {
+	return GetBootstrapIgnHost() + ":" + GetBootstrapIgnPort()
+}
+
 func GetClusterConfig(clusterID string) (*asset.ClusterAsset, error) {
 	clusterConfig, ok := ClusterAsset[clusterID]
 	if !ok {
@@ -123,7 +129,7 @@ func Persist() error {
 
 	// Persist cluster
 	for _, clusterAsset := range ClusterAsset {
-		clusterDir := filepath.Join(persistDir, clusterAsset.Cluster_ID)
+		clusterDir := filepath.Join(persistDir, clusterAsset.ClusterID)
 		if err := os.MkdirAll(clusterDir, 0644); err != nil {
 			return err
 		}
