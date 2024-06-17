@@ -31,14 +31,13 @@ Deploying clusters on the libvirt platform requires pre-installation of the libv
 ### openstack
 Deploying clusters on the OpenStack platform requires pre-setup of the OpenStack environment.
 
-### Bare Metal
-When deploying a cluster on a bare metal platform, it is necessary to prepare the physical machines in advance.
+### PXE
 
 ## Compilation and Installation
 
 * Compilation Environment: Linux x86_64/aarch64
 * The following software packages are required for compilation:
-  * golang >= 1.17
+  * golang >= 1.21
   * git
   ``` shell
   $ sudo yum install golang git
@@ -197,3 +196,7 @@ Note: Users need to customize building deployment images before deploying the cl
     ``` shell
     $ nkd deploy -f cluster_config.yaml
     ```
+
+## troubleshooting
+
+The logs of NKD are stored in the directory /etc/nkd/logs by default, which facilitates effective troubleshooting in case of any issues encountered during the infrastructure creation process.

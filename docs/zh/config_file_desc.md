@@ -30,12 +30,15 @@ kubernetes:                                        # 集群相关配置列表
   kubernetesVersion: "v1.29.1"                     # 部署集群的版本
   kubernetesApiversion: "v1beta3"                  # 指定kubeadm配置文件格式的版本，目前支持 v1beta3、v1beta2、v1beta1
   apiserverEndpoint: "192.168.132.11:6443"         # 对外暴露的APISERVER服务的地址或域名   
-  imageRegistry: "registry.k8s.io"                 # 下载容器镜像时使用的镜像仓库的mirror站点地址
+  imageRegistry: "registry.k8s.io"                 # Kubeadm初始化时使用的镜像仓库地址
+  registryMirror: ""                               # 下载容器镜像时，使用的镜像仓库的 mirror 站点地址
   pauseImage: "pause:3.9"                          # 容器运行时的pause容器的容器镜像名称
   releaseImageUrl: ""                              # 包含K8S二进制组件的NestOS发布镜像的地址，支持架构x86_64或者aarch64
   token: ""                                        # 启动引导过程中使用的令牌，默认自动生成
   adminKubeconfig: /etc/nkd/cluster/admin.config   # 集群管理员配置文件admin.conf的路径
   certificateKey: ""                               # 添加新的控制面节点时用来解密所下载的Secret中的证书的秘钥
+  packageList:                                     # 集群环境中需要安装的RPM软件包名称列表
+  rpmPackagePath: ""                               # 集群环境中需要安装的RPM软件包文件路径
   network:                                         # k8s集群网络配置
     serviceSubnet: "10.96.0.0/16"                  # k8s创建的service的IP地址网段
     podSubnet: "10.244.0.0/16"                     # k8s集群网络的IP地址网段

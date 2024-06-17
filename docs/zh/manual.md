@@ -31,14 +31,13 @@
 ### OpenStack
 在OpenStack平台部署集群时，需要提前搭建好OpenStack环境
 
-### 裸金属
-在裸金属平台部署集群时，需要提前准备物理机
+### PXE
 
 ## 编译安装
 
 * 编译环境：Linux x86_64/aarch64
 * 进行编译需要以下软件包：
-  * golang >= 1.17
+  * golang >= 1.21
   * git
   ``` shell
   $ sudo yum install golang git
@@ -200,3 +199,7 @@ NKD部署集群过程中集群节点需要访问NKD提供的点火服务，通�
     ``` shell
     $ nkd deploy -f cluster_config.yaml
     ```
+
+## 故障排查
+
+NKD的日志默认存放在/etc/nkd/logs目录下，以便在基础设施创建过程中遇到问题能够有效地进行排查

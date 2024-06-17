@@ -5,10 +5,6 @@
 
 NKD (NestOS Kubernetes Deployer) is a cluster deployment and operation tool developed by the NestOS team for container cloud scenarios. It covers a series of functions such as infrastructure and Kubernetes core component deployment, update, and configuration management, providing users with a one-stop solution. It supports customization of multiple container runtimes including crio, iSulad, docker, and containerd, and is compatible with multiple platform deployments, ensuring that users can easily handle various complex deployment requirements. In addition, NKD has the ability to create cluster self-signed certificates and supports deploying multiple versions of Kubernetes clusters, covering various scenarios that may be encountered in actual use.
 
-#### Support Platforms
-
-NKD dynamically creates the required IaaS resources by connecting infrastructure providers  according to the needs of the cluster, and currently supports OpenStack libvirt and Bare Metal platforms. 
-
 ## Software architecture
 
 For more information, see [Software Architecture](docs/en/overall_design.md)
