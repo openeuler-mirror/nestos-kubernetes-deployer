@@ -1,0 +1,211 @@
+terraform {
+  required_providers {
+    openstack = {
+      source = "terraform-provider-openstack/openstack"
+      version = "2.0.0"
+    }
+  }
+}
+
+provider "openstack" {
+  user_name   = "{{.Platform.Username}}"
+  password    = "{{.Platform.Password}}"
+  tenant_name = "{{.Platform.TenantName}}"
+  auth_url    = "{{.Platform.AuthURL}}"
+  region      = "{{.Platform.Region}}"
+}
+
+variable "cluster_id" {
+  type    = string
+  default = "{{.ClusterID}}"
+}
+
+variable "instance_count" {
+  default = "{{.Worker.Count}}"
+}
+
+variable "instance_hostname" {
+  type    = list(string)
+  default = {{.Worker.Hostname}}
+}
+
+variable "instance_cpu" {
+  type    = list(string)
+  default = {{.Worker.CPU}}
+}
+
+variable "instance_ram" {
+  type    = list(string)
+  default = {{.Worker.RAM}}
+}
+
+variable "instance_disk" {
+  type    = list(string)
+  default = {{.Worker.Disk}}
+}
+
+variable "instance_osimage" {
+  type    = string
+  default = "{{.Platform.GlanceName}}"
+}
+
+variable "availability_zone" {
+  type    = string
+  default = "{{.Platform.AvailabilityZone}}"
+}
+
+variable "instance_userdata" {
+  type    = list(string)
+  default = {{.Worker.BootConfig}}
+}
+
+variable "internal_net" {
+  type    = string
+  default = "{{.Platform.InternalNetwork}}"
+}
+
+variable "instance_ip" {
+  type    = list(string)
+  default = {{.Worker.IP}}
+}
+
+variable "external_net" {
+  type    = string
+  default = "{{.Platform.ExternalNetwork}}"
+}
+
+resource "openstack_compute_flavor_v2" "flavor" {
+  count     = var.instance_count
+  name      = var.instance_hostname[count.index]
+  vcpus     = var.instance_cpu[count.index]
+  ram       = var.instance_ram[count.index]
+  disk      = var.instance_disk[count.index]
+  is_public = "true"
+}
+
+resource "openstack_blockstorage_volume_v3" "volume" {
+  count = var.instance_count
+  name  = var.instance_hostname[count.index]
+  size  = var.instance_disk[count.index]
+}
+
+resource "openstack_compute_secgroup_v2" "secgroup" {
+  name        = "${var.cluster_id}-worker"
+  description = "secgroup for k8s worker"
+
+  rule {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = -1
+    to_port     = -1
+    ip_protocol = "icmp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 80
+    to_port     = 80
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 443
+    to_port     = 443
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 2379
+    to_port     = 2380
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 179
+    to_port     = 179
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 6443
+    to_port     = 6443
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 10248
+    to_port     = 10248
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 10250
+    to_port     = 10250
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 30000
+    to_port     = 32767
+    ip_protocol = "tcp"
+    cidr        = "0.0.0.0/0"
+  }
+
+  rule {
+    from_port   = 30000
+    to_port     = 32767
+    ip_protocol = "udp"
+    cidr        = "0.0.0.0/0"
+  }
+}
+
+resource "openstack_compute_instance_v2" "instance" {
+  count              = var.instance_count
+  name               = var.instance_hostname[count.index]
+  image_name         = var.instance_osimage
+  flavor_name        = var.instance_hostname[count.index]
+  security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
+  availability_zone  = var.availability_zone
+  user_data          = templatefile(var.instance_userdata[count.index], { hostname = var.instance_hostname[count.index] })
+
+  network {
+    name        = var.internal_net
+    fixed_ip_v4 = var.instance_ip[count.index] != "null" ? var.instance_ip[count.index] : null
+  }
+}
+
+resource "openstack_networking_floatingip_v2" "floatip" {
+  count = var.instance_count
+  pool  = var.external_net
+}
+
+resource "openstack_compute_floatingip_associate_v2" "fip_associate" {
+  count       = var.instance_count
+  floating_ip = openstack_networking_floatingip_v2.floatip.*.address[count.index]
+  instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
+}
+
+resource "openstack_compute_volume_attach_v2" "volume_attach" {
+  count       = var.instance_count
+  instance_id = openstack_compute_instance_v2.instance.*.id[count.index]
+  volume_id   = openstack_blockstorage_volume_v3.volume.*.id[count.index]
+}
+
+output "instance_info" {
+  value = {
+    internal_ip = openstack_compute_instance_v2.instance.*.network.0.fixed_ip_v4
+    floating_ip = openstack_networking_floatingip_v2.floatip.*.address
+  }
+}

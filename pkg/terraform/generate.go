@@ -195,11 +195,14 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		}
 	}
 
+	var arch string
 	switch conf.Architecture {
 	case "amd64", "x86_64":
 		infra.MachineType = "pc"
+		arch = "x86_64"
 	case "arm64", "aarch64":
 		infra.MachineType = "virt"
+		arch = "aarch64"
 	default:
 		logrus.Errorf("unsupported architecture")
 		return err
@@ -217,7 +220,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 	defer outputFile.Close()
 
 	// Read template.
-	tfFilePath := filepath.Join("terraform", strings.ToLower(conf.OSImage.Type), conf.Platform, fmt.Sprintf("%s.tf.template", node))
+	tfFilePath := filepath.Join("terraform", arch, strings.ToLower(conf.OSImage.Type), conf.Platform, fmt.Sprintf("%s.tf.template", node))
 	tfFile, err := data.Assets.Open(tfFilePath)
 	if err != nil {
 		return err
