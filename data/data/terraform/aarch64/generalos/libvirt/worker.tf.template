@@ -1,0 +1,139 @@
+terraform {
+  required_providers {
+    libvirt = {
+      source = "dmacvicar/libvirt"
+      version = "0.7.6"
+    }
+  }
+}
+
+provider "libvirt" {
+  uri = "{{.Platform.URI}}"
+}
+
+variable "cluster_id" {
+  type    = string
+  default = "{{.ClusterID}}"
+}
+
+variable "instance_count" {
+  default = "{{.Worker.Count}}"
+}
+
+variable "instance_hostname" {
+  type    = list(string)
+  default = {{.Worker.Hostname}}
+}
+
+variable "instance_ip" {
+  type    = list(string)
+  default = {{.Worker.IP}}
+}
+
+variable "instance_cpu" {
+  type    = list(string)
+  default = {{.Worker.CPU}}
+}
+
+variable "instance_ram" {
+  type    = list(string)
+  default = {{.Worker.RAM}}
+}
+
+variable "instance_disk" {
+  type    = list(string)
+  default = {{.Worker.Disk}}
+}
+
+variable "instance_cloudinit" {
+  type    = list(string)
+  default = {{.Worker.BootConfig}}
+}
+
+resource "libvirt_volume" "volume" {
+  name   = "${var.cluster_id}-volume"
+  pool   = "${var.cluster_id}-pool"
+  source = "{{.Platform.OSImage}}"
+}
+
+resource "libvirt_volume" "disk" {
+  count            = var.instance_count
+  name             = "${var.instance_hostname[count.index]}-disk"
+  base_volume_name = "${var.cluster_id}-volume"
+  pool             = "${var.cluster_id}-pool"
+  size             = var.instance_disk[count.index] * 1024 * 1024 * 1024
+}
+
+resource "libvirt_cloudinit_disk" "cloudinit" {
+  count     = var.instance_count
+  name      = "${var.instance_hostname[count.index]}.iso"
+  pool      = "${var.cluster_id}-pool"
+  user_data = data.template_file.user_data.*.rendered[count.index]
+}
+
+data "template_file" "user_data" {
+  count    = var.instance_count
+  template = templatefile(var.instance_cloudinit[count.index], { hostname = var.instance_hostname[count.index] })
+}
+
+resource "libvirt_domain" "generalos" {
+  count           = var.instance_count
+  name            = var.instance_hostname[count.index]
+  cpu {
+    mode = "host-passthrough"
+  }
+  vcpu            = var.instance_cpu[count.index]
+  memory          = var.instance_ram[count.index]
+  cloudinit       = libvirt_cloudinit_disk.cloudinit.*.id[count.index]
+  machine         = "{{.MachineType}}"
+  autostart       = true
+  type            = "kvm"
+
+  xml {
+    xslt = <<-EOT
+      <?xml version="1.0" ?>
+      <xsl:stylesheet version="1.0"
+                      xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+        <xsl:output omit-xml-declaration="yes" indent="yes"/>
+        <xsl:template match="node()|@*">
+          <xsl:copy>
+            <xsl:apply-templates select="node()|@*"/>
+          </xsl:copy>
+        </xsl:template>
+              
+        <xsl:template match="/domain/devices/disk[@device='cdrom']/target/@bus">
+          <xsl:attribute name="bus">
+            <xsl:value-of select="'scsi'"/>
+          </xsl:attribute>
+        </xsl:template>
+              
+      </xsl:stylesheet>
+    EOT
+  }
+
+  disk {
+    volume_id = libvirt_volume.disk.*.id[count.index]
+    scsi      = true
+  }
+
+  network_interface {
+    network_name   = "${var.cluster_id}-net"
+    hostname       = var.instance_hostname[count.index]
+    addresses      = var.instance_ip[count.index] != "null" ? [var.instance_ip[count.index]] : null
+    wait_for_lease = true
+  }
+
+  graphics {
+    type        = "vnc"
+    listen_type = "address"
+  }
+
+  console {
+    type        = "pty"
+    target_port = "0"
+  }
+}
+
+output "ipv4" {
+  value = libvirt_domain.generalos.*.network_interface.0.addresses
+}
