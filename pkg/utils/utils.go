@@ -18,6 +18,7 @@ package utils
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"net/url"
 	"os/user"
@@ -99,4 +100,25 @@ func ConstructURL(bootstrapIgnitionHost string, role string) string {
 		Path:   role,
 	}
 	return u.String()
+}
+
+// GenerateWWN generates a random 16-byte WWN (World Wide Name)
+func GenerateWWN() (string, error) {
+	wwnBytes := make([]byte, 8)
+
+	// Read 16 random bytes from the crypto/rand reader
+	_, err := rand.Read(wwnBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random bytes: %v", err)
+	}
+
+	// Set the prefix to 0x50 (Network Address Authority for WWN)
+	wwnBytes[0] = 0x50
+
+	// Format the bytes into a WWN string
+	wwn := fmt.Sprintf("%02x%02x%02x%02x%02x%02x%02x%02x",
+		wwnBytes[0], wwnBytes[1], wwnBytes[2], wwnBytes[3],
+		wwnBytes[4], wwnBytes[5], wwnBytes[6], wwnBytes[7])
+
+	return wwn, nil
 }
