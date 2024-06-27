@@ -116,7 +116,9 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		}
 	}
 
-	httpService.AddFileToCache(constants.WorkerIgn, data)
+	if len(conf.Kubernetes.RpmPackagePath) > 0 {
+		httpService.PackageDir = conf.Kubernetes.RpmPackagePath
+	}
 
 	p := infra.InfraPlatform{}
 	switch strings.ToLower(conf.Platform) {
