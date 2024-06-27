@@ -23,6 +23,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
+	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -68,6 +69,7 @@ type Node struct {
 	Hostname   []string
 	IP         []string
 	BootConfig []string
+	WWN        []string
 }
 
 func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) {
@@ -108,6 +110,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			master_hostname   []string
 			master_ip         []string
 			master_bootConfig []string
+			master_wwn        []string
 		)
 
 		infra.Master.Count = len(conf.Master)
@@ -116,6 +119,12 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			master_ram = append(master_ram, master.RAM)
 			master_disk = append(master_disk, master.Disk)
 			master_hostname = append(master_hostname, master.Hostname)
+			wwn, err := utils.GenerateWWN()
+			if err != nil {
+				logrus.Errorf("Failed to generate WWN: %v", err)
+				return err
+			}
+			master_wwn = append(master_wwn, wwn)
 			master_ip = append(master_ip, master.IP)
 			if i == 0 {
 				master_bootConfig = append(master_bootConfig, conf.BootConfig.Controlplane.Path)
@@ -147,6 +156,10 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 		if err != nil {
 			return err
 		}
+		infra.Master.WWN, err = convertSliceToStrings(master_wwn)
+		if err != nil {
+			return err
+		}
 	} else if node == "worker" {
 		var (
 			worker_cpu        []uint
@@ -155,6 +168,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			worker_hostname   []string
 			worker_ip         []string
 			worker_bootConfig []string
+			worker_wwn        []string
 		)
 
 		infra.Worker.Count = len(conf.Worker)
@@ -168,6 +182,12 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			worker_ip = append(worker_ip, worker.IP)
 			worker_hostname = append(worker_hostname, worker.Hostname)
 			worker_bootConfig = append(worker_bootConfig, conf.BootConfig.Worker.Path)
+			wwn, err := utils.GenerateWWN()
+			if err != nil {
+				logrus.Errorf("Failed to generate WWN: %v", err)
+				return err
+			}
+			worker_wwn = append(worker_wwn, wwn)
 		}
 		infra.Worker.CPU, err = convertSliceToStrings(worker_cpu)
 		if err != nil {
@@ -190,6 +210,10 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			return err
 		}
 		infra.Worker.BootConfig, err = convertSliceToStrings(worker_bootConfig)
+		if err != nil {
+			return err
+		}
+		infra.Worker.WWN, err = convertSliceToStrings(worker_wwn)
 		if err != nil {
 			return err
 		}

@@ -56,6 +56,11 @@ variable "instance_disk" {
   default = {{.Master.Disk}}
 }
 
+variable "instance_wwn" {
+  type    = list(string)
+  default = {{.Master.WWN}}
+}
+
 variable "instance_cloudinit" {
   type    = list(string)
   default = {{.Master.BootConfig}}
@@ -119,6 +124,11 @@ resource "libvirt_network" "network" {
 resource "libvirt_domain" "generalos" {
   count           = var.instance_count
   name            = var.instance_hostname[count.index]
+  firmware        = "/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw"
+  nvram {
+    file     = "/var/lib/libvirt/qemu/nvram/${var.instance_hostname[count.index]}_VARS.fd"
+    template = "/usr/share/edk2/aarch64/vars-template-pflash.raw"
+  }
   cpu {
     mode = "host-passthrough"
   }
@@ -154,6 +164,7 @@ resource "libvirt_domain" "generalos" {
   disk {
     volume_id = libvirt_volume.disk.*.id[count.index]
     scsi      = true
+    wwn       = var.instance_wwn[count.index]
   }
 
   network_interface {
