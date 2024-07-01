@@ -26,10 +26,10 @@ import (
 
 var (
 	mapRuntime = map[string]api.Runtime{
-		constants.Isulad:     &isuladRuntime{},
-		constants.Docker:     &dockerRuntime{},
-		constants.Crio:       &crioRuntime{},
-		constants.Containerd: &containerdRuntime{},
+		constants.Isulad:     &IsuladRuntime{},
+		constants.Docker:     &DockerRuntime{},
+		constants.Crio:       &CrioRuntime{},
+		constants.Containerd: &ContainerdRuntime{},
 	}
 )
 
