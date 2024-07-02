@@ -19,14 +19,14 @@ import (
 	"nestos-kubernetes-deployer/pkg/api"
 )
 
-type IsuladRuntime struct {
+type isuladRuntime struct {
 }
 
-func (ir *IsuladRuntime) GetRuntimeCriSocket() string {
+func (ir *isuladRuntime) GetRuntimeCriSocket() string {
 	return "/var/run/isulad.sock"
 }
 
 func IsIsulad(rt api.Runtime) bool {
-	_, ok := rt.(*IsuladRuntime)
+	_, ok := rt.(*isuladRuntime)
 	return ok
 }

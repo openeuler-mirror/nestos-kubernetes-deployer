@@ -1,8 +1,7 @@
-package runtime_test
+package runtime
 
 import (
 	"nestos-kubernetes-deployer/pkg/api"
-	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
 	"nestos-kubernetes-deployer/pkg/constants"
 	"testing"
 
@@ -19,31 +18,31 @@ func TestGetRuntime(t *testing.T) {
 		{
 			name:     "Empty string defaults to Isulad",
 			runtime:  "",
-			expected: &runtime.IsuladRuntime{},
+			expected: &isuladRuntime{},
 			err:      nil,
 		},
 		{
 			name:     "Isulad",
 			runtime:  constants.Isulad,
-			expected: &runtime.IsuladRuntime{},
+			expected: &isuladRuntime{},
 			err:      nil,
 		},
 		{
 			name:     "Docker",
 			runtime:  constants.Docker,
-			expected: &runtime.DockerRuntime{},
+			expected: &dockerRuntime{},
 			err:      nil,
 		},
 		{
 			name:     "Crio",
 			runtime:  constants.Crio,
-			expected: &runtime.CrioRuntime{},
+			expected: &crioRuntime{},
 			err:      nil,
 		},
 		{
 			name:     "Containerd",
 			runtime:  constants.Containerd,
-			expected: &runtime.ContainerdRuntime{},
+			expected: &containerdRuntime{},
 			err:      nil,
 		},
 		{
@@ -56,7 +55,7 @@ func TestGetRuntime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := runtime.GetRuntime(tt.runtime)
+			got, err := GetRuntime(tt.runtime)
 
 			if tt.err != nil {
 				if err == nil || err.Error() != tt.err.Error() {
@@ -66,16 +65,16 @@ func TestGetRuntime(t *testing.T) {
 				if err != nil {
 					t.Errorf("expected no error, got %v", err)
 				}
-				if _, ok := got.(*runtime.IsuladRuntime); tt.runtime == constants.Isulad && !ok {
+				if _, ok := got.(*isuladRuntime); tt.runtime == constants.Isulad && !ok {
 					t.Errorf("expected IsuladRuntime, got %T", got)
 				}
-				if _, ok := got.(*runtime.DockerRuntime); tt.runtime == constants.Docker && !ok {
+				if _, ok := got.(*dockerRuntime); tt.runtime == constants.Docker && !ok {
 					t.Errorf("expected DockerRuntime, got %T", got)
 				}
-				if _, ok := got.(*runtime.CrioRuntime); tt.runtime == constants.Crio && !ok {
+				if _, ok := got.(*crioRuntime); tt.runtime == constants.Crio && !ok {
 					t.Errorf("expected CrioRuntime, got %T", got)
 				}
-				if _, ok := got.(*runtime.ContainerdRuntime); tt.runtime == constants.Containerd && !ok {
+				if _, ok := got.(*containerdRuntime); tt.runtime == constants.Containerd && !ok {
 					t.Errorf("expected ContainerdRuntime, got %T", got)
 				}
 			}
