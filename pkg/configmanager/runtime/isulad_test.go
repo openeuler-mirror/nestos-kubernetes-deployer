@@ -14,15 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runtime_test
+package runtime
 
 import (
-	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
 	"testing"
 )
 
 func TestIsuladRuntime_GetRuntimeCriSocket(t *testing.T) {
-	ir := &runtime.IsuladRuntime{}
+	ir := &isuladRuntime{}
 	expectedSocket := "/var/run/isulad.sock"
 	if ir.GetRuntimeCriSocket() != expectedSocket {
 		t.Errorf("Expected socket path %s, but got %s", expectedSocket, ir.GetRuntimeCriSocket())
@@ -31,14 +30,14 @@ func TestIsuladRuntime_GetRuntimeCriSocket(t *testing.T) {
 
 func TestIsIsulad(t *testing.T) {
 	// Test case 1: Check if isuladRuntime returns true for IsIsulad
-	cr := &runtime.IsuladRuntime{}
-	if !runtime.IsIsulad(cr) {
+	cr := &isuladRuntime{}
+	if !IsIsulad(cr) {
 		t.Errorf("Expected IsIsulad to return true for isuladRuntime, but got false")
 	}
 
 	// Test case 2: Check if mockRuntime returns false for IsIsulad
 	mr := &mockRuntime{}
-	if runtime.IsIsulad(mr) {
+	if IsIsulad(mr) {
 		t.Errorf("Expected IsIsulad to return false for mockRuntime, but got true")
 	}
 }

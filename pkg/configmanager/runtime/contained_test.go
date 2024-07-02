@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runtime_test
+package runtime
 
 import (
-	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
 	"testing"
 )
 
@@ -29,7 +28,7 @@ func (mr *mockRuntime) GetRuntimeCriSocket() string {
 }
 
 func TestContainerdRuntime_GetRuntimeCriSocket(t *testing.T) {
-	cr := &runtime.ContainerdRuntime{}
+	cr := &containerdRuntime{}
 	expectedSocket := "unix:///var/run/containerd/containerd.sock"
 	if cr.GetRuntimeCriSocket() != expectedSocket {
 		t.Errorf("Expected socket path %s, but got %s", expectedSocket, cr.GetRuntimeCriSocket())
@@ -38,14 +37,14 @@ func TestContainerdRuntime_GetRuntimeCriSocket(t *testing.T) {
 
 func TestIsContainerd(t *testing.T) {
 	// Test case 1: Check if containerdRuntime returns true for IsContainerd
-	cr := &runtime.ContainerdRuntime{}
-	if !runtime.IsContainerd(cr) {
+	cr := &containerdRuntime{}
+	if !IsContainerd(cr) {
 		t.Errorf("Expected IsContainerd to return true for containerdRuntime, but got false")
 	}
 
 	// Test case 2: Check if mockRuntime returns false for IsContainerd
 	mr := &mockRuntime{}
-	if runtime.IsContainerd(mr) {
+	if IsContainerd(mr) {
 		t.Errorf("Expected IsContainerd to return false for mockRuntime, but got true")
 	}
 }

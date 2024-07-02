@@ -14,15 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runtime_test
+package runtime
 
 import (
-	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
 	"testing"
 )
 
 func TestCrioRuntime_GetRuntimeCriSocket(t *testing.T) {
-	cr := &runtime.CrioRuntime{}
+	cr := &crioRuntime{}
 	expectedSocket := "unix:///var/run/crio/crio.sock"
 	if cr.GetRuntimeCriSocket() != expectedSocket {
 		t.Errorf("Expected socket path %s, but got %s", expectedSocket, cr.GetRuntimeCriSocket())
@@ -31,14 +30,14 @@ func TestCrioRuntime_GetRuntimeCriSocket(t *testing.T) {
 
 func TestIsCrio(t *testing.T) {
 	// Test case 1: Check if crioRuntime returns true for IsCrio
-	cr := &runtime.CrioRuntime{}
-	if !runtime.IsCrio(cr) {
+	cr := &crioRuntime{}
+	if !IsCrio(cr) {
 		t.Errorf("Expected IsCrio to return true for crioRuntime, but got false")
 	}
 
 	// Test case 2: Check if mockRuntime returns false for IsCrio
 	mr := &mockRuntime{}
-	if runtime.IsCrio(mr) {
+	if IsCrio(mr) {
 		t.Errorf("Expected IsCrio to return false for mockRuntime, but got true")
 	}
 }

@@ -17,13 +17,13 @@ package runtime
 
 import "nestos-kubernetes-deployer/pkg/api"
 
-type DockerRuntime struct{}
+type dockerRuntime struct{}
 
-func (dr *DockerRuntime) GetRuntimeCriSocket() string {
+func (dr *dockerRuntime) GetRuntimeCriSocket() string {
 	return "/var/run/dockershim.sock"
 }
 
 func IsDocker(rt api.Runtime) bool {
-	_, ok := rt.(*DockerRuntime)
+	_, ok := rt.(*dockerRuntime)
 	return ok
 }
