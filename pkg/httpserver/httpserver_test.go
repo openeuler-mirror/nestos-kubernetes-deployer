@@ -1,5 +1,5 @@
 /*
-Copyright 2023 KylinSoft  Co., Ltd.
+Copyright 2024 KylinSoft  Co., Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,46 +14,98 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package httpserver_test
+package httpserver
 
 import (
-	"io"
-	"nestos-kubernetes-deployer/pkg/httpserver"
+	"nestos-kubernetes-deployer/pkg/constants"
 	"net/http"
+	"os"
 	"testing"
+	"time"
 )
 
-func TestHTTPService(t *testing.T) {
-	// Create a new http service instance
-	httpService := &httpserver.HTTPService{
-		Port: "9080",
-	}
+func TestHTTPServer(t *testing.T) {
+	hs := NewHTTPService("9080")
 
-	// Start the file service
-	if err := httpService.Start(); err != nil {
-		t.Fatalf("Error starting file service: %v", err)
-	}
-	defer httpService.Stop()
+	t.Run("TestAddFileToCache", func(t *testing.T) {
+		var content = []byte("test")
+		if err := hs.AddFileToCache("test", content); err != nil {
+			t.Error("test fail", err)
+			return
+		}
+		if cachedContent, ok := hs.FileCache["/test"]; !ok || string(cachedContent) != "test" {
+			t.Error("test fail: cached content mismatch")
+			return
+		}
+	})
 
-	// Add test file to the file service
-	testContent := []byte("Hello, world!")
-	httpService.AddFileToCache("test.txt", testContent)
+	t.Run("TestStartHTTPService", func(t *testing.T) {
+		go func() {
+			StartHTTPService(hs)
+		}()
+		time.Sleep(1 * time.Second)
+		if err := hs.Stop(); err != nil {
+			t.Error("test fail", err)
+			return
+		}
+	})
 
-	// Make an HTTP request to retrieve the test file content
-	resp, err := http.Get("http://localhost:9080/file/test.txt")
-	if err != nil {
-		t.Fatalf("Error making GET request: %v", err)
-	}
-	defer resp.Body.Close()
+	t.Run("TestStartStop", func(t *testing.T) {
+		hs.DirPath = "tmp"
+		go func() {
+			if err := hs.Stop(); err != nil {
+				t.Error("test fail", err)
+				return
+			}
+			if err := hs.Start(); err != nil {
+				t.Error("test fail", err)
+				return
+			}
+		}()
+		time.Sleep(1 * time.Second)
+		if err := hs.Stop(); err != nil {
+			t.Error("test fail", err)
+			return
+		}
+	})
 
-	// Read the response body content
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Error reading response body: %v", err)
-	}
+	t.Run("TestServer", func(t *testing.T) {
+		content := []byte("test content")
+		hs.AddFileToCache("/testfile", content)
 
-	// Check if the response body content matches the expected content
-	if string(respBody) != string(testContent) {
-		t.Errorf("Expected response body %s, got %s", string(testContent), string(respBody))
-	}
+		go func() {
+			if err := hs.Stop(); err != nil {
+				t.Error("test fail", err)
+				return
+			}
+			if err := hs.Start(); err != nil {
+				t.Error("test fail", err)
+				return
+			}
+		}()
+		time.Sleep(1 * time.Second)
+
+		_, err := http.Get("http://localhost:9080/testfile")
+		if err != nil {
+			t.Error("test fail", err)
+			return
+		}
+
+		_, err = http.Get("http://localhost:9080/dir" + os.TempDir())
+		if err != nil {
+			t.Error("test fail", err)
+			return
+		}
+
+		_, err = http.Get("http://localhost:9080" + constants.RpmPackageList)
+		if err != nil {
+			t.Error("test fail", err)
+			return
+		}
+
+		if err := hs.Stop(); err != nil {
+			t.Error("test fail", err)
+			return
+		}
+	})
 }
