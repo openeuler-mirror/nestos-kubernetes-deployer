@@ -13,10 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package utils_test
+package utils
 
 import (
-	"nestos-kubernetes-deployer/pkg/utils"
 	"testing"
 )
 
@@ -42,7 +41,7 @@ func TestRunCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotOutput, err := utils.RunCommand(tt.command)
+			gotOutput, err := RunCommand(tt.command)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RunCommand() error = %v, wantErr %v", err, tt.wantErr)
 				return
