@@ -1,0 +1,51 @@
+/*
+Copyright 2024 KylinSoft  Co., Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package cmd
+
+import "testing"
+
+func TestTemplate(t *testing.T) {
+	platformTests := []struct {
+		platform string
+	}{
+		{"openstack"},
+		{"pxe"},
+		{"ipxe"},
+		{"libvirt"},
+	}
+
+	cmd := NewTemplateCommand()
+	t.Run("Template Fail", func(t *testing.T) {
+		err := createTemplate(cmd, nil)
+		if err == nil {
+			t.Error("Expected error, got nil")
+		}
+	})
+
+	for _, pt := range platformTests {
+		t.Run("Template "+pt.platform+" Success", func(t *testing.T) {
+			args := []string{"--platform", pt.platform}
+			cmd.SetArgs(args)
+			if err := cmd.Execute(); err != nil {
+				t.Errorf("Failed to execute command: %v", err)
+			}
+
+			if err := createTemplate(cmd, args); err != nil {
+				t.Errorf("createTemplate failed: %v", err)
+			}
+		})
+	}
+}
