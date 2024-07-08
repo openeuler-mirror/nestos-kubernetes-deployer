@@ -3,6 +3,7 @@ module nestos-kubernetes-deployer
 go 1.17
 
 require (
+	github.com/agiledragon/gomonkey/v2 v2.12.0
 	github.com/clarketm/json v1.17.1
 	github.com/coreos/ignition/v2 v2.14.0
 	github.com/hashicorp/terraform-exec v0.17.2
