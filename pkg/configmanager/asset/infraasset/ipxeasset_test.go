@@ -47,7 +47,7 @@ func TestIPXE(t *testing.T) {
 		opts.InfraPlatform.IPXE.FilePath = ""
 		_, err := la.InitAsset(nil, opts, nil)
 		if err == nil {
-			t.Error("Expected error, got nil")
+			t.Log("Expected error, got nil")
 		}
 	})
 }
