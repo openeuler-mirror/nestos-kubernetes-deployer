@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"os"
 	"testing"
 )
 
@@ -33,6 +34,9 @@ func TestDestroy(t *testing.T) {
 	t.Run("DestroyCmd Fail", func(t *testing.T) {
 		if err := runDestroyCmd(cmd, args); err == nil {
 			t.Error("Expected error, got nil")
+		}
+		if err := os.RemoveAll("logs"); err != nil {
+			t.Errorf("Failed to remove logs folder: %v", err)
 		}
 	})
 }

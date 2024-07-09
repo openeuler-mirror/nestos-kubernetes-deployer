@@ -21,8 +21,6 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
 	"os"
 	"testing"
-
-	"gopkg.in/yaml.v2"
 )
 
 func TestDeploy(t *testing.T) {
@@ -83,14 +81,6 @@ func TestDeploy(t *testing.T) {
 		},
 	}
 
-	clusterData, err := yaml.Marshal(cc)
-	if err != nil {
-		return
-	}
-	if err := os.WriteFile("test.yaml", clusterData, 0644); err != nil {
-		return
-	}
-
 	cmd := NewDeployCommand()
 	args := []string{"--file", "test.yaml"}
 	cmd.SetArgs(args)
@@ -101,6 +91,18 @@ func TestDeploy(t *testing.T) {
 	t.Run("DeployCmd Fail", func(t *testing.T) {
 		if err := runDeployCmd(cmd, args); err == nil {
 			t.Error("Expected error, got nil")
+		}
+		// Clean up
+		if err := os.RemoveAll("logs"); err != nil {
+			t.Errorf("Failed to remove logs folder: %v", err)
+		}
+
+		if _, err := os.Stat("global_config.yaml"); os.IsNotExist(err) {
+			t.Errorf("Expected global_config.yaml to be created, but it does not exist")
+		}
+
+		if err := os.Remove("global_config.yaml"); err != nil {
+			t.Errorf("Failed to remove global_config.yaml: %v", err)
 		}
 	})
 

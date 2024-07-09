@@ -30,7 +30,7 @@ func TestCloudinit(t *testing.T) {
 		t.Fatal(err)
 	}
 	clusterAsset := &asset.ClusterAsset{
-		ClusterID: "k8s-master",
+		ClusterID: "cluster",
 		Master: []asset.NodeAsset{
 			{Hostname: "master"},
 			{Hostname: "master02"},

@@ -115,6 +115,10 @@ func TestOsmanager(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create NewOSManager instance: %v", err)
 		}
+
+		if err := os.RemoveAll(clusterconfig.ClusterID); err != nil {
+			t.Errorf("Failed to remove cluster folder: %v", err)
+		}
 	})
 
 	t.Run("GenerateOSConfig_Fail", func(t *testing.T) {
@@ -126,6 +130,10 @@ func TestOsmanager(t *testing.T) {
 		err = ns.GenerateOSConfig()
 		if err == nil {
 			t.Error("Expected error, got nil")
+		}
+
+		if err := os.RemoveAll(clusterconfig.ClusterID); err != nil {
+			t.Errorf("Failed to remove cluster folder: %v", err)
 		}
 	})
 }

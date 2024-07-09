@@ -52,6 +52,16 @@ func TestExecuteApplyTerraform(t *testing.T) {
 			return
 		}
 		t.Log("ExecuteDestroyTerraform,success")
+
+		tmpFile := tfFileDir + "/terraform.tfstate"
+		if err := os.Remove(tmpFile); err != nil {
+			t.Errorf("Failed to remove terraform.tfstate: %v", err)
+		}
+
+		tmpDir := tfFileDir + "/.terraform"
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove %s: %v", tmpDir, err)
+		}
 	})
 
 	t.Run("Outputs", func(t *testing.T) {

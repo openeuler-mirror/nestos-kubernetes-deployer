@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"os"
 	"testing"
 )
 
@@ -32,6 +33,18 @@ func TestExtend(t *testing.T) {
 	t.Run("ExtendCmd Fail", func(t *testing.T) {
 		if err := runExtendCmd(cmd, args); err == nil {
 			t.Error("Expected error, got nil")
+		}
+		// Clean up
+		if err := os.RemoveAll("logs"); err != nil {
+			t.Errorf("Failed to remove logs folder: %v", err)
+		}
+
+		if _, err := os.Stat("global_config.yaml"); os.IsNotExist(err) {
+			t.Errorf("Expected global_config.yaml to be created, but it does not exist")
+		}
+
+		if err := os.Remove("global_config.yaml"); err != nil {
+			t.Errorf("Failed to remove global_config.yaml: %v", err)
 		}
 	})
 }
