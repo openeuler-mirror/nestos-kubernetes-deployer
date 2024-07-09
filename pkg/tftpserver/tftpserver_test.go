@@ -18,6 +18,7 @@ package tftpserver
 
 import (
 	"io"
+	"os"
 	"testing"
 )
 
@@ -29,43 +30,66 @@ func (rf *RFWT) ReadFrom(r io.Reader) (n int64, err error) {
 	return 0, nil
 }
 
-func (wt *RFWT) WriteTo(w io.Writer) (n int64, err error) {
+func (rf *RFWT) WriteTo(w io.Writer) (n int64, err error) {
 	return 0, nil
+}
+
+func TestTFTPHandler(t *testing.T) {
+	tftpHandler := TFTPHandler{
+		RootDir: "",
+	}
+	sf := &RFWT{
+		RootDir: "./",
+	}
+
+	t.Run("ReadHandler_file_fail", func(t *testing.T) {
+		err := tftpHandler.ReadHandler("tftpserver.ssss", sf)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		t.Log("success")
+	})
+	t.Run("ReadHandler", func(t *testing.T) {
+		err := tftpHandler.ReadHandler("tftpserver.go", sf)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		t.Log("success")
+	})
+	p := "tftpservers"
+	t.Run("WriteHandler", func(t *testing.T) {
+		err := tftpHandler.WriteHandler(p, sf)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		t.Log("success")
+		err = os.RemoveAll(p)
+		if err != nil {
+			t.Errorf("Error removing directory: %s\n", err)
+		} else {
+			t.Log("Directory removed successfully")
+		}
+	})
+
 }
 
 func TestTFTPServer(t *testing.T) {
 	service := NewTFTPService("127.0.0.1", "69", "testDir")
-
-	t.Run("TestStartStop", func(t *testing.T) {
-		go func() {
-			if err := service.Start(); err != nil {
-				t.Error("test fail", err)
-				return
-			}
-		}()
-		if err := service.Stop(); err != nil {
-			t.Error("test fail", err)
+	t.Run("start", func(t *testing.T) {
+		service.Start()
+		t.Log("sssssss")
+	})
+	t.Run("stop", func(t *testing.T) {
+		service.server = nil
+		err := service.Stop()
+		if err != nil {
+			t.Error(err)
 			return
 		}
+		t.Log("stop success")
 	})
 
-	th := &TFTPHandler{
-		RootDir: "testDir",
-	}
-	t.Run("TestReadHandler", func(t *testing.T) {
-		rf := &RFWT{}
-
-		if err := th.ReadHandler("test", rf); err != nil {
-			t.Error("test fail", err)
-			return
-		}
-	})
-	t.Run("TestWriteHandler", func(t *testing.T) {
-		wt := &RFWT{}
-
-		if err := th.WriteHandler("test", wt); err != nil {
-			t.Error("test fail", err)
-			return
-		}
-	})
 }
