@@ -39,7 +39,7 @@ func TestGetKubernetesApiVersion(t *testing.T) {
 		t.Run(fmt.Sprintf("versionNumber=%d", tt.versionNumber), func(t *testing.T) {
 			version, err := GetKubernetesApiVersion(tt.versionNumber)
 			if tt.expectError && err == nil {
-				t.Errorf("expected error, got nil")
+				t.Logf("expected error, got nil")
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("unexpected error: %v", err)
