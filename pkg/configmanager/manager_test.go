@@ -18,6 +18,7 @@ package configmanager
 import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"testing"
 )
 
@@ -82,6 +83,11 @@ func TestConfigmanager(t *testing.T) {
 				{Name: "sss"},
 			},
 		},
+	}
+
+	gc, err := globalconfig.InitGlobalConfig(opts)
+	if err != nil || gc == nil {
+		t.Fatalf("InitGlobalConfig returned an error: %v", err)
 	}
 
 	clusterconfig, err := GetClusterConfig("cluster")

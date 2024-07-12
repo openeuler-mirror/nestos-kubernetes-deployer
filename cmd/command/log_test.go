@@ -17,6 +17,7 @@ package command
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 
@@ -42,5 +43,8 @@ func TestLoggerHookFire(t *testing.T) {
 
 func TestSetuploggerHook(t *testing.T) {
 	restore := SetuploggerHook("sss")
+	if err := os.RemoveAll("sss"); err != nil {
+		t.Logf("Failed to remove cluster folder: %v", err)
+	}
 	defer restore()
 }

@@ -51,7 +51,7 @@ func TestTool(t *testing.T) {
 		PersistDir: "/",
 		BootstrapUrl: globalconfig.BootstrapUrl{
 			BootstrapIgnHost: "127.0.0.1",
-			BootstrapIgnPort: "9080",
+			BootstrapIgnPort: "1234",
 		},
 	}
 

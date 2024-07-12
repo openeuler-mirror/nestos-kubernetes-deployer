@@ -77,7 +77,7 @@ func TestGetLocalIP(t *testing.T) {
 }
 
 func TestIsPortOpen(t *testing.T) {
-	port := "8080"
+	port := "6789"
 	if !IsPortOpen(port) {
 		t.Errorf("expected port %s to be open", port)
 	}

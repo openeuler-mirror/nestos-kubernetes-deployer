@@ -85,5 +85,9 @@ func TestCloudinit(t *testing.T) {
 			return
 		}
 		t.Log("success")
+
+		if err := os.RemoveAll(clusterAsset.ClusterID); err != nil {
+			t.Logf("Failed to remove cluster folder: %v", err)
+		}
 	})
 }

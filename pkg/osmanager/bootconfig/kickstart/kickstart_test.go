@@ -52,7 +52,7 @@ func TestKickstart(t *testing.T) {
 		PersistDir: "./",
 		BootstrapUrl: globalconfig.BootstrapUrl{
 			BootstrapIgnHost: "127.0.0.1",
-			BootstrapIgnPort: "9080",
+			BootstrapIgnPort: "1234",
 		},
 	}
 
@@ -66,6 +66,10 @@ func TestKickstart(t *testing.T) {
 			return
 		}
 		t.Log("success")
+
+		if err := os.RemoveAll(clusterAsset.ClusterID); err != nil {
+			t.Logf("Failed to remove cluster folder: %v", err)
+		}
 	})
 
 	t.Run("GenerateBootConfig_fail", func(t *testing.T) {
