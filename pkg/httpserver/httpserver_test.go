@@ -25,7 +25,7 @@ import (
 )
 
 func TestHTTPServer(t *testing.T) {
-	hs := NewHTTPService("9080")
+	hs := NewHTTPService("1234")
 
 	t.Run("TestAddFileToCache", func(t *testing.T) {
 		var content = []byte("test")
@@ -85,19 +85,19 @@ func TestHTTPServer(t *testing.T) {
 		}()
 		time.Sleep(1 * time.Second)
 
-		_, err := http.Get("http://localhost:9080/testfile")
+		_, err := http.Get("http://localhost:1234/testfile")
 		if err != nil {
 			t.Log("test fail", err)
 			return
 		}
 
-		_, err = http.Get("http://localhost:9080/dir" + os.TempDir())
+		_, err = http.Get("http://localhost:1234/dir" + os.TempDir())
 		if err != nil {
 			t.Log("test fail", err)
 			return
 		}
 
-		_, err = http.Get("http://localhost:9080" + constants.RpmPackageList)
+		_, err = http.Get("http://localhost:1234" + constants.RpmPackageList)
 		if err != nil {
 			t.Log("test fail", err)
 			return
