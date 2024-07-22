@@ -20,10 +20,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestHTTPServer(t *testing.T) {
-	hs := NewHTTPService("1234")
+	hs := NewHTTPService("9876")
 
 	t.Run("TestAddFileToCache", func(t *testing.T) {
 		var content = []byte("test")
@@ -38,10 +39,12 @@ func TestHTTPServer(t *testing.T) {
 	})
 
 	t.Run("StartHTTPService", func(t *testing.T) {
+		hs.Port = "8520"
 		StartHTTPService(hs)
 	})
 
 	t.Run("Start", func(t *testing.T) {
+		hs.Port = "3698"
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/dir" {
 				// 根据您的预期响应设置响应头和响应体
@@ -73,6 +76,7 @@ func TestHTTPServer(t *testing.T) {
 				Handler: ts.Config.Handler,
 			},
 		}
+		hs.HttpLastRequestTime = time.Now().Unix() - TimeOut - 3
 		err := hs.Start()
 		if err != nil {
 			t.Log(err)
@@ -88,7 +92,7 @@ func TestHTTPServer(t *testing.T) {
 			t.Log(err)
 			return
 		}
-		t.Log("stop success")
+		t.Log("stop1 success")
 	})
 
 	t.Run("stop_runing", func(t *testing.T) {
@@ -98,7 +102,7 @@ func TestHTTPServer(t *testing.T) {
 			t.Log(err)
 			return
 		}
-		t.Log("stop success")
+		t.Log("stop2 success")
 	})
 
 	t.Run("stop_server_empty", func(t *testing.T) {
@@ -109,7 +113,7 @@ func TestHTTPServer(t *testing.T) {
 			t.Log(err)
 			return
 		}
-		t.Log("stop success")
+		t.Log("stop2 success")
 	})
 
 	//t.Run("TestStartHTTPService", func(t *testing.T) {
