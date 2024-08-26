@@ -18,6 +18,7 @@ package command
 
 import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/constVal"
 
 	"github.com/spf13/cobra"
 )
@@ -25,7 +26,7 @@ import (
 func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags := deployCmd.Flags()
 	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "", "Location of the cluster deploy config file")
-	flags.StringVarP(&opts.Opts.ClusterID, "clusterID", "", "", "Unique identifier for the cluster")
+	flags.StringVarP(&opts.Opts.ClusterID, "clusterID", "", "", constVal.ClusterIdHelp)
 	flags.StringVar(&opts.Opts.Arch, "arch", "", "Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)")
 	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
 
@@ -96,12 +97,12 @@ func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 
 func SetupDestroyCmdOpts(destroyCmd *cobra.Command) {
 	flags := destroyCmd.Flags()
-	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
+	flags.StringVarP(&opts.Opts.ClusterID, constVal.ClusterId, "", "", constVal.ClusterIdHelp)
 }
 
 func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
 	flags := upgradeCmd.Flags()
-	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
+	flags.StringVarP(&opts.Opts.ClusterID, constVal.ClusterId, "", "", constVal.ClusterIdHelp)
 	flags.StringVarP(&opts.Opts.Housekeeper.KubeVersion, "kube-version", "", "", "Choose a specific kubernetes version for upgrading")
 	flags.BoolVarP(&opts.Opts.Housekeeper.EvictPodForce, "force", "", false, "Force eviction of pods even if unsafe. This may result in data loss or service disruption, use with caution (default: false)")
 	flags.UintVarP(&opts.Opts.Housekeeper.MaxUnavailable, "maxunavailable", "", 0, "Number of nodes that are upgraded at the same time (default: 2)")
@@ -111,7 +112,7 @@ func SetupUpgradeCmdOpts(upgradeCmd *cobra.Command) {
 
 func SetupExtendCmdOpts(extendCmd *cobra.Command) {
 	flags := extendCmd.Flags()
-	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "", "Unique identifier for the cluster")
+	flags.StringVarP(&opts.Opts.ClusterID, constVal.ClusterId, "", "", constVal.ClusterIdHelp)
 	flags.UintVarP(&opts.Opts.ExtendCount, "num", "n", 0, "The number of extend worker nodes")
 }
 
