@@ -19,16 +19,38 @@ import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
+	"nestos-kubernetes-deployer/pkg/httpserver"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 )
 
-func TestDeploy(t *testing.T) {
+// setupTestEnvironment 设置测试环境
+func setupTestEnvironment(t *testing.T) {
 	err := os.Chdir("../data")
 	if err != nil {
 		t.Fatal(err)
 	}
 	opts.Opts.RootOptDir = "./"
+}
+
+// cleanUp 清理测试产生的文件
+func cleanUp(t *testing.T) {
+	if err := os.RemoveAll("logs"); err != nil {
+		t.Logf("Failed to remove logs folder: %v", err)
+	}
+
+	if _, err := os.Stat("global_config.yaml"); os.IsNotExist(err) {
+		t.Logf("Expected global_config.yaml to be created, but it does not exist")
+	} else if err := os.Remove("global_config.yaml"); err != nil {
+		t.Logf("Failed to remove global_config.yaml: %v", err)
+	}
+}
+
+// TestDeploy 测试部署命令
+func TestDeploy(t *testing.T) {
+	setupTestEnvironment(t)
 
 	cc := &asset.ClusterAsset{
 		ClusterID:    "cluster",
@@ -92,30 +114,7 @@ func TestDeploy(t *testing.T) {
 		if err := runDeployCmd(cmd, args); err == nil {
 			t.Log("Expected error, got nil")
 		}
-		// Clean up
-		if err := os.RemoveAll("logs"); err != nil {
-			t.Logf("Failed to remove logs folder: %v", err)
-		}
-
-		if _, err := os.Stat("global_config.yaml"); os.IsNotExist(err) {
-			t.Logf("Expected global_config.yaml to be created, but it does not exist")
-		}
-
-		if err := os.Remove("global_config.yaml"); err != nil {
-			t.Logf("Failed to remove global_config.yaml: %v", err)
-		}
-		// Clean up
-		if err := os.RemoveAll("logs"); err != nil {
-			t.Logf("Failed to remove logs folder: %v", err)
-		}
-
-		if _, err := os.Stat("global_config.yaml"); os.IsNotExist(err) {
-			t.Logf("Expected global_config.yaml to be created, but it does not exist")
-		}
-
-		if err := os.Remove("global_config.yaml"); err != nil {
-			t.Logf("Failed to remove global_config.yaml: %v", err)
-		}
+		cleanUp(t)
 	})
 
 	t.Run("clusterCreatePost Fail", func(t *testing.T) {
@@ -132,7 +131,28 @@ func TestDeploy(t *testing.T) {
 	})
 
 	t.Run("applyNetworkPlugin Fail", func(t *testing.T) {
-		err := applyNetworkPlugin("./", true)
+		err := applyNetworkPlugin("http://www.aaa.com", true)
+		if err == nil {
+			t.Log("Expected error, got nil")
+		}
+	})
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message": "API endpoint success"}`))
+	}))
+	defer ts.Close()
+	httpService := httpserver.NewHTTPService(ts.URL)
+	defer httpService.Stop()
+
+	t.Run("addIgnitionFiles Fail", func(t *testing.T) {
+		err := addIgnitionFiles(httpService, cc)
+		if err == nil {
+			t.Log("Expected error, got nil")
+		}
+	})
+
+	t.Run("addKickstartFiles Fail", func(t *testing.T) {
+		err := addKickstartFiles(httpService, cc)
 		if err == nil {
 			t.Log("Expected error, got nil")
 		}
