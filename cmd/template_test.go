@@ -21,14 +21,16 @@ import (
 )
 
 func TestTemplate(t *testing.T) {
+	const platform = "--platform"
 	platformTests := []struct {
 		platform string
 		args     []string
 	}{
-		{"openstack", []string{"--platform", "openstack"}},
-		{"pxe", []string{"--platform", "pxe"}},
-		{"ipxe", []string{"--platform", "ipxe"}},
-		{"libvirt", []string{"--platform", "libvirt"}},
+		{"openstack", []string{platform, "openstack"}},
+		{"pxe", []string{platform, "pxe"}},
+		{"ipxe", []string{platform, "ipxe"}},
+		{"ipxesss", []string{platform, "ipxesss"}},
+		{"libvirt", []string{platform, "libvirt"}},
 	}
 
 	cmd := NewTemplateCommand()
