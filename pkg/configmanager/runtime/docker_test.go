@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func TestDockerRuntime_GetRuntimeCriSocket(t *testing.T) {
+func TestDockerRuntimeGetRuntimeCriSocket(t *testing.T) {
 	dr := &dockerRuntime{}
 	expectedSocket := "/var/run/dockershim.sock"
 	if dr.GetRuntimeCriSocket() != expectedSocket {
