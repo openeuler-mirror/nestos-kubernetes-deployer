@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func TestCrioRuntime_GetRuntimeCriSocket(t *testing.T) {
+func TestCrioRuntimeGetRuntimeCriSocket(t *testing.T) {
 	cr := &crioRuntime{}
 	expectedSocket := "unix:///var/run/crio/crio.sock"
 	if cr.GetRuntimeCriSocket() != expectedSocket {

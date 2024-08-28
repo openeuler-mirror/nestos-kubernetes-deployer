@@ -27,7 +27,7 @@ func (mr *mockRuntime) GetRuntimeCriSocket() string {
 	return "/var/run/mock.sock"
 }
 
-func TestContainerdRuntime_GetRuntimeCriSocket(t *testing.T) {
+func TestContainerdRuntimeGetRuntimeCriSocket(t *testing.T) {
 	cr := &containerdRuntime{}
 	expectedSocket := "unix:///var/run/containerd/containerd.sock"
 	if cr.GetRuntimeCriSocket() != expectedSocket {

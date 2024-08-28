@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func TestIsuladRuntime_GetRuntimeCriSocket(t *testing.T) {
+func TestIsuladRuntimeGetRuntimeCriSocket(t *testing.T) {
 	ir := &isuladRuntime{}
 	expectedSocket := "/var/run/isulad.sock"
 	if ir.GetRuntimeCriSocket() != expectedSocket {
