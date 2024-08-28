@@ -23,7 +23,7 @@ import (
 
 // TestBufferedPrinter_Write tests the Write method of the bufferedPrinter.
 // It verifies that data written to the bufferedPrinter is correctly buffered and printed line by line.
-func TestBufferedPrinter_Write(t *testing.T) {
+func TestBufferedPrinterWrite(t *testing.T) {
 	tp := New(func(args ...interface{}) {
 		fmt.Println(args)
 	})
@@ -33,9 +33,12 @@ func TestBufferedPrinter_Write(t *testing.T) {
 }
 
 // TestBufferedPrinter_Close tests the Close method of the bufferedPrinter.
-func TestBufferedPrinter_Close(t *testing.T) {
-	bp := New(func(args ...interface{}) {})
+func TestBufferedPrinterClose(t *testing.T) {
+	bp := New(func(args ...interface{}) {
+		fmt.Println("TestBufferedPrinter_Close")
+	})
 	t.Run("close", func(t *testing.T) {
+		bp.buf.Write([]byte("Buffered close"))
 		bp.Close()
 	})
 }
