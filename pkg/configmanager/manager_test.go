@@ -23,8 +23,9 @@ import (
 )
 
 func TestConfigmanager(t *testing.T) {
-	opts := &opts.OptionsList{
-		RootOptDir: "/tmp",
+	o := &opts.OptionsList{
+		RootOptDir:        "/tmp",
+		ClusterConfigFile: "manager.go",
 		InfraPlatform: opts.InfraPlatform{
 			Libvirt: opts.Libvirt{
 				URI:     "qemu:///system",
@@ -85,7 +86,7 @@ func TestConfigmanager(t *testing.T) {
 		},
 	}
 
-	gc, err := globalconfig.InitGlobalConfig(opts)
+	gc, err := globalconfig.InitGlobalConfig(o)
 	if err != nil || gc == nil {
 		t.Fatalf("InitGlobalConfig returned an error: %v", err)
 	}
@@ -96,22 +97,22 @@ func TestConfigmanager(t *testing.T) {
 	}
 
 	t.Run("Initial Success", func(t *testing.T) {
-		err := Initial(opts)
+		err := Initial(o)
 		if err != nil {
 			t.Fatalf("Initial failed: %v", err)
 		}
 	})
 
 	t.Run("initializeClusterAsset Success", func(t *testing.T) {
-		err := initializeClusterAsset(clusterconfig, opts)
+		err := initializeClusterAsset(clusterconfig, o)
 		if err != nil {
 			t.Fatalf("initializeClusterAsset failed: %v", err)
 		}
 	})
 
 	t.Run("initializeClusterAsset Fail", func(t *testing.T) {
-		opts.InfraPlatform.OSPath = ""
-		err := initializeClusterAsset(clusterconfig, opts)
+		o.InfraPlatform.OSPath = ""
+		err := initializeClusterAsset(clusterconfig, o)
 		if err == nil {
 			t.Logf("Delete fail: %v", err)
 		}
