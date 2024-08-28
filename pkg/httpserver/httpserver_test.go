@@ -17,8 +17,10 @@ limitations under the License.
 package httpserver
 
 import (
+	"nestos-kubernetes-deployer/pkg/constants"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -76,10 +78,27 @@ func TestHTTPServer(t *testing.T) {
 				Handler: ts.Config.Handler,
 			},
 		}
-		hs.HttpLastRequestTime = time.Now().Unix() - TimeOut - 3
+		hs.HttpLastRequestTime = time.Now().Unix() - TimeOut + 10
 		err := hs.Start()
 		if err != nil {
 			t.Log(err)
+			return
+		}
+		_, err = http.Get("http://localhost:3698/testfile")
+		if err != nil {
+			t.Log("test fail", err)
+			return
+		}
+
+		_, err = http.Get("http://localhost:3698/dir" + os.TempDir())
+		if err != nil {
+			t.Log("test fail", err)
+			return
+		}
+
+		_, err = http.Get("http://localhost:3698" + constants.RpmPackageList)
+		if err != nil {
+			t.Log("test fail", err)
 			return
 		}
 
@@ -92,6 +111,7 @@ func TestHTTPServer(t *testing.T) {
 			t.Log(err)
 			return
 		}
+
 		t.Log("stop1 success")
 	})
 
@@ -116,73 +136,4 @@ func TestHTTPServer(t *testing.T) {
 		t.Log("stop2 success")
 	})
 
-	//t.Run("TestStartHTTPService", func(t *testing.T) {
-	//	go func() {
-	//		StartHTTPService(hs)
-	//	}()
-	//	time.Sleep(1 * time.Second)
-	//	if err := hs.Stop(); err != nil {
-	//		t.Log("test fail", err)
-	//		return
-	//	}
-	//})
-	//
-	//t.Run("TestStartStop", func(t *testing.T) {
-	//	hs.DirPath = "tmp"
-	//	go func() {
-	//		if err := hs.Stop(); err != nil {
-	//			t.Log("test fail", err)
-	//			return
-	//		}
-	//		if err := hs.Start(); err != nil {
-	//			t.Log("test fail", err)
-	//			return
-	//		}
-	//	}()
-	//	time.Sleep(1 * time.Second)
-	//	if err := hs.Stop(); err != nil {
-	//		t.Log("test fail", err)
-	//		return
-	//	}
-	//})
-	//
-	//t.Run("TestServer", func(t *testing.T) {
-	//	content := []byte("test content")
-	//	hs.AddFileToCache("/testfile", content)
-	//
-	//	go func() {
-	//		if err := hs.Stop(); err != nil {
-	//			t.Log("test fail", err)
-	//			return
-	//		}
-	//		if err := hs.Start(); err != nil {
-	//			t.Log("test fail", err)
-	//			return
-	//		}
-	//	}()
-	//	time.Sleep(1 * time.Second)
-	//
-	//	_, err := http.Get("http://localhost:1234/testfile")
-	//	if err != nil {
-	//		t.Log("test fail", err)
-	//		return
-	//	}
-	//
-	//	_, err = http.Get("http://localhost:1234/dir" + os.TempDir())
-	//	if err != nil {
-	//		t.Log("test fail", err)
-	//		return
-	//	}
-	//
-	//	_, err = http.Get("http://localhost:1234" + constants.RpmPackageList)
-	//	if err != nil {
-	//		t.Log("test fail", err)
-	//		return
-	//	}
-	//
-	//	if err := hs.Stop(); err != nil {
-	//		t.Log("test fail", err)
-	//		return
-	//	}
-	//})
 }
