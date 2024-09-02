@@ -70,7 +70,7 @@ func TestDeploy(t *testing.T) {
 		Master: []asset.NodeAsset{
 			{
 				Hostname: "k8s-master01",
-				IP:       "192.168.132.11",
+				IP:       "",
 				HardwareInfo: asset.HardwareInfo{
 					CPU:  2,
 					RAM:  2048,
@@ -81,7 +81,7 @@ func TestDeploy(t *testing.T) {
 		Worker: []asset.NodeAsset{
 			{
 				Hostname: "k8s-worker01",
-				IP:       "192.168.132.12",
+				IP:       "",
 				HardwareInfo: asset.HardwareInfo{
 					CPU:  2,
 					RAM:  2048,
@@ -93,12 +93,12 @@ func TestDeploy(t *testing.T) {
 		Kubernetes: asset.Kubernetes{
 			KubernetesVersion:    "v1.29.1",
 			KubernetesAPIVersion: "v1beta3",
-			ApiServerEndpoint:    "192.168.132.11:6443",
+			ApiServerEndpoint:    "",
 			ImageRegistry:        "registry.k8s.io",
 			PauseImage:           "pause:3.9",
 			Network: asset.Network{
-				ServiceSubnet: "10.96.0.0/16",
-				PodSubnet:     "10.244.0.0/16",
+				ServiceSubnet: "",
+				PodSubnet:     "",
 			},
 		},
 	}

@@ -32,11 +32,11 @@ func TestTool(t *testing.T) {
 	clusterAsset := &asset.ClusterAsset{
 		ClusterID: "cluster",
 		Master: []asset.NodeAsset{
-			{Hostname: "k8s-master01", IP: "192.168.1.1"},
-			{Hostname: "k8s-master02", IP: "192.168.1.2"},
+			{Hostname: "k8s-master01", IP: ""},
+			{Hostname: "k8s-master02", IP: ""},
 		},
 		Worker: []asset.NodeAsset{
-			{Hostname: "k8s-worker01", IP: "192.168.1.6"},
+			{Hostname: "k8s-worker01", IP: ""},
 		},
 		SSHKey: "./assets.go",
 		HookConf: asset.HookConf{
