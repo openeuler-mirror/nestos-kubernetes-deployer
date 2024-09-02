@@ -33,7 +33,7 @@ func TestOsmanager(t *testing.T) {
 		Master: []asset.NodeAsset{
 			{
 				Hostname: "k8s-master01",
-				IP:       "192.168.132.11",
+				IP:       "",
 				HardwareInfo: asset.HardwareInfo{
 					CPU:  2,
 					RAM:  2048,
@@ -44,8 +44,8 @@ func TestOsmanager(t *testing.T) {
 		Runtime: "crio",
 		Kubernetes: asset.Kubernetes{
 			Network: asset.Network{
-				ServiceSubnet: "10.96.0.0/16",
-				PodSubnet:     "10.244.0.0/16",
+				ServiceSubnet: "",
+				PodSubnet:     "",
 			},
 		},
 	}
