@@ -17,8 +17,10 @@ package cmd
 
 import (
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
+	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"nestos-kubernetes-deployer/pkg/httpserver"
 	"net/http"
 	"net/http/httptest"
@@ -157,4 +159,67 @@ func TestDeploy(t *testing.T) {
 			t.Log("Expected error, got nil")
 		}
 	})
+
+	t.Run("createCluster", func(t *testing.T) {
+		configmanager.GlobalConfig = &globalconfig.GlobalConfig{}
+		configmanager.ClusterAsset = map[string]*asset.ClusterAsset{
+			"cluster": cc,
+		}
+		cc.Platform = "dsxxxxx10"
+		err := createCluster(cc)
+		if err != nil {
+			t.Log("createCluster Expected error, got nil")
+		}
+	})
+
+	t.Run("createCluster generlos", func(t *testing.T) {
+		configmanager.GlobalConfig = &globalconfig.GlobalConfig{}
+		configmanager.ClusterAsset = map[string]*asset.ClusterAsset{
+			"cluster": cc,
+		}
+		cc.Platform = "dsxxxxx111"
+		cc.OSImage = asset.OSImage{Type: "generalos"}
+		err := createCluster(cc)
+		if err != nil {
+			t.Log("createCluster Expected error, got nil")
+		}
+	})
+
+	t.Run("createCluster generlos_libvirt", func(t *testing.T) {
+		configmanager.GlobalConfig = &globalconfig.GlobalConfig{}
+		configmanager.ClusterAsset = map[string]*asset.ClusterAsset{
+			"cluster": cc,
+		}
+		cc.Platform = "libvirt"
+		cc.OSImage = asset.OSImage{Type: "generalos"}
+		err := createCluster(cc)
+		if err != nil {
+			t.Log("generlos_libvirt Expected error:", err)
+		}
+	})
+
+	t.Run("createCluster libvirt", func(t *testing.T) {
+		cc.Platform = "libvirt"
+		cc.OSImage = asset.OSImage{Type: "generalos"}
+		configmanager.GlobalConfig = &globalconfig.GlobalConfig{}
+		configmanager.ClusterAsset = map[string]*asset.ClusterAsset{
+			"cluster": cc,
+		}
+
+		err := createCluster(cc)
+		if err != nil {
+			t.Log("createCluster Expected error, got nil")
+		}
+	})
+	t.Run("getClusterConfig", func(t *testing.T) {
+		getClusterConfig(&opts.Opts)
+	})
+	//t.Run("waitForPodsReady", func(t *testing.T) {
+	//	fake.new()
+	//	c := &kubernetes.Clientset{}
+	//	err := waitForPodsReady(c)
+	//	if err != nil {
+	//		t.Log("waitForPodsReady Expected error, got nil")
+	//	}
+	//})
 }
