@@ -18,8 +18,10 @@ package cmd
 import (
 	"context"
 	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
+	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
 	"testing"
 	"time"
@@ -28,18 +30,26 @@ import (
 func TestExtend(t *testing.T) {
 	globalYaml := "global_config.yaml"
 	opts.Opts.RootOptDir = "../data"
+	configmanager.GlobalConfig = &globalconfig.GlobalConfig{}
 	cmd := NewExtendCommand()
 	args := []string{"--num", "0", "--cluster-id", "k8s-007"}
 	cmd.SetArgs(args)
 	if err := cmd.Execute(); err != nil {
 		t.Logf("Failed to execute command: %v", err)
 	}
-
+	//conf.BootConfig.Worker.Path
+	nt := asset.NodeType{
+		Worker: asset.BootFile{
+			Content: []byte("hellolllll"),
+			Path:    "./extend.go",
+		},
+	}
 	cc := &asset.ClusterAsset{
+		BootConfig:   nt,
 		ClusterID:    "cluster",
 		Architecture: "amd64",
 		Platform:     "pxe",
-		InfraPlatform: infraasset.PXEAsset{
+		InfraPlatform: &infraasset.PXEAsset{
 			IP:             "",
 			HTTPServerPort: "10",
 			HTTPRootDir:    "./",
@@ -116,11 +126,62 @@ func TestExtend(t *testing.T) {
 		}
 	})
 	t.Run("extendCluster Fail", func(t *testing.T) {
+		//cc.Platform = "openstack"
 		err := extendCluster(cc, 1)
 		if err != nil {
 			t.Log(err)
 		}
 	})
+
+	t.Run("extendCluster libvirt Fail", func(t *testing.T) {
+		cc.Platform = "libvirt"
+		cc.InfraPlatform = &infraasset.LibvirtAsset{
+			URI:     "www.a.com",
+			OSPath:  "a.yaml",
+			CIDR:    "1.1.1.1",
+			Gateway: "1.1.1.1",
+		}
+		err := extendCluster(cc, 1)
+		if err != nil {
+			t.Log(err)
+		}
+	})
+
+	t.Run("extendCluster openstack Fail", func(t *testing.T) {
+		cc.Platform = "openstack"
+		cc.InfraPlatform = &infraasset.OpenStackAsset{
+			UserName: "zhangs",
+		}
+		err := extendCluster(cc, 1)
+		if err != nil {
+			t.Log(err)
+		}
+	})
+
+	t.Run("extendCluster ipxe Fail", func(t *testing.T) {
+		cc.Platform = "ipxe"
+		cc.InfraPlatform = &infraasset.IPXEAsset{
+			IP:   "",
+			Port: "101",
+		}
+		err := extendCluster(cc, 1)
+		if err != nil {
+			t.Log(err)
+		}
+	})
+
+	t.Run("extendCluster defulat Fail", func(t *testing.T) {
+		cc.Platform = "defulat"
+		cc.InfraPlatform = &infraasset.IPXEAsset{
+			IP:   "",
+			Port: "101",
+		}
+		err := extendCluster(cc, 1)
+		if err != nil {
+			t.Log(err)
+		}
+	})
+
 	t.Run("extendArray Fail", func(t *testing.T) {
 		err := extendArray(cc, 1)
 		if err != nil {
