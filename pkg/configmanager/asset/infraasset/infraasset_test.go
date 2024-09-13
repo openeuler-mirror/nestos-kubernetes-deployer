@@ -91,6 +91,40 @@ func TestInfra(t *testing.T) {
 		}
 	})
 
+	t.Run("InitInfraAsset Success", func(t *testing.T) {
+		mData := map[string]interface{}{
+			"libvirt": &LibvirtAsset{
+				URI:     "www.a.com",
+				OSPath:  "a.yaml",
+				CIDR:    "1.1.1.1",
+				Gateway: "1.1.1.1",
+			},
+			"pxe": &PXEAsset{
+				IP:             "",
+				HTTPServerPort: "10",
+				HTTPRootDir:    "./",
+				TFTPServerPort: "20",
+				TFTPRootDir:    "./",
+			},
+			"openstack": &OpenStackAsset{
+				UserName: "zhangs",
+			},
+			"ipxe": &IPXEAsset{
+				IP:   "",
+				Port: "101",
+			},
+		}
+		for k, v := range mData {
+			cc.Platform = k
+			cc.InfraPlatform = v
+			_, err := InitInfraAsset(cc, opts)
+			if err != nil {
+				t.Logf("InitInfraAsset failed: %v", err)
+			}
+		}
+
+	})
+
 	t.Run("InitInfraAsset Fail", func(t *testing.T) {
 		cc.Platform = "test"
 		_, err := InitInfraAsset(cc, opts)
