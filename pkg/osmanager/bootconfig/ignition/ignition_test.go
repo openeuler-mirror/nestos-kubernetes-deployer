@@ -33,11 +33,11 @@ func TestIgnition(t *testing.T) {
 		ClusterID: "cluster",
 		Platform:  "libvirt",
 		Master: []asset.NodeAsset{
-			{Hostname: "k8s-master01", IP: ""},
-			{Hostname: "k8s-master02", IP: ""},
+			{Hostname: "k8s-master01", IP: "127.0.0.1"},
+			{Hostname: "k8s-master02", IP: "127.0.0.1"},
 		},
 		Worker: []asset.NodeAsset{
-			{Hostname: "k8s-worker01", IP: ""},
+			{Hostname: "k8s-worker01", IP: "127.0.0.1"},
 		},
 		SSHKey: "./assets.go",
 		HookConf: asset.HookConf{
