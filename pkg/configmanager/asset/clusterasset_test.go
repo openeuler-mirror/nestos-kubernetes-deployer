@@ -83,6 +83,10 @@ func TestClusterasset(t *testing.T) {
 		},
 	}
 
+	t.Run("SetStringValue Success", func(t *testing.T) {
+		SetStringValue(&cc.ClusterID, "ddd", "cluster")
+	})
+
 	t.Run("CheckStringValue Success", func(t *testing.T) {
 		err := CheckStringValue(&cc.ClusterID, opts.ClusterID, "cluster")
 		if err != nil {
@@ -94,6 +98,22 @@ func TestClusterasset(t *testing.T) {
 		clusterConfig, err := cc.InitClusterAsset(opts)
 		if err != nil || clusterConfig == nil {
 			t.Errorf("InitClusterAsset failed: %v", err)
+		}
+	})
+
+	t.Run("InitClusterAsset Master", func(t *testing.T) {
+		cc.Master = nil
+		clusterConfig, err := cc.InitClusterAsset(opts)
+		if err != nil || clusterConfig == nil {
+			t.Errorf("InitClusterAsset Master failed: %v", err)
+		}
+	})
+
+	t.Run("InitClusterAsset Worker", func(t *testing.T) {
+		cc.Worker = nil
+		clusterConfig, err := cc.InitClusterAsset(opts)
+		if err != nil || clusterConfig == nil {
+			t.Errorf("InitClusterAsset Worker failed: %v", err)
 		}
 	})
 
@@ -117,5 +137,15 @@ func TestClusterasset(t *testing.T) {
 		if err == nil || clusterConfig != nil {
 			t.Log("Expected error, got nil")
 		}
+	})
+
+	t.Run("GetDefaultClusterConfig Success", func(t *testing.T) {
+		GetDefaultClusterConfig("amd64", "libvirt")
+		GetDefaultClusterConfig("arm64", "libvirt")
+		GetDefaultClusterConfig("amd64", "pxe")
+		GetDefaultClusterConfig("arm64", "pxe")
+		GetDefaultClusterConfig("amd64", "")
+		GetDefaultClusterConfig("arm64", "")
+		GetDefaultClusterConfig("", "")
 	})
 }
