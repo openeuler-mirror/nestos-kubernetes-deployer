@@ -126,10 +126,50 @@ func TestInfra(t *testing.T) {
 	})
 
 	t.Run("InitInfraAsset Fail", func(t *testing.T) {
-		cc.Platform = "test"
+		cc.Platform = "ipxe"
 		_, err := InitInfraAsset(cc, opts)
 		if err == nil {
 			t.Log("Expected error, got nil")
 		}
+	})
+
+	t.Run("InitInfraAsset Fail", func(t *testing.T) {
+		cc.Platform = "sssssss"
+		_, err := InitInfraAsset(cc, opts)
+		if err == nil {
+			t.Log("Expected error, got nil")
+		}
+	})
+	t.Run("convertMap Fail", func(t *testing.T) {
+		arr := []string{"libvirt", "openstack", "pxe", "ipxe"}
+		for _, k := range arr {
+			_, b := convertMap(nil, k)
+			if !b {
+				t.Log("Expected error, got nil")
+			}
+		}
+
+	})
+
+	t.Run("convertMap Fail", func(t *testing.T) {
+		arr := []string{"libvirt", "openstack", "pxe", "ipxe"}
+		for _, k := range arr {
+			cc.Platform = k
+			cc.InfraPlatform = nil
+			_, err := InitInfraAsset(cc, opts)
+			if err != nil {
+				t.Logf("Expected error, got:%v", err.Error())
+			}
+		}
+
+	})
+	t.Run("convertMap Fail3333", func(t *testing.T) {
+		v := map[string]string{}
+		v["sss"] = "sss"
+		_, b := convertMap(v, "sss")
+		if !b {
+			t.Log("Expected error, got nil")
+		}
+
 	})
 }
