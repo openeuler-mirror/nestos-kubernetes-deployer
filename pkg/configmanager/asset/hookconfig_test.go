@@ -21,7 +21,7 @@ func TestHookconfig(t *testing.T) {
 
 	hookconfig := &HookConf{
 		PreHookScript: "../../../hack/build.sh",
-		PostHookYaml:  "",
+		PostHookYaml:  "../../../hack/build.sh",
 		ShellFiles: []ShellFile{
 			{
 				Name:    "test.sh",
@@ -40,8 +40,8 @@ func TestHookconfig(t *testing.T) {
 	})
 
 	//测试脚本格式
-	t.Run("GetCmdHooks PreHookScript Fail", func(t *testing.T) {
-		hookconfig.PreHookScript = "./"
+	t.Run("GetCmdHooks PreHookScript", func(t *testing.T) {
+		hookconfig.PreHookScript = "../../../hack"
 		err := GetCmdHooks(hookconfig)
 		if err == nil {
 			t.Log("Expected error, got nil")
@@ -49,8 +49,8 @@ func TestHookconfig(t *testing.T) {
 	})
 
 	//测试yaml格式
-	t.Run("GetCmdHooks PostHookYaml Fail", func(t *testing.T) {
-		hookconfig.PostHookYaml = "test.sh"
+	t.Run("GetCmdHooks PostHookYaml", func(t *testing.T) {
+		hookconfig.PostHookYaml = "../../"
 		err := GetCmdHooks(hookconfig)
 		if err == nil {
 			t.Log("Expected error, got nil")
