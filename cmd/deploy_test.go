@@ -22,6 +22,7 @@ import (
 	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"nestos-kubernetes-deployer/pkg/httpserver"
+	"nestos-kubernetes-deployer/pkg/utils"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -78,6 +79,10 @@ func TestDeploy(t *testing.T) {
 					RAM:  2048,
 					Disk: 30,
 				},
+				Certs: []utils.StorageContent{{
+					Path: "sss",
+					Mode: 44,
+				}},
 			},
 		},
 		Worker: []asset.NodeAsset{
@@ -191,6 +196,9 @@ func TestDeploy(t *testing.T) {
 			"cluster": cc,
 		}
 		cc.Platform = "libvirt"
+		cc.InfraPlatform = &infraasset.LibvirtAsset{
+			URI: "sss",
+		}
 		cc.OSImage = asset.OSImage{Type: "generalos"}
 		err := createCluster(cc)
 		if err != nil {
@@ -200,6 +208,9 @@ func TestDeploy(t *testing.T) {
 
 	t.Run("createCluster libvirt", func(t *testing.T) {
 		cc.Platform = "libvirt"
+		cc.InfraPlatform = &infraasset.LibvirtAsset{
+			URI: "sss",
+		}
 		cc.OSImage = asset.OSImage{Type: "generalos"}
 		configmanager.GlobalConfig = &globalconfig.GlobalConfig{}
 		configmanager.ClusterAsset = map[string]*asset.ClusterAsset{
@@ -211,6 +222,28 @@ func TestDeploy(t *testing.T) {
 			t.Log("createCluster Expected error, got nil")
 		}
 	})
+
+	t.Run("createCluster libvirt", func(t *testing.T) {
+		cc.Platform = "ipxe"
+		cc.InfraPlatform = &infraasset.IPXEAsset{
+			IP:   "8888",
+			Port: "00",
+		}
+		cc.OSImage = asset.OSImage{Type: "generalos"}
+		configmanager.GlobalConfig = &globalconfig.GlobalConfig{}
+		configmanager.ClusterAsset = map[string]*asset.ClusterAsset{
+			"cluster": cc,
+		}
+
+		err := createCluster(cc)
+		if err != nil {
+			t.Log("createCluster Expected error, got nil")
+		}
+	})
+	t.Run("getClusterConfig", func(t *testing.T) {
+		getClusterConfig(&opts.Opts)
+	})
+
 	t.Run("getClusterConfig", func(t *testing.T) {
 		getClusterConfig(&opts.Opts)
 	})
