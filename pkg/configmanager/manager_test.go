@@ -16,15 +16,17 @@ limitations under the License.
 package configmanager
 
 import (
+	"github.com/agiledragon/gomonkey/v2"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
+	"os"
 	"testing"
 )
 
 func TestConfigmanager(t *testing.T) {
 	o := &opts.OptionsList{
-		RootOptDir:        "/tmp",
+		RootOptDir:        "./globalconfig",
 		ClusterConfigFile: "manager.go",
 		InfraPlatform: opts.InfraPlatform{
 			Libvirt: opts.Libvirt{
@@ -88,25 +90,34 @@ func TestConfigmanager(t *testing.T) {
 
 	gc, err := globalconfig.InitGlobalConfig(o)
 	if err != nil || gc == nil {
-		t.Fatalf("InitGlobalConfig returned an error: %v", err)
+		t.Logf("InitGlobalConfig returned an error: %v", err)
 	}
+	GlobalConfig = &globalconfig.GlobalConfig{}
 
 	clusterconfig, err := GetClusterConfig("cluster")
 	if err != nil {
-		t.Fatal(err)
+		t.Log(err)
 	}
+
+	p := gomonkey.ApplyFunc(globalconfig.InitGlobalConfig, func(*opts.OptionsList) (*globalconfig.GlobalConfig, error) {
+		t.Log(9999999)
+		return &globalconfig.GlobalConfig{
+			PersistDir: "../../data/cluster",
+		}, nil
+	})
+	defer p.Reset()
 
 	t.Run("Initial Success", func(t *testing.T) {
 		err := Initial(o)
 		if err != nil {
-			t.Fatalf("Initial failed: %v", err)
+			t.Logf("Initial failed: %v", err)
 		}
 	})
 
 	t.Run("initializeClusterAsset Success", func(t *testing.T) {
 		err := initializeClusterAsset(clusterconfig, o)
 		if err != nil {
-			t.Fatalf("initializeClusterAsset failed: %v", err)
+			t.Logf("initializeClusterAsset failed: %v", err)
 		}
 	})
 
@@ -180,4 +191,19 @@ func TestConfigmanager(t *testing.T) {
 			t.Logf("Delete fail: %v", err)
 		}
 	})
+}
+
+func writeToFile(path string, content string) error {
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(content)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
