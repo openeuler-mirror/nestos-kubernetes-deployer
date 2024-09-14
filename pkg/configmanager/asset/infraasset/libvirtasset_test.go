@@ -27,8 +27,8 @@ func TestLibvirt(t *testing.T) {
 			Libvirt: opts.Libvirt{
 				URI:     "qemu:///system",
 				OSPath:  "/etc/qcow2.qcow2",
-				CIDR:    "",
-				Gateway: "",
+				CIDR:    "127.0.0.1/24",
+				Gateway: "127.0.0.1",
 			},
 		},
 	}

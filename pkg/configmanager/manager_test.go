@@ -16,12 +16,13 @@ limitations under the License.
 package configmanager
 
 import (
-	"github.com/agiledragon/gomonkey/v2"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/configmanager/globalconfig"
 	"os"
 	"testing"
+
+	"github.com/agiledragon/gomonkey/v2"
 )
 
 func TestConfigmanager(t *testing.T) {
@@ -32,8 +33,8 @@ func TestConfigmanager(t *testing.T) {
 			Libvirt: opts.Libvirt{
 				URI:     "qemu:///system",
 				OSPath:  "/etc/qcow2.qcow2",
-				CIDR:    "",
-				Gateway: "",
+				CIDR:    "127.0.0.1/24",
+				Gateway: "127.0.0.1",
 			},
 		},
 	}
@@ -49,7 +50,7 @@ func TestConfigmanager(t *testing.T) {
 		Master: []asset.NodeAsset{
 			{
 				Hostname: "k8s-master01",
-				IP:       "",
+				IP:       "127.0.0.1",
 				HardwareInfo: asset.HardwareInfo{
 					CPU:  2,
 					RAM:  2048,
@@ -60,7 +61,7 @@ func TestConfigmanager(t *testing.T) {
 		Worker: []asset.NodeAsset{
 			{
 				Hostname: "k8s-worker01",
-				IP:       "",
+				IP:       "127.0.0.1",
 				HardwareInfo: asset.HardwareInfo{
 					CPU:  2,
 					RAM:  2048,
@@ -76,8 +77,8 @@ func TestConfigmanager(t *testing.T) {
 			ImageRegistry:        "registry.k8s.io",
 			PauseImage:           "pause:3.9",
 			Network: asset.Network{
-				ServiceSubnet: "",
-				PodSubnet:     "",
+				ServiceSubnet: "127.0.0.1/16",
+				PodSubnet:     "127.0.0.1/16",
 			},
 		},
 		HookConf: asset.HookConf{
