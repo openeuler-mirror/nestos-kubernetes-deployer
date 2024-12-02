@@ -169,6 +169,8 @@ configure_containerd_runtime() {
         echo "Failed to update sandbox_image field in /etc/containerd/config.toml."
     fi
 
+    sed -i "s#SystemdCgroup = false#SystemdCgroup = true#" /etc/containerd/config.toml
+
     if systemctl restart containerd; then
         echo "Successfully restarted containerd"
     else
@@ -403,6 +405,26 @@ disable_selinux() {
     echo "SELinux disabled successfully."
 }
 
+copy_cni_files() {
+    DEST_DIR="/opt/cni/bin"
+
+    if [ ! -d "/usr/libexec/cni" ]; then
+        echo "Source directory /usr/libexec/cni does not exist."
+        return 1
+    fi
+
+    if [ ! -d "$DEST_DIR" ]; then
+        mkdir -p "$DEST_DIR"
+    fi
+
+    cp /usr/libexec/cni/* "$DEST_DIR"
+    if [ $? -ne 0 ]; then
+        echo "Failed to copy cni files"
+    else
+        echo "Copy files to $DEST_DIR successfully."
+    fi
+}
+
 # Execute hook files
 execute_hookfiles "${hook_files_path}"
 
@@ -441,6 +463,8 @@ configure_containerd_runtime
 create_crictl_config
 configure_containerd_registry
 {{end -}}
+
+copy_cni_files
 
 # Perform OSTree rebase for nestos
 {{if .IsNestOS -}}
