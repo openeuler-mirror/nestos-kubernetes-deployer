@@ -179,7 +179,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 			PersistDir: configmanager.GetPersistDir(),
 			ClusterID:  conf.ClusterID,
 			Node:       "worker",
-			Count:      uint(len(conf.Master)),
+			Count:      uint(len(conf.Worker)),
 		}
 		p.SetInfra(libvirtWorker)
 		if err := p.Deploy(); err != nil {
@@ -205,7 +205,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 			PersistDir: configmanager.GetPersistDir(),
 			ClusterID:  conf.ClusterID,
 			Node:       "worker",
-			Count:      uint(len(conf.Master)),
+			Count:      uint(len(conf.Worker)),
 		}
 		p.SetInfra(openstackWorker)
 		if err := p.Deploy(); err != nil {
