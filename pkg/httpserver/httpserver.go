@@ -94,8 +94,19 @@ func (hs *HTTPService) Start() error {
 	smux.HandleFunc("/dir/", func(w http.ResponseWriter, r *http.Request) {
 		hs.HttpLastRequestTime = time.Now().Unix()
 		rpath := filepath.Join(dirPath, r.URL.Path[len("/dir/"):])
-		_, err := os.Stat(rpath)
+		stat, err := os.Stat(rpath)
 		if err != nil {
+			/*
+				读取指定路径失败，可能的报错如下：
+					路径不存在		errors.Is(err, os.ErrNotExist)
+					权限不足			errors.Is(err, os.ErrPermission)
+					断开的符号链接		返回具体错误（非标准错误类型）
+					空路径/非法格式	返回 *os.PathError
+			*/
+			http.NotFound(w, r)
+			return
+		}
+		if stat.IsDir() {
 			// 如果请求对应目录，返回目录下的文件列表
 			http.FileServer(http.Dir(rpath)).ServeHTTP(w, r)
 			return
@@ -109,8 +120,13 @@ func (hs *HTTPService) Start() error {
 	smux.HandleFunc(constants.RpmPackageList, func(w http.ResponseWriter, r *http.Request) {
 		hs.HttpLastRequestTime = time.Now().Unix()
 		rpath := filepath.Join(hs.PackageDir, r.URL.Path[len(constants.RpmPackageList):])
-		_, err := os.Stat(rpath)
+		stat, err := os.Stat(rpath)
 		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		if stat.IsDir() {
 			http.FileServer(http.Dir(rpath)).ServeHTTP(w, r)
 			return
 		}
