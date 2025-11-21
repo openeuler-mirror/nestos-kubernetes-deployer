@@ -18,12 +18,13 @@ package utils
 import (
 	"bytes"
 	"io"
-	"nestos-kubernetes-deployer/data"
 	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/sirupsen/logrus"
+
+	"nestos-kubernetes-deployer/data"
 )
 
 // FetchAndUnmarshalURL fetches content from a specified URL, unmarshals it into the provided structure,

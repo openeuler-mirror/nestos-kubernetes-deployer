@@ -18,11 +18,6 @@ package cmd
 
 import (
 	"errors"
-	"nestos-kubernetes-deployer/cmd/command"
-	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
-	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"runtime"
 	"strings"
@@ -30,6 +25,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
+
+	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
+	"nestos-kubernetes-deployer/pkg/utils"
 )
 
 func NewTemplateCommand() *cobra.Command {
