@@ -18,6 +18,7 @@ package utils
 import (
 	"bytes"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -75,4 +76,30 @@ func applyTmplData(tmpl *template.Template, data interface{}) string {
 		panic(err)
 	}
 	return buf.String()
+}
+
+// AtomicWriteFile writes data to filename atomically.
+// It creates a temp file in the same directory, writes data, then renames it.
+func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
+	tmpFile, err := os.CreateTemp(filepath.Dir(filename), ".tmp.*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmpFile.Name()) // cleanup on failure
+
+	if _, err := tmpFile.Write(data); err != nil {
+		tmpFile.Close()
+		return err
+	}
+
+	if err := tmpFile.Chmod(perm); err != nil {
+		tmpFile.Close()
+		return err
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+
+	return os.Rename(tmpFile.Name(), filename)
 }

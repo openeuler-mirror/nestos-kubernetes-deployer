@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"errors"
-	"os"
 	"runtime"
 	"strings"
 
@@ -71,7 +70,7 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 		output = output + "/"
 	}
 
-	if err := os.WriteFile(output+"template.yaml", data, utils.DeployConfigFileMode); err != nil {
+	if err := utils.AtomicWriteFile(output+"template.yaml", data, utils.DeployConfigFileMode); err != nil {
 		logrus.Errorf("Faild to write template config file: %v", err)
 		return err
 	}
