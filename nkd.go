@@ -17,14 +17,15 @@ package main
 
 import (
 	"io"
-	"nestos-kubernetes-deployer/cmd"
-	"nestos-kubernetes-deployer/cmd/command"
-	"nestos-kubernetes-deployer/cmd/command/opts"
 	"os"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	terminal "golang.org/x/term"
+
+	"nestos-kubernetes-deployer/cmd"
+	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
 )
 
 func main() {
