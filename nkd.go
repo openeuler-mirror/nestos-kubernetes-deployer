@@ -31,6 +31,8 @@ import (
 func main() {
 	rootCmd := newRootCmd()
 
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
 	for _, subCmd := range []*cobra.Command{
 		cmd.NewDeployCommand(),
 		cmd.NewDestroyCommand(),
