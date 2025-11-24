@@ -16,13 +16,14 @@ limitations under the License.
 package utils
 
 import (
-	"nestos-kubernetes-deployer/data"
-	"nestos-kubernetes-deployer/pkg/constants"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/sirupsen/logrus"
+
+	"nestos-kubernetes-deployer/data"
+	"nestos-kubernetes-deployer/pkg/constants"
 )
 
 func TestOsmanager(t *testing.T) {
@@ -70,5 +71,34 @@ func TestOsmanager(t *testing.T) {
 		}
 		defer file.Close()
 		GetCompleteFile("", file, tmplData)
+	})
+
+	// mock test data for AtomicWriteFile
+	tmpDir := t.TempDir()
+	filename := filepath.Join(tmpDir, "perm-test.yaml")
+	data := []byte("test")
+
+	t.Run("AtomicWriteFile Success", func(t *testing.T) {
+		err := AtomicWriteFile(filename, data, DeployConfigFileMode)
+		if err != nil {
+			t.Log("test fail", err)
+			return
+		}
+	})
+
+	t.Run("AtomicWriteFile Fail", func(t *testing.T) {
+		readonlyDir := filepath.Join(tmpDir, "readonly")
+		err := os.Mkdir(readonlyDir, 0555)
+		if err != nil {
+			t.Log("test fail", err)
+			return
+		}
+		failFilename := filepath.Join(readonlyDir, "fail.yaml")
+		data1 := []byte("should fail")
+
+		err = AtomicWriteFile(failFilename, data1, 0644)
+		if err == nil {
+			t.Log("expected failure, got success")
+		}
 	})
 }
