@@ -19,8 +19,6 @@ package asset
 import (
 	"fmt"
 	mrand "math/rand"
-	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"strings"
 	"time"
@@ -28,6 +26,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+
+	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/utils"
 )
 
 // Sets a value of the string type, using the parameter value if the command line argument exists,
@@ -359,7 +360,7 @@ func (clusterAsset *ClusterAsset) Persist(dir string) error {
 		return err
 	}
 
-	if err := os.WriteFile(dir+"/cluster_config.yaml", clusterData, 0644); err != nil {
+	if err := utils.AtomicWriteFile(dir+"/cluster_config.yaml", clusterData, utils.CertFileMode); err != nil {
 		return err
 	}
 

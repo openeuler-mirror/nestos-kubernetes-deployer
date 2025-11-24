@@ -18,12 +18,6 @@ package bootconfig
 import (
 	"errors"
 	"fmt"
-	"nestos-kubernetes-deployer/data"
-	"nestos-kubernetes-deployer/pkg/configmanager"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset"
-	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
-	"nestos-kubernetes-deployer/pkg/constants"
-	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"path"
 	"path/filepath"
@@ -32,6 +26,13 @@ import (
 	"github.com/clarketm/json"
 	ignutil "github.com/coreos/ignition/v2/config/util"
 	"gopkg.in/yaml.v2"
+
+	"nestos-kubernetes-deployer/data"
+	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/runtime"
+	"nestos-kubernetes-deployer/pkg/constants"
+	"nestos-kubernetes-deployer/pkg/utils"
 )
 
 type TmplData struct {
@@ -260,7 +261,7 @@ func saveDataToFile(data, filePath, fileName string) error {
 	if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
-	if err := os.WriteFile(fullPath, []byte(data), os.ModePerm); err != nil {
+	if err := utils.AtomicWriteFile(fullPath, []byte(data), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to save file: %w", err)
 	}
 

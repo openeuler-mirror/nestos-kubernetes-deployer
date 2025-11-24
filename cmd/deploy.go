@@ -20,6 +20,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	wait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/data"
@@ -34,18 +47,6 @@ import (
 	"nestos-kubernetes-deployer/pkg/osmanager"
 	"nestos-kubernetes-deployer/pkg/tftpserver"
 	"nestos-kubernetes-deployer/pkg/utils"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	wait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 )
 
 func NewDeployCommand() *cobra.Command {
@@ -434,7 +435,7 @@ func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 	// Save the modified content to a file in the "/tmp" directory with a fixed name
 	tmpFilePath := "/tmp/modified-plugin-config.yaml"
 
-	err = os.WriteFile(tmpFilePath, content, 0644)
+	err = utils.AtomicWriteFile(tmpFilePath, content, utils.CertFileMode)
 	if err != nil {
 		logrus.Errorf("Failed to write content to file: %v", err)
 		return err
