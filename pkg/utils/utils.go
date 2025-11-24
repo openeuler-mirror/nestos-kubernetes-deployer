@@ -23,7 +23,6 @@ import (
 	"net/url"
 	"os/user"
 	"path/filepath"
-	"strings"
 )
 
 type version uint
@@ -61,20 +60,13 @@ func GetApiServerEndpoint(ip string) string {
 
 // GetLocalIP retrieves the local IP address
 func GetLocalIP() (string, error) {
-	// Retrieve route information
-	routeOutput, err := RunCommand("ip -o route get 255.0 2>/dev/null")
+	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		return "", err
 	}
-
-	// Use sed to extract the source IP address
-	cmd := "sed -e 's/.*src \\([^ ]*\\).*/\\1/'"
-	ipOutput, err := RunCommand(fmt.Sprintf("echo '%s' | %s", routeOutput, cmd))
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(ipOutput), nil
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String(), nil
 }
 
 func getSysHome() string {
