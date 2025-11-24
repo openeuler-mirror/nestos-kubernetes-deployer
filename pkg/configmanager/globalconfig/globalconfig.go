@@ -18,13 +18,14 @@ package globalconfig
 
 import (
 	"fmt"
-	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+
+	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/utils"
 )
 
 const GlobalConfigFile = "global_config.yaml"
@@ -121,7 +122,7 @@ func (ga *GlobalConfig) Persist() error {
 		logrus.Errorf("failed to marshal global config: %v", err)
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(ga.PersistDir, GlobalConfigFile), globalConfigData, 0644); err != nil {
+	if err := utils.AtomicWriteFile(filepath.Join(ga.PersistDir, GlobalConfigFile), globalConfigData, utils.CertFileMode); err != nil {
 		logrus.Errorf("failed to write global config file: %v", err)
 		return err
 	}

@@ -24,12 +24,13 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"nestos-kubernetes-deployer/pkg/utils"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"nestos-kubernetes-deployer/pkg/utils"
 )
 
 // PrivateKey负责生成密钥
@@ -105,7 +106,7 @@ func SaveFileToLocal(savepath string, file []byte) error {
 		return err
 	}
 
-	err = os.WriteFile(savepath, file, 0644)
+	err = utils.AtomicWriteFile(savepath, file, utils.CertFileMode)
 	if err != nil {
 		logrus.Errorf("Faile to save %s: %v", savepath, err)
 		return err
