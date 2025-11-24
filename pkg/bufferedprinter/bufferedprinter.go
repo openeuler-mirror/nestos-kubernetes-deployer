@@ -23,19 +23,19 @@ import (
 	"sync"
 )
 
-type print func(args ...interface{})
+type printer func(args ...interface{})
 
 type bufferedPrinter struct {
-	buf   bytes.Buffer
-	print print
+	buf     bytes.Buffer
+	printer printer
 
 	sync.Mutex
 	once sync.Once
 }
 
-func New(print print) *bufferedPrinter {
+func New(printer printer) *bufferedPrinter {
 	return &bufferedPrinter{
-		print: print,
+		printer: printer,
 	}
 }
 
@@ -50,7 +50,7 @@ func (bp *bufferedPrinter) Write(p []byte) (int, error) {
 
 	scanner := bufio.NewScanner(&bp.buf)
 	for scanner.Scan() {
-		bp.print(scanner.Text())
+		bp.printer(scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
 		return n, err
@@ -66,7 +66,7 @@ func (bp *bufferedPrinter) Close() error {
 
 		line := bp.buf.String()
 		if len(line) > 0 {
-			bp.print(line)
+			bp.printer(line)
 		}
 	})
 
