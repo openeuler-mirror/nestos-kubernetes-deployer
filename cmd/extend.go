@@ -19,6 +19,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
@@ -31,15 +41,6 @@ import (
 	"nestos-kubernetes-deployer/pkg/osmanager"
 	"nestos-kubernetes-deployer/pkg/terraform"
 	"nestos-kubernetes-deployer/pkg/tftpserver"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 func NewExtendCommand() *cobra.Command {
@@ -108,11 +109,19 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 
 	osMgr := osmanager.NewOSManager(conf)
 	if osMgr.IsNestOS() {
-		httpService.AddFileToCache(constants.WorkerIgn, data)
+		err := httpService.AddFileToCache(constants.WorkerIgn, data)
+		if err != nil {
+			logrus.Errorf("error adding worker ignition: %v", err)
+			return err
+		}
 	}
 	if osMgr.IsGeneralOS() {
 		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
-			httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, data)
+			err := httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, data)
+			if err != nil {
+				logrus.Errorf("error adding worker kickstart: %v", err)
+				return err
+			}
 		}
 	}
 
@@ -202,7 +211,10 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		if err != nil {
 			return err
 		}
-		httpService.AddFileToCache(constants.IPXECfg, fileContent)
+		if err := httpService.AddFileToCache(constants.IPXECfg, fileContent); err != nil {
+			logrus.Errorf("error adding ipxe config file: %v", err)
+			return err
+		}
 		httpserver.StartHTTPService(httpService)
 
 	default:
