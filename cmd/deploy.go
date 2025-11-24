@@ -30,7 +30,7 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	wait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 
 	"nestos-kubernetes-deployer/cmd/command"
@@ -63,7 +63,8 @@ func NewDeployCommand() *cobra.Command {
 const (
 	clusterID         = "cluster"
 	clusterConfigFile = "cluster_config.yaml"
-	namespace         = "housekeeper-system"
+	housekeeperNS     = "housekeeper-system"
+	kubeSystemNS      = "kube-system"
 )
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
@@ -271,7 +272,11 @@ func clusterCreatePost(conf *asset.ClusterAsset) error {
 		return err
 	}
 	// Set kubeconfig environment variable
-	os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
+	err = os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
+	if err != nil {
+		logrus.Errorf("Failed to set environment variable KUBECONFIG: %v", err)
+		return err
+	}
 
 	// Apply network plugin
 	if err := applyNetworkPlugin(conf.Network.Plugin, conf.IsNestOS); err != nil {
@@ -325,13 +330,12 @@ func waitForAPIReady(client *kubernetes.Clientset) error {
 
 func waitForPodsReady(client *kubernetes.Clientset) error {
 	waitDuration := 20 * time.Minute
-	namespace := "kube-system"
 	waitCtx, cancel := context.WithTimeout(context.Background(), waitDuration)
 	defer cancel()
 	logrus.Infof("Waiting up to %v for the Kubernetes Pods ready ...", waitDuration)
 
 	err := wait.PollImmediate(10*time.Second, waitDuration, func() (bool, error) {
-		pods, err := client.CoreV1().Pods(namespace).List(waitCtx, metav1.ListOptions{})
+		pods, err := client.CoreV1().Pods(kubeSystemNS).List(waitCtx, metav1.ListOptions{})
 		if err != nil {
 			logrus.Errorf("Failed to list Pods: %v", err)
 			return false, nil
@@ -384,9 +388,9 @@ func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
 		case "4role_binding.yaml":
 			err = kubeclient.DeployClusterRoleBinding(string(data), kubeconfig)
 		case "5deployment.yaml.template":
-			err = kubeclient.DeployDeployment(string(data), kubeconfig, namespace)
+			err = kubeclient.DeployDeployment(string(data), kubeconfig, housekeeperNS)
 		case "6daemonset.yaml.template":
-			err = kubeclient.DeployDaemonSet(string(data), kubeconfig, namespace)
+			err = kubeclient.DeployDaemonSet(string(data), kubeconfig, housekeeperNS)
 		}
 
 		if err != nil {
