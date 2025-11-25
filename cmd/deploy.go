@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
@@ -122,13 +123,46 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 	return config, nil
 }
 
+func createInfraInstance(platform, nodeType string, count uint, conf *asset.ClusterAsset) infra.Infrastructure {
+	switch strings.ToLower(platform) {
+	case "libvirt":
+		return &infra.Libvirt{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.ClusterID,
+			Node:       nodeType,
+			Count:      count,
+		}
+	case "openstack":
+		return &infra.OpenStack{
+			PersistDir: configmanager.GetPersistDir(),
+			ClusterID:  conf.ClusterID,
+			Node:       nodeType,
+			Count:      count,
+		}
+	default:
+		return nil
+	}
+}
+
+func deployNodes(platform infra.Infrastructure, nodeType string) error {
+	p := infra.InfraPlatform{}
+	p.SetInfra(platform)
+	if err := p.Deploy(); err != nil {
+		logrus.Errorf("Failed to deploy %s nodes: %v", nodeType, err)
+		return err
+	}
+	return nil
+}
+
 func createCluster(conf *asset.ClusterAsset) error {
+	platform := strings.ToLower(conf.Platform)
+
 	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
 	defer httpService.Stop()
 
 	osMgr := osmanager.NewOSManager(conf)
 	if err := osMgr.GenerateOSConfig(); err != nil {
-		logrus.Errorf("Error generating OS config: %v", err)
+		logrus.Errorf("Failed to generate OS config: %v", err)
 		return err
 	}
 
@@ -147,7 +181,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 			httpService.PackageDir = conf.Kubernetes.RpmPackagePath
 		}
 
-		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
+		if platform == "pxe" || platform == "ipxe" {
 			if err := addKickstartFiles(httpService, conf); err != nil {
 				return fmt.Errorf("error adding kickstart file to cache: %v", err)
 			}
@@ -155,63 +189,29 @@ func createCluster(conf *asset.ClusterAsset) error {
 	}
 
 	if err := configmanager.Persist(); err != nil {
-		logrus.Errorf("Failed to persist the cluster asset: %v", err)
+		logrus.Errorf("Failed to persist cluster asset: %v", err)
 		return err
 	}
 
-	p := infra.InfraPlatform{}
-	switch strings.ToLower(conf.Platform) {
-	case "libvirt":
+	switch platform {
+	case "libvirt", "openstack":
 		httpserver.StartHTTPService(httpService)
 
-		libvirtMaster := &infra.Libvirt{
-			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.ClusterID,
-			Node:       "master",
-			Count:      uint(len(conf.Master)),
+		masterInfra := createInfraInstance(platform, "master", uint(len(conf.Master)), conf)
+		if masterInfra == nil {
+			return fmt.Errorf("unsupported platform: %s", platform)
 		}
-
-		p.SetInfra(libvirtMaster)
-		if err := p.Deploy(); err != nil {
-			logrus.Errorf("Failed to deploy master nodes:%v", err)
+		if err := deployNodes(masterInfra, "master"); err != nil {
+			logrus.Errorf("Failed to deploy master nodes: %v", err)
 			return err
 		}
 
-		libvirtWorker := &infra.Libvirt{
-			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.ClusterID,
-			Node:       "worker",
-			Count:      uint(len(conf.Worker)),
+		workerInfra := createInfraInstance(platform, "worker", uint(len(conf.Worker)), conf)
+		if workerInfra == nil {
+			return fmt.Errorf("unsupported platform: %s", platform)
 		}
-		p.SetInfra(libvirtWorker)
-		if err := p.Deploy(); err != nil {
-			logrus.Errorf("Failed to deploy worker nodes:%v", err)
-			return err
-		}
-	case "openstack":
-		httpserver.StartHTTPService(httpService)
-
-		openstackMaster := &infra.OpenStack{
-			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.ClusterID,
-			Node:       "master",
-			Count:      uint(len(conf.Master)),
-		}
-		p.SetInfra(openstackMaster)
-		if err := p.Deploy(); err != nil {
-			logrus.Errorf("Failed to deploy master nodes:%v", err)
-			return err
-		}
-
-		openstackWorker := &infra.OpenStack{
-			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.ClusterID,
-			Node:       "worker",
-			Count:      uint(len(conf.Worker)),
-		}
-		p.SetInfra(openstackWorker)
-		if err := p.Deploy(); err != nil {
-			logrus.Errorf("Failed to deploy worker nodes:%v", err)
+		if err := deployNodes(workerInfra, "worker"); err != nil {
+			logrus.Errorf("Failed to deploy worker nodes: %v", err)
 			return err
 		}
 	case "pxe":
@@ -236,7 +236,6 @@ func createCluster(conf *asset.ClusterAsset) error {
 			}
 		}()
 		defer tftpService.Stop()
-
 	case "ipxe":
 		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
 		httpService.Port = ipxeConfig.Port
