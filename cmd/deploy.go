@@ -437,7 +437,14 @@ func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 	}
 
 	// Save the modified content to a file in the "/tmp" directory with a fixed name
-	tmpFilePath := "/tmp/modified-plugin-config.yaml"
+	tmpFile, err := os.CreateTemp("", "modified-plugin-config-*.yaml")
+	if err != nil {
+		logrus.Errorf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	tmpFilePath := tmpFile.Name()
 
 	err = utils.AtomicWriteFile(tmpFilePath, content, utils.CertFileMode)
 	if err != nil {
@@ -450,13 +457,6 @@ func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 		logrus.Errorf("Failed to apply network plugin configuration: %v", err)
 		return err
 	}
-
-	// removal of the temporary file
-	defer func() {
-		if err := os.Remove(tmpFilePath); err != nil {
-			logrus.Errorf("Failed to remove temporary file: %v", err)
-		}
-	}()
 
 	return nil
 }
