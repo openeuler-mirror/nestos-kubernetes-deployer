@@ -17,6 +17,7 @@ package kubeclient
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
@@ -31,6 +32,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/restmapper"
 )
 
 const (
@@ -298,4 +304,62 @@ func RunKubectlApplyWithYaml(yamlFilePath string) error {
 func IsKubectlInstalled() bool {
 	_, err := exec.LookPath("kubectl")
 	return err == nil
+}
+
+func ApplyYAML(yamlContent []byte) error {
+	var ns string
+
+	unstructuredobj, err := parseYAMLToUnstructured(string(yamlContent))
+	if err != nil {
+		return err
+	}
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		logrus.Errorf("Error get kubernetes config:", err)
+	}
+
+	dc, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return err
+	}
+	groupResources, err := restmapper.GetAPIGroupResources(dc)
+	if err != nil {
+		return err
+	}
+	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
+
+	gvk := unstructuredobj.GetObjectKind().GroupVersionKind()
+	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return fmt.Errorf("unable to get mapping for %v: %w", gvk, err)
+	}
+
+	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+		ns = unstructuredobj.GetNamespace()
+		if ns == "" {
+			ns = "default"
+		}
+	}
+
+	dyn, err := CreateDynamicClient(config.String())
+	if err != nil {
+		return err
+	}
+
+	resource := dyn.Resource(mapping.Resource).Namespace(ns)
+	applyConfig := &metav1.PatchOptions{
+		Force:           nil,
+		FieldManager:    "nkd-controller",
+
+	}
+
+	patchData, err := unstructuredobj.MarshalJSON()
+	if err != nil {
+		logrus.Errorf("failed to marshal object:", err)
+		return err
+	}
+
+	_, err = resource.Patch(context.TODO(), unstructuredobj.GetName(), types.ApplyPatchType, patchData, *applyConfig)
+	return err
 }
