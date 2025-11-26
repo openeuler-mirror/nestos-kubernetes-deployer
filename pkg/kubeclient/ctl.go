@@ -18,7 +18,9 @@ package kubeclient
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -308,15 +310,25 @@ func IsKubectlInstalled() bool {
 
 func ApplyYAML(yamlContent []byte) error {
 	var ns string
+	var config *rest.Config
 
 	unstructuredobj, err := parseYAMLToUnstructured(string(yamlContent))
 	if err != nil {
 		return err
 	}
 
-	config, err := rest.InClusterConfig()
-	if err != nil {
+	kubeconfig := os.Getenv("KUBECONFIG")
+	if  kubeconfig == "" {
+		home, ok := os.LookupEnv("HOME")
+		if !ok {
+			return fmt.Errorf("HOME env not set")
+		}
+		kubeconfig = filepath.Join(home, ".kube", "config")
+	}
+	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig);
+	if err !=nil {
 		logrus.Errorf("Error get kubernetes config:", err)
+		return err
 	}
 
 	dc, err := discovery.NewDiscoveryClientForConfig(config)
