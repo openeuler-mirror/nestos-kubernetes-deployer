@@ -20,25 +20,25 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"reflect"
 
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
-
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/restmapper"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -319,11 +319,7 @@ func ApplyYAML(yamlContent []byte) error {
 
 	kubeconfig := os.Getenv("KUBECONFIG")
 	if  kubeconfig == "" {
-		home, ok := os.LookupEnv("HOME")
-		if !ok {
-			return fmt.Errorf("HOME env not set")
-		}
-		kubeconfig = filepath.Join(home, ".kube", "config")
+		kubeconfig = "/etc/nkd/cluster/admin.config"
 	}
 	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig);
 	if err !=nil {
@@ -354,16 +350,15 @@ func ApplyYAML(yamlContent []byte) error {
 		}
 	}
 
-	dyn, err := CreateDynamicClient(config.String())
+	dyn, err := CreateDynamicClient(kubeconfig)
 	if err != nil {
 		return err
 	}
 
 	resource := dyn.Resource(mapping.Resource).Namespace(ns)
 	applyConfig := &metav1.PatchOptions{
-		Force:           nil,
+		Force: 			 pointer.Bool(false),
 		FieldManager:    "nkd-controller",
-
 	}
 
 	patchData, err := unstructuredobj.MarshalJSON()
