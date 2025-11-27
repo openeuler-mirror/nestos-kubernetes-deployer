@@ -435,27 +435,31 @@ func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 			"/opt/libexec/kubernetes/kubelet-plugins"))
 	}
 
-	// Save the modified content to a file in the "/tmp" directory with a fixed name
-	tmpFile, err := os.CreateTemp("", "modified-plugin-config-*.yaml")
-	if err != nil {
-		logrus.Errorf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-
-	tmpFilePath := tmpFile.Name()
-
-	err = utils.AtomicWriteFile(tmpFilePath, content, utils.CertFileMode)
-	if err != nil {
-		logrus.Errorf("Failed to write content to file: %v", err)
-		return err
-	}
-
-	// Apply the modified configuration using kubeclient
-	if err := kubeclient.RunKubectlApplyWithYaml(tmpFilePath); err != nil {
+	if err := kubeclient.ApplyYAML(content); err != nil {
 		logrus.Errorf("Failed to apply network plugin configuration: %v", err)
 		return err
 	}
+	// Save the modified content to a file in the "/tmp" directory with a fixed name
+	//tmpFile, err := os.CreateTemp("", "modified-plugin-config-*.yaml")
+	//if err != nil {
+	//	logrus.Errorf("Failed to create temp file: %v", err)
+	//}
+	//defer os.Remove(tmpFile.Name())
+	//defer tmpFile.Close()
+	//
+	//tmpFilePath := tmpFile.Name()
+	//
+	//err = utils.AtomicWriteFile(tmpFilePath, content, utils.CertFileMode)
+	//if err != nil {
+	//	logrus.Errorf("Failed to write content to file: %v", err)
+	//	return err
+	//}
+
+	// Apply the modified configuration using kubeclient
+	//if err := kubeclient.RunKubectlApplyWithYaml(tmpFilePath); err != nil {
+	//	logrus.Errorf("Failed to apply network plugin configuration: %v", err)
+	//	return err
+	//}
 
 	return nil
 }

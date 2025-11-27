@@ -16,21 +16,32 @@ limitations under the License.
 package kubeclient
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"fmt"
+	"io"
+	"os"
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
+	"k8s.io/utils/pointer"
+	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -298,4 +309,89 @@ func RunKubectlApplyWithYaml(yamlFilePath string) error {
 func IsKubectlInstalled() bool {
 	_, err := exec.LookPath("kubectl")
 	return err == nil
+}
+
+func ApplyYAML(yamlContent []byte) error {
+	var config *rest.Config
+
+	kubeconfig := os.Getenv("KUBECONFIG")
+	if  kubeconfig == "" {
+		kubeconfig = "/etc/nkd/cluster/admin.config"
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig);
+	if err !=nil {
+		logrus.Errorf("Error get kubernetes config:", err)
+		return err
+	}
+
+	yamlReader := apiyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yamlContent)))
+	for {
+		section, err := yamlReader.Read()
+		if err ==  io.EOF {
+			break
+		}
+		if err != nil {
+			logrus.Errorf("failed to read YAML document: %w", err)
+			return err
+		}
+
+		unstructuredobj, err := parseYAMLToUnstructured(string(section))
+		if err != nil {
+			return err
+		}
+
+		if err := applySingleResources(kubeconfig, config, unstructuredobj); err != nil {
+			gvk := unstructuredobj.GetObjectKind().GroupVersionKind()
+			logrus.Errorf("failed to apply %s %s/%s: %w",  gvk.Kind, unstructuredobj.GetNamespace(), unstructuredobj.GetName(), err)
+			return err
+		}
+	}
+	return nil
+}
+
+func applySingleResources(kubeconfig string, config *rest.Config, unstructuredobj *unstructured.Unstructured) error {
+	var ns string
+
+	dc, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return err
+	}
+	groupResources, err := restmapper.GetAPIGroupResources(dc)
+	if err != nil {
+		return err
+	}
+	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
+
+	gvk := unstructuredobj.GetObjectKind().GroupVersionKind()
+	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return fmt.Errorf("unable to get mapping for %v: %w", gvk, err)
+	}
+
+	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
+		ns = unstructuredobj.GetNamespace()
+		if ns == "" {
+			ns = "default"
+		}
+	}
+
+	dyn, err := CreateDynamicClient(kubeconfig)
+	if err != nil {
+		return err
+	}
+
+	resource := dyn.Resource(mapping.Resource).Namespace(ns)
+	applyConfig := &metav1.PatchOptions{
+		Force: 			 pointer.Bool(false),
+		FieldManager:    "nkd-controller",
+	}
+
+	patchData, err := unstructuredobj.MarshalJSON()
+	if err != nil {
+		logrus.Errorf("failed to marshal object:", err)
+		return err
+	}
+
+	_, err = resource.Patch(context.TODO(), unstructuredobj.GetName(), types.ApplyPatchType, patchData, *applyConfig)
+	return err
 }
