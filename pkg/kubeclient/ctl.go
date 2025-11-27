@@ -20,11 +20,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"os"
-	"os/exec"
-
 	"github.com/sirupsen/logrus"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -33,15 +30,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/yaml"
 	"k8s.io/utils/pointer"
-	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"nestos-kubernetes-deployer/pkg/utils"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -289,35 +287,10 @@ func ApplyHousekeeperCR(yamlContent string, kubeconfig string) error {
 	return nil
 }
 
-func RunKubectlApplyWithYaml(yamlFilePath string) error {
-	kubectlArgs := []string{"apply", "-f", yamlFilePath}
-	cmd := exec.Command("kubectl", kubectlArgs...)
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-
-	// run kubectl apply
-	err := cmd.Run()
-	if err != nil {
-		logrus.Errorf("Error executing kubectl apply: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-// isKubectlInstalled checks if kubectl is installed on the system.
-func IsKubectlInstalled() bool {
-	_, err := exec.LookPath("kubectl")
-	return err == nil
-}
-
 func ApplyYAML(yamlContent []byte) error {
 	var config *rest.Config
 
-	kubeconfig := os.Getenv("KUBECONFIG")
-	if  kubeconfig == "" {
-		kubeconfig = "/etc/nkd/cluster/admin.config"
-	}
+	kubeconfig := utils.GetKubeConfigPath()
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig);
 	if err !=nil {
 		logrus.Errorf("Error get kubernetes config:", err)
