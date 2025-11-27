@@ -20,8 +20,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
+
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -38,8 +39,9 @@ import (
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/pointer"
-	"nestos-kubernetes-deployer/pkg/utils"
 	"sigs.k8s.io/yaml"
+
+	"nestos-kubernetes-deployer/pkg/utils"
 )
 
 const (
