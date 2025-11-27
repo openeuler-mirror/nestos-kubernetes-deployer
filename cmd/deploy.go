@@ -281,7 +281,7 @@ func clusterCreatePost(conf *asset.ClusterAsset) error {
 
 	if conf.Housekeeper.DeployHousekeeper {
 		logrus.Info("Starting deployment of Housekeeper...")
-		if err := deployHousekeeper(conf.Housekeeper, conf.Kubernetes.AdminKubeConfig); err != nil {
+		if err := deployHousekeeper(conf.Housekeeper); err != nil {
 			logrus.Errorf("Failed to deploy operator: %v", err)
 			return err
 		}
@@ -358,7 +358,7 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 	return nil
 }
 
-func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
+func deployHousekeeper(tmplData interface{}) error {
 	dir, err := data.Assets.Open("housekeeper")
 	if err != nil {
 		return err
@@ -371,22 +371,7 @@ func deployHousekeeper(tmplData interface{}, kubeconfig string) error {
 	for _, childInfo := range child {
 		filePath := filepath.Join("housekeeper", childInfo.Name())
 		data, err := utils.FetchAndUnmarshalUrl(filePath, tmplData)
-
-		switch childInfo.Name() {
-		case "1housekeeper.io_updates.yaml":
-			err = kubeclient.DeployCRD(string(data), kubeconfig)
-		case "2namespace.yaml":
-			err = kubeclient.DeployNamespace(string(data), kubeconfig)
-		case "3role.yaml":
-			err = kubeclient.DeployClusterRole(string(data), kubeconfig)
-		case "4role_binding.yaml":
-			err = kubeclient.DeployClusterRoleBinding(string(data), kubeconfig)
-		case "5deployment.yaml.template":
-			err = kubeclient.DeployDeployment(string(data), kubeconfig, housekeeperNS)
-		case "6daemonset.yaml.template":
-			err = kubeclient.DeployDaemonSet(string(data), kubeconfig, housekeeperNS)
-		}
-
+		err = kubeclient.ApplyYAML(data)
 		if err != nil {
 			return err
 		}
