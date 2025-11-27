@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"net"
 	"net/url"
+	"os"
 	"os/user"
 	"path/filepath"
 )
@@ -113,4 +114,13 @@ func GenerateWWN() (string, error) {
 		wwnBytes[4], wwnBytes[5], wwnBytes[6], wwnBytes[7])
 
 	return wwn, nil
+}
+
+const defaultKubeConfigPath = "/etc/nkd/cluster/admin.config"
+
+func GetKubeConfigPath() string {
+	if path := os.Getenv("KUBECONFIG"); path != "" {
+		return filepath.Clean(path)
+	}
+	return filepath.Clean(defaultKubeConfigPath)
 }

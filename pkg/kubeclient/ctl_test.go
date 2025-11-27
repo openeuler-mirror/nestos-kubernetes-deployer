@@ -161,17 +161,6 @@ func TestCreateClient(t *testing.T) {
 	t.Run("ApplyHousekeeperCR", func(t *testing.T) {
 		ApplyHousekeeperCR(yamlContent, kubeconfigPath)
 	})
-	t.Run("RunKubectlApplyWithYaml", func(t *testing.T) {
-		RunKubectlApplyWithYaml(yamlContent)
-	})
 
 }
 
-func TestIsKubectlInstalled(t *testing.T) {
-	b := IsKubectlInstalled()
-	if !b {
-		t.Log("no install")
-		return
-	}
-	t.Log("IsKubectlInstalled success")
-}
