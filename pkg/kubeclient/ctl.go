@@ -16,11 +16,13 @@ limitations under the License.
 package kubeclient
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
-	"reflect"
 
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -39,6 +41,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
 	"k8s.io/utils/pointer"
+	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -309,23 +312,45 @@ func IsKubectlInstalled() bool {
 }
 
 func ApplyYAML(yamlContent []byte) error {
-	var ns string
 	var config *rest.Config
-
-	unstructuredobj, err := parseYAMLToUnstructured(string(yamlContent))
-	if err != nil {
-		return err
-	}
 
 	kubeconfig := os.Getenv("KUBECONFIG")
 	if  kubeconfig == "" {
 		kubeconfig = "/etc/nkd/cluster/admin.config"
 	}
-	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig);
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig);
 	if err !=nil {
 		logrus.Errorf("Error get kubernetes config:", err)
 		return err
 	}
+
+	yamlReader := apiyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yamlContent)))
+	for {
+		section, err := yamlReader.Read()
+		if err ==  io.EOF {
+			break
+		}
+		if err != nil {
+			logrus.Errorf("failed to read YAML document: %w", err)
+			return err
+		}
+
+		unstructuredobj, err := parseYAMLToUnstructured(string(section))
+		if err != nil {
+			return err
+		}
+
+		if err := applySingleResources(kubeconfig, config, unstructuredobj); err != nil {
+			gvk := unstructuredobj.GetObjectKind().GroupVersionKind()
+			logrus.Errorf("failed to apply %s %s/%s: %w",  gvk.Kind, unstructuredobj.GetNamespace(), unstructuredobj.GetName(), err)
+			return err
+		}
+	}
+	return nil
+}
+
+func applySingleResources(kubeconfig string, config *rest.Config, unstructuredobj *unstructured.Unstructured) error {
+	var ns string
 
 	dc, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
