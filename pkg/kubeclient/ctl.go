@@ -123,6 +123,10 @@ func ApplyYAML(yamlContent []byte) error {
 			return err
 		}
 
+		if unstructuredobj.Object == nil || len(unstructuredobj.Object) == 0 {
+			continue
+		}
+
 		if err := applySingleResources(kubeconfig, config, unstructuredobj); err != nil {
 			gvk := unstructuredobj.GetObjectKind().GroupVersionKind()
 			logrus.Errorf("failed to apply %s %s/%s: %w",  gvk.Kind, unstructuredobj.GetNamespace(), unstructuredobj.GetName(), err)

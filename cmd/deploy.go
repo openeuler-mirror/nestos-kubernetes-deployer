@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/discovery"
 
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
@@ -272,6 +273,11 @@ func clusterCreatePost(conf *asset.ClusterAsset) error {
 		return err
 	}
 
+	if err := waitForCoreAPIsReady(kubeClient.Discovery(), 60*time.Second); err != nil {
+		logrus.Warnf("APIs not ready in time, proceeding with partial discovery: %v", err)
+		return err
+	}
+
 	// Apply network plugin
 	if err := applyNetworkPlugin(conf.Network.Plugin, conf.IsNestOS); err != nil {
 		logrus.Errorf("Failed to apply network plugin: %v", err)
@@ -356,6 +362,57 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 		return err
 	}
 	return nil
+}
+
+func waitForCoreAPIsReady(dc discovery.DiscoveryInterface, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	requiredGroups := []string{"apps", "apiextensions.k8s.io", "policy", "rbac.authorization.k8s.io"}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for core API groups to be ready")
+		case <-ticker.C:
+			serverGroups, err := dc.ServerGroups()
+			if err != nil {
+				logrus.Warnf("Failed to get server groups, retrying: %v", err)
+				continue
+			}
+
+			found := make(map[string]bool)
+			for _, g := range serverGroups.Groups {
+				found[g.Name] = true
+			}
+
+			allReady := true
+			for _, rg := range requiredGroups {
+				if !found[rg] {
+					allReady = false
+					break
+				}
+			}
+
+			if allReady {
+				logrus.Info("All required API groups are ready")
+				return nil
+			}
+
+			logrus.Infof("Waiting for API groups: %v (current: %v)", requiredGroups, getGroupNames(serverGroups))
+		}
+	}
+}
+
+func getGroupNames(sg *metav1.APIGroupList) []string {
+	names := make([]string, len(sg.Groups))
+	for i, g := range sg.Groups {
+		names[i] = g.Name
+	}
+	return names
 }
 
 func deployHousekeeper(tmplData interface{}) error {
