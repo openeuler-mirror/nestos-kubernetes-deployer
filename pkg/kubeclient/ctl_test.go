@@ -130,37 +130,5 @@ func TestCreateClient(t *testing.T) {
 		log.Println("TestCreateDynamicClient success")
 	})
 
-	t.Run("DeployCRD", func(t *testing.T) {
-		DeployCRD(yamlContent, kubeconfigPath)
-	})
-	t.Run("DeployNamespace", func(t *testing.T) {
-		DeployNamespace(yamlContent, kubeconfigPath)
-	})
-
-	t.Run("DeployClusterRoleBinding", func(t *testing.T) {
-		DeployClusterRoleBinding(yamlContent, kubeconfigPath)
-	})
-
-	//t.Run("DeployDeployment", func(t *testing.T) {
-	//	//patches := gomonkey.ApplyMethod(reflect.TypeOf(&appsv1.Deployment{}), "Create", func(_ *appsv1.Deployment, ctx context.Context, deployment *appsv1.Deployment, opts metav1.CreateOptions) (*appsv1.Deployment, error) {
-	//	//	return &appsv1.Deployment{
-	//	//		ObjectMeta: metav1.ObjectMeta{
-	//	//			Name: deployment.Name,
-	//	//		},
-	//	//	}, nil
-	//	//})
-	//	//defer patches.Reset()
-	//	d := appsv1.Deployment{}
-	//	t.Log(d)
-	//	DeployDeployment(yamlContent, kubeconfigPath, namespace)
-	//})
-	//
-	//t.Run("DeployDaemonSet", func(t *testing.T) {
-	//	DeployDaemonSet(yamlContent, kubeconfigPath, namespace)
-	//})
-	t.Run("ApplyHousekeeperCR", func(t *testing.T) {
-		ApplyHousekeeperCR(yamlContent, kubeconfigPath)
-	})
-
 }
 

@@ -131,7 +131,7 @@ func TestDeploy(t *testing.T) {
 	})
 
 	t.Run("deployHousekeeper Fail", func(t *testing.T) {
-		err := deployHousekeeper(nil, "./test.yaml")
+		err := deployHousekeeper(nil)
 		if err == nil {
 			t.Log("Expected error, got nil")
 		}

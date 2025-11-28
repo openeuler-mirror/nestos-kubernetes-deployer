@@ -18,15 +18,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
 	"nestos-kubernetes-deployer/pkg/configmanager"
 	"nestos-kubernetes-deployer/pkg/configmanager/asset"
 	"nestos-kubernetes-deployer/pkg/kubeclient"
-	"path/filepath"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 func NewUpgradeCommand() *cobra.Command {
@@ -92,8 +92,7 @@ spec:
   maxUnavailable: %d
 `, clusterConfig.Housekeeper.OSImageURL, clusterConfig.Housekeeper.KubeVersion, clusterConfig.Housekeeper.EvictPodForce, clusterConfig.Housekeeper.MaxUnavailable)
 
-	adminconfig := filepath.Join(configmanager.GetPersistDir(), clusterConfig.ClusterID, "admin.config")
-	if err := kubeclient.ApplyHousekeeperCR(yamlData, adminconfig); err != nil {
+	if err := kubeclient.ApplyYAML([]byte(yamlData)); err != nil {
 		logrus.Errorf("Failed to deploy Custom Resource: %v", err)
 		return err
 	}

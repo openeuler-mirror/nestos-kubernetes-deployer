@@ -23,13 +23,9 @@ import (
 	"io"
 
 	"github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/discovery"
@@ -44,27 +40,6 @@ import (
 	"nestos-kubernetes-deployer/pkg/utils"
 )
 
-const (
-	// Constants for CRD API groups, versions, and resources
-	CRDAPIGroup   = "apiextensions.k8s.io"
-	CRDAPIVersion = "v1"
-	CRDResource   = "customresourcedefinitions"
-
-	// custom resource
-	HousekeeperAPIGroup   = "housekeeper.io"
-	HousekeeperAPIVersion = "v1alpha1"
-	HousekeeperResource   = "updates"
-
-	// NAMESPACE
-	NSResource   = "namespaces"
-	NSAPIVersion = "v1"
-
-	// RBAC
-	RBACAPIGroup                = "rbac.authorization.k8s.io"
-	RBACAPIVersion              = "v1"
-	ClusterRolesResource        = "clusterroles"
-	ClusterRoleBindingsResource = "clusterrolebindings"
-)
 
 // CreateClient creates a Kubernetes clientset.
 // Parameters:
@@ -122,173 +97,6 @@ func parseYAMLToUnstructured(yamlContent string) (*unstructured.Unstructured, er
 	return unstructuredObj, nil
 }
 
-// deployResource deploys a resource using dynamic client
-func deployResource(yamlContent, kubeconfig string, apiGroup, apiVersion, resource string) error {
-	client, err := CreateDynamicClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Resource(schema.GroupVersionResource{
-		Group:    apiGroup,
-		Version:  apiVersion,
-		Resource: resource,
-	}).Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
-	if err != nil {
-		logrus.Errorf("Error creating resource %s: %v", resource, err)
-		return err
-	}
-
-	return nil
-}
-
-// DeployCRD deploys a CustomResourceDefinition.
-func DeployCRD(yamlContent string, kubeconfig string) error {
-	return deployResource(yamlContent, kubeconfig, CRDAPIGroup, CRDAPIVersion, CRDResource)
-}
-
-// DeployNamespace deploys a Namespace.
-func DeployNamespace(yamlContent string, kubeconfig string) error {
-	return deployResource(yamlContent, kubeconfig, "", NSAPIVersion, NSResource)
-}
-
-// DeployClusterRole deploys a ClusterRole.
-func DeployClusterRole(yamlContent string, kubeconfig string) error {
-	return deployResource(yamlContent, kubeconfig, RBACAPIGroup, RBACAPIVersion, ClusterRolesResource)
-}
-
-// DeployClusterRoleBinding deploys a ClusterRoleBinding.
-func DeployClusterRoleBinding(yamlContent string, kubeconfig string) error {
-	return deployResource(yamlContent, kubeconfig, RBACAPIGroup, RBACAPIVersion, ClusterRoleBindingsResource)
-}
-
-// DeployDeployment deploys a Deployment.
-func DeployDeployment(yamlContent string, kubeconfig string, namespace string) error {
-	clientset, err := CreateClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
-	if err != nil {
-		return err
-	}
-
-	deployment := &appsv1.Deployment{}
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.Object, deployment)
-	if err != nil {
-		logrus.Errorf("error converting Unstructured to deployment: %v", err)
-		return err
-	}
-
-	// Create the Deployment using the Kubernetes clientset
-	_, err = clientset.AppsV1().Deployments(namespace).Create(context.TODO(), deployment, metav1.CreateOptions{})
-	if err != nil {
-		logrus.Errorf("error creating Deployment: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-// DeployDaemonSet deploys a DaemonSet.
-func DeployDaemonSet(yamlContent string, kubeconfig string, namespace string) error {
-	clientset, err := CreateClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
-	if err != nil {
-		return err
-	}
-
-	daemonSet := &appsv1.DaemonSet{}
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.Object, daemonSet)
-	if err != nil {
-		logrus.Errorf("error converting Unstructured to daemonset: %v", err)
-		return err
-	}
-
-	// Create the DaemonSet using the Kubernetes clientset
-	_, err = clientset.AppsV1().DaemonSets(namespace).Create(context.TODO(), daemonSet, metav1.CreateOptions{})
-	if err != nil {
-		logrus.Errorf("error creating DaemonSet: %v", err)
-		return err
-	}
-
-	return nil
-}
-
-func ApplyHousekeeperCR(yamlContent string, kubeconfig string) error {
-	// Create a dynamic client for interacting with the Kubernetes API server
-	client, err := CreateDynamicClient(kubeconfig)
-	if err != nil {
-		return err
-	}
-
-	// Parse the YAML content into an Unstructured object
-	unstructuredObj, err := parseYAMLToUnstructured(yamlContent)
-	if err != nil {
-		return err
-	}
-
-	// Try to get the existing custom resource
-	existingObj, err := client.
-		Resource(schema.GroupVersionResource{
-			Group:    HousekeeperAPIGroup,
-			Version:  HousekeeperAPIVersion,
-			Resource: HousekeeperResource,
-		}).
-		Namespace(unstructuredObj.GetNamespace()).
-		Get(context.TODO(), unstructuredObj.GetName(), metav1.GetOptions{})
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// Custom resource doesn't exist, create it
-			_, err = client.
-				Resource(schema.GroupVersionResource{
-					Group:    HousekeeperAPIGroup,
-					Version:  HousekeeperAPIVersion,
-					Resource: HousekeeperResource,
-				}).
-				Namespace(unstructuredObj.GetNamespace()).
-				Create(context.TODO(), unstructuredObj, metav1.CreateOptions{})
-			if err != nil {
-				logrus.Errorf("Error creating custom resource: %v", err)
-				return err
-			}
-			return nil
-		}
-
-		// Error other than "not found" occurred
-		logrus.Errorf("Error checking custom resource existence: %v", err)
-		return err
-	}
-
-	// Custom resource already exists, update it with new configuration
-	unstructuredObj.SetResourceVersion(existingObj.GetResourceVersion())
-	_, err = client.
-		Resource(schema.GroupVersionResource{
-			Group:    HousekeeperAPIGroup,
-			Version:  HousekeeperAPIVersion,
-			Resource: HousekeeperResource,
-		}).
-		Namespace(unstructuredObj.GetNamespace()).
-		Update(context.TODO(), unstructuredObj, metav1.UpdateOptions{})
-	if err != nil {
-		logrus.Errorf("Error updating custom resource: %v", err)
-		return err
-	}
-
-	return nil
-}
-
 func ApplyYAML(yamlContent []byte) error {
 	var config *rest.Config
 
@@ -313,6 +121,10 @@ func ApplyYAML(yamlContent []byte) error {
 		unstructuredobj, err := parseYAMLToUnstructured(string(section))
 		if err != nil {
 			return err
+		}
+
+		if unstructuredobj.Object == nil || len(unstructuredobj.Object) == 0 {
+			continue
 		}
 
 		if err := applySingleResources(kubeconfig, config, unstructuredobj); err != nil {
