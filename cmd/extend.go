@@ -65,6 +65,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	}
 	if clusterID == "" {
 		logrus.Errorf("cluster-id is not provided: %v", err)
+		return fmt.Errorf("cluster-id is required")
 	}
 
 	if err := configmanager.Initial(&opts.Opts); err != nil {
