@@ -98,7 +98,19 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func extendNodes(platform infra.Infrastructure, nodeType string) error {
+	p := infra.InfraPlatform{}
+	p.SetInfra(platform)
+	if err := p.Extend(); err != nil {
+		logrus.Errorf("Failed to extend %s nodes: %v", nodeType, err)
+		return err
+	}
+	return nil
+}
+
 func extendCluster(conf *asset.ClusterAsset, num uint) error {
+	platform := strings.ToLower(conf.Platform)
+
 	httpService := httpserver.NewHTTPService(configmanager.GetBootstrapIgnPort())
 	defer httpService.Stop()
 
@@ -117,7 +129,7 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		}
 	}
 	if osMgr.IsGeneralOS() {
-		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
+		if platform == "pxe" || platform == "ipxe" {
 			err := httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, data)
 			if err != nil {
 				logrus.Errorf("error adding worker kickstart: %v", err)
@@ -130,56 +142,26 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		httpService.PackageDir = conf.Kubernetes.RpmPackagePath
 	}
 
-	p := infra.InfraPlatform{}
-	switch strings.ToLower(conf.Platform) {
-	case "libvirt":
+	switch platform {
+	case "libvirt", "openstack":
 		httpserver.StartHTTPService(httpService)
 
+		// regenerate worker.tf
 		if err := extendArray(conf, int(num)); err != nil {
 			return err
 		}
-
-		// regenerate worker.tf
 		var worker terraform.Infra
 		if err := worker.Generate(conf, "worker"); err != nil {
 			logrus.Errorf("Failed to generate worker terraform file")
 			return err
 		}
 
-		libvirtWorker := &infra.Libvirt{
-			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.ClusterID,
-			Node:       "worker",
-			Count:      uint(len(conf.Worker)),
+		workerInfra := createInfraInstance(platform, "worker", uint(len(conf.Worker)), conf)
+		if workerInfra == nil {
+			return fmt.Errorf("unsupported platform: %s", platform)
 		}
-		p.SetInfra(libvirtWorker)
-		if err := p.Extend(); err != nil {
-			logrus.Errorf("Failed to extend worker nodes:%v", err)
-			return err
-		}
-	case "openstack":
-		httpserver.StartHTTPService(httpService)
-
-		if err := extendArray(conf, int(num)); err != nil {
-			return err
-		}
-
-		// regenerate worker.tf
-		var worker terraform.Infra
-		if err := worker.Generate(conf, "worker"); err != nil {
-			logrus.Errorf("Failed to generate worker terraform file")
-			return err
-		}
-
-		openstackWorker := &infra.OpenStack{
-			PersistDir: configmanager.GetPersistDir(),
-			ClusterID:  conf.ClusterID,
-			Node:       "worker",
-			Count:      uint(len(conf.Worker)),
-		}
-		p.SetInfra(openstackWorker)
-		if err := p.Extend(); err != nil {
-			logrus.Errorf("Failed to extend worker nodes:%v", err)
+		if err := extendNodes(workerInfra, "worker"); err != nil {
+			logrus.Errorf("Failed to deploy worker nodes: %v", err)
 			return err
 		}
 	case "pxe":
