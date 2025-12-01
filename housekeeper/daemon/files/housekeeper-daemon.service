@@ -19,6 +19,7 @@ Description=daemon of the housekeeper
 [Service]
 ExecStart=/usr/bin/housekeeper-daemon
 Restart=on-failure
+RestartSec=5s
 KillMode=process
 
 [Install]

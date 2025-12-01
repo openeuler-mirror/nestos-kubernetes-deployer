@@ -45,6 +45,7 @@ func getFlagString(cmd *cobra.Command, flagName string) string {
 	flagValue, err := cmd.Flags().GetString(flagName)
 	if err != nil {
 		logrus.Errorf("Failed to get %s parameter: %v", flagName, err)
+		return ""
 	}
 	return flagValue
 }
