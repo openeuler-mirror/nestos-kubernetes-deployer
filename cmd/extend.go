@@ -60,22 +60,22 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 
 	clusterID, err := cmd.Flags().GetString("cluster-id")
 	if err != nil {
-		logrus.Errorf("Failed to get cluster-id: %v", err)
+		logrus.Debugf("Failed to get cluster-id: %v", err)
 		return err
 	}
 	if clusterID == "" {
-		logrus.Errorf("cluster-id is not provided: %v", err)
+		logrus.Debugf("cluster-id is not provided: %v", err)
 		return fmt.Errorf("cluster-id is required")
 	}
 
 	if err := configmanager.Initial(&opts.Opts); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		logrus.Debugf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
 
 	clusterConfig, err := configmanager.GetClusterConfig(clusterID)
 	if err != nil {
-		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
@@ -83,17 +83,17 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		platform := strings.ToLower(clusterConfig.Platform)
 		if platform != "pxe" && platform != "ipxe" {
-			logrus.Errorf("Failed to get the number of extended nodes: %v", err)
+			logrus.Debugf("Failed to get the number of extended nodes: %v", err)
 			return err
 		}
 	}
 
 	if err := extendCluster(clusterConfig, num); err != nil {
-		logrus.Errorf("Failed to extend %s cluster: %v", clusterID, err)
+		logrus.Debugf("Failed to extend %s cluster: %v", clusterID, err)
 		return err
 	}
 
-	logrus.Infof("The cluster nodes are extended successfully")
+	logrus.Debugf("The cluster nodes are extended successfully")
 
 	return nil
 }
@@ -102,7 +102,7 @@ func extendNodes(platform infra.Infrastructure, nodeType string) error {
 	p := infra.InfraPlatform{}
 	p.SetInfra(platform)
 	if err := p.Extend(); err != nil {
-		logrus.Errorf("Failed to extend %s nodes: %v", nodeType, err)
+		logrus.Debugf("Failed to extend %s nodes: %v", nodeType, err)
 		return err
 	}
 	return nil
@@ -116,7 +116,7 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 
 	data, err := os.ReadFile(conf.BootConfig.Worker.Path)
 	if err != nil {
-		logrus.Errorf("error reading boot config file: %v", err)
+		logrus.Debugf("error reading boot config file: %v", err)
 		return err
 	}
 
@@ -124,7 +124,7 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 	if osMgr.IsNestOS() {
 		err := httpService.AddFileToCache(constants.WorkerIgn, data)
 		if err != nil {
-			logrus.Errorf("error adding worker ignition: %v", err)
+			logrus.Debugf("error adding worker ignition: %v", err)
 			return err
 		}
 	}
@@ -132,7 +132,7 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		if platform == "pxe" || platform == "ipxe" {
 			err := httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, data)
 			if err != nil {
-				logrus.Errorf("error adding worker kickstart: %v", err)
+				logrus.Debugf("error adding worker kickstart: %v", err)
 				return err
 			}
 		}
@@ -152,7 +152,7 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		}
 		var worker terraform.Infra
 		if err := worker.Generate(conf, "worker"); err != nil {
-			logrus.Errorf("Failed to generate worker terraform file")
+			logrus.Debugf("Failed to generate worker terraform file")
 			return err
 		}
 
@@ -173,12 +173,12 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
 		go func() {
 			<-httpService.Ch
-			logrus.Info("tftp server stop")
+			logrus.Debug("tftp server stop")
 			tftpService.Stop()
 		}()
 		go func() {
 			if err := tftpService.Start(); err != nil {
-				logrus.Errorf("error starting http service: %v", err)
+				logrus.Debugf("error starting http service: %v", err)
 				return
 			}
 		}()
@@ -192,7 +192,7 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 			return err
 		}
 		if err := httpService.AddFileToCache(constants.IPXECfg, fileContent); err != nil {
-			logrus.Errorf("error adding ipxe config file: %v", err)
+			logrus.Debugf("error adding ipxe config file: %v", err)
 			return err
 		}
 		httpserver.StartHTTPService(httpService)
@@ -228,7 +228,7 @@ func extendArray(c *asset.ClusterAsset, count int) error {
 	}
 
 	if err := configmanager.Persist(); err != nil {
-		logrus.Errorf("Failed to persist the extended cluster asset: %v", err)
+		logrus.Debugf("Failed to persist the extended cluster asset: %v", err)
 		return err
 	}
 
@@ -239,14 +239,14 @@ func extendArray(c *asset.ClusterAsset, count int) error {
 func checkNodesReady(ctx context.Context, conf *asset.ClusterAsset, num int) error {
 	clientset, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
 	if err != nil {
-		logrus.Errorf("error creating Kubernetes client: %v", err)
+		logrus.Debugf("error creating Kubernetes client: %v", err)
 		return err
 	}
 
 	// Get the current number of ready nodes
 	readyNodesCount, err := getReadyNodesCount(ctx, clientset)
 	if err != nil {
-		logrus.Errorf("error getting current ready nodes count: %v", err)
+		logrus.Debugf("error getting current ready nodes count: %v", err)
 		return err
 	}
 	allNodeNums := readyNodesCount + num
@@ -255,7 +255,7 @@ func checkNodesReady(ctx context.Context, conf *asset.ClusterAsset, num int) err
 	timeout := 30 * time.Minute
 	err = waitForMinimumReadyNodes(ctx, clientset, allNodeNums, timeout)
 	if err != nil {
-		logrus.Errorf("error waiting for nodes to be ready: %v", err)
+		logrus.Debugf("error waiting for nodes to be ready: %v", err)
 		return err
 	}
 
@@ -283,7 +283,7 @@ func getReadyNodesCount(ctx context.Context, clientset *kubernetes.Clientset) (i
 }
 
 func waitForMinimumReadyNodes(ctx context.Context, clientset *kubernetes.Clientset, requiredReadyNodes int, timeout time.Duration) error {
-	logrus.Infof("Waiting for cluster extend nodes to be ready...")
+	logrus.Debugf("Waiting for cluster extend nodes to be ready...")
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

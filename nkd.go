@@ -45,6 +45,7 @@ func main() {
 	}
 
 	if err := rootCmd.Execute(); err != nil {
+		logrus.Errorf("command execution failed: %v", err)
 		return
 	}
 }
