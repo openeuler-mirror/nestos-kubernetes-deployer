@@ -17,7 +17,7 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
+	"fmt"
 	"runtime"
 	"strings"
 
@@ -107,6 +107,7 @@ func getDefaultInfraAsset(platform string) interface{} {
 			OSInstallTreePath: "/var/www/html/",
 		}
 	default:
-		return errors.New("unsupported platform")
+		logrus.Debugf("unsupported platform: %s", platform)
+		return fmt.Errorf("unsupported platform: %s", platform)
 	}
 }
