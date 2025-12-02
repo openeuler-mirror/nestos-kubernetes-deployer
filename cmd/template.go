@@ -58,7 +58,7 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 
 	data, err := yaml.Marshal(conf)
 	if err != nil {
-		logrus.Errorf("Faild to marshal template config: %v", err)
+		logrus.Debugf("Faild to marshal template config: %v", err)
 		return err
 	}
 
@@ -71,7 +71,7 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := utils.AtomicWriteFile(output+"template.yaml", data, utils.DeployConfigFileMode); err != nil {
-		logrus.Errorf("Faild to write template config file: %v", err)
+		logrus.Debugf("Faild to write template config file: %v", err)
 		return err
 	}
 

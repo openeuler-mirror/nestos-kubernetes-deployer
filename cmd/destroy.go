@@ -45,22 +45,22 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 
 	clusterID, err := cmd.Flags().GetString("cluster-id")
 	if err != nil {
-		logrus.Errorf("Failed to get cluster id: %v", err)
+		logrus.Debugf("Failed to get cluster id: %v", err)
 		return err
 	}
 	if clusterID == "" {
-		logrus.Errorf("cluster-id is not provided: %v", err)
+		logrus.Debugf("cluster-id is not provided: %v", err)
 		return err
 	}
 
 	if err := configmanager.Initial(&opts.Opts); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		logrus.Debugf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
 
 	clusterConfig, err := configmanager.GetClusterConfig(clusterID)
 	if err != nil {
-		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
@@ -76,7 +76,7 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			Count:      0,
 		}
 		if err := infrastructure.Destroy(); err != nil {
-			logrus.Errorf("Failed to destroy worker nodes:%v", err)
+			logrus.Debugf("Failed to destroy worker nodes:%v", err)
 			return err
 		}
 
@@ -87,7 +87,7 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			Count:      0,
 		}
 		if err := infrastructure.Destroy(); err != nil {
-			logrus.Errorf("Failed to destroy master nodes:%v", err)
+			logrus.Debugf("Failed to destroy master nodes:%v", err)
 			return err
 		}
 	case "openstack":
@@ -100,7 +100,7 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			Count:      0,
 		}
 		if err := infrastructure.Destroy(); err != nil {
-			logrus.Errorf("Failed to destroy worker nodes:%v", err)
+			logrus.Debugf("Failed to destroy worker nodes:%v", err)
 			return err
 		}
 
@@ -111,7 +111,7 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			Count:      0,
 		}
 		if err := infrastructure.Destroy(); err != nil {
-			logrus.Errorf("Failed to destroy master nodes:%v", err)
+			logrus.Debugf("Failed to destroy master nodes:%v", err)
 			return err
 		}
 	case "pxe":
@@ -127,13 +127,13 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			fmt.Sprintf("3. Delete OS install tree: %s", clusterConfig.InfraPlatform.(*infraasset.IPXEAsset).OSInstallTreePath),
 		)
 	default:
-		logrus.Errorf("unsupported platform")
+		logrus.Debugf("unsupported platform")
 		return err
 	}
 
 	// delete asset files
 	if err := configmanager.Delete(clusterID); err != nil {
-		logrus.Errorf("Failed to clean the asset files")
+		logrus.Debugf("Failed to clean the asset files")
 		return err
 	}
 

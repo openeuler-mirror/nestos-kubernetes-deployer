@@ -74,22 +74,24 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	defer cleanup()
 
 	if err := validateDeployConfig(); err != nil {
+		logrus.Debugf("Deploy configuration validation failed: %v", err)
 		return err
 	}
 
 	// Initialize configuration parameters
 	config, err := getClusterConfig(&opts.Opts)
 	if err != nil {
+		logrus.Debugf("Failed to get cluster configuration: %v", err)
 		return err
 	}
 
 	if err := createCluster(config); err != nil {
-		logrus.Errorf("Failed to create cluster: %v", err)
+		logrus.Debugf("Failed to create cluster: %v", err)
 		return err
 	}
 
-	logrus.Info("Cluster deployment completed successfully!")
-	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
+	logrus.Debug("Cluster deployment completed successfully!")
+	logrus.Debugf("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 	return nil
 }
 
@@ -107,13 +109,13 @@ func validateDeployConfig() error {
 
 func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 	if err := configmanager.Initial(options); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		logrus.Debugf("Failed to initialize configuration parameters: %v", err)
 		return nil, err
 	}
 
 	config, err := configmanager.GetClusterConfig(clusterID)
 	if err != nil {
-		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return nil, err
 	}
 	return config, nil
@@ -144,7 +146,7 @@ func deployNodes(platform infra.Infrastructure, nodeType string) error {
 	p := infra.InfraPlatform{}
 	p.SetInfra(platform)
 	if err := p.Deploy(); err != nil {
-		logrus.Errorf("Failed to deploy %s nodes: %v", nodeType, err)
+		logrus.Debugf("Failed to deploy %s nodes: %v", nodeType, err)
 		return err
 	}
 	return nil
@@ -158,7 +160,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 
 	osMgr := osmanager.NewOSManager(conf)
 	if err := osMgr.GenerateOSConfig(); err != nil {
-		logrus.Errorf("Failed to generate OS config: %v", err)
+		logrus.Debugf("Failed to generate OS config: %v", err)
 		return err
 	}
 
@@ -185,7 +187,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 	}
 
 	if err := configmanager.Persist(); err != nil {
-		logrus.Errorf("Failed to persist cluster asset: %v", err)
+		logrus.Debugf("Failed to persist cluster asset: %v", err)
 		return err
 	}
 
@@ -198,7 +200,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 			return fmt.Errorf("unsupported platform: %s", platform)
 		}
 		if err := deployNodes(masterInfra, "master"); err != nil {
-			logrus.Errorf("Failed to deploy master nodes: %v", err)
+			logrus.Debugf("Failed to deploy master nodes: %v", err)
 			return err
 		}
 
@@ -207,7 +209,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 			return fmt.Errorf("unsupported platform: %s", platform)
 		}
 		if err := deployNodes(workerInfra, "worker"); err != nil {
-			logrus.Errorf("Failed to deploy worker nodes: %v", err)
+			logrus.Debugf("Failed to deploy worker nodes: %v", err)
 			return err
 		}
 	case "pxe":
@@ -224,7 +226,7 @@ func createCluster(conf *asset.ClusterAsset) error {
 		}()
 		go func() {
 			if err := tftpService.Start(); err != nil {
-				logrus.Errorf("error starting http service: %v", err)
+				logrus.Debugf("error starting http service: %v", err)
 				return
 			}
 		}()
@@ -255,45 +257,45 @@ func createCluster(conf *asset.ClusterAsset) error {
 func clusterCreatePost(conf *asset.ClusterAsset) error {
 	kubeClient, err := kubeclient.CreateClient(conf.Kubernetes.AdminKubeConfig)
 	if err != nil {
-		logrus.Errorf("Failed to create kubernetes client %v", err)
+		logrus.Debugf("Failed to create kubernetes client %v", err)
 		return err
 	}
 
 	if err := waitForAPIReady(kubeClient); err != nil {
-		logrus.Errorf("Failed while waiting for Kubernetes API to be ready: %v", err)
+		logrus.Debugf("Failed while waiting for Kubernetes API to be ready: %v", err)
 		return err
 	}
 	// Set kubeconfig environment variable
 	err = os.Setenv("KUBECONFIG", conf.Kubernetes.AdminKubeConfig)
 	if err != nil {
-		logrus.Errorf("Failed to set environment variable KUBECONFIG: %v", err)
+		logrus.Debugf("Failed to set environment variable KUBECONFIG: %v", err)
 		return err
 	}
 
 	if err := waitForCoreAPIsReady(kubeClient.Discovery(), 60*time.Second); err != nil {
-		logrus.Warnf("APIs not ready in time, proceeding with partial discovery: %v", err)
+		logrus.Debugf("APIs not ready in time, proceeding with partial discovery: %v", err)
 		return err
 	}
 
 	// Apply network plugin
 	if err := applyNetworkPlugin(conf.Network.Plugin, conf.IsNestOS); err != nil {
-		logrus.Errorf("Failed to apply network plugin: %v", err)
+		logrus.Debugf("Failed to apply network plugin: %v", err)
 		return err
 	}
-	logrus.Info("Network plugin deployment completed successfully.")
+	logrus.Debug("Network plugin deployment completed successfully.")
 
 	if conf.Housekeeper.DeployHousekeeper {
-		logrus.Info("Starting deployment of Housekeeper...")
+		logrus.Debug("Starting deployment of Housekeeper...")
 		if err := deployHousekeeper(conf.Housekeeper); err != nil {
-			logrus.Errorf("Failed to deploy operator: %v", err)
+			logrus.Debugf("Failed to deploy operator: %v", err)
 			return err
 		}
-		logrus.Info("Housekeeper deployment completed successfully.")
+		logrus.Debug("Housekeeper deployment completed successfully.")
 	}
 
 	// Wait for pods to be ready
 	if err := waitForPodsReady(kubeClient); err != nil {
-		logrus.Errorf("Failed while waiting for pods to be in 'Ready' state: %v", err)
+		logrus.Debugf("Failed while waiting for pods to be in 'Ready' state: %v", err)
 		return err
 	}
 	return nil
@@ -303,14 +305,14 @@ func waitForAPIReady(client *kubernetes.Clientset) error {
 	apiTimeout := 60 * time.Minute
 	ctx := context.Background()
 	apiContext, cancel := context.WithTimeout(ctx, apiTimeout)
-	logrus.Infof("Waiting up to %v for the Kubernetes API ready...", apiTimeout)
+	logrus.Debugf("Waiting up to %v for the Kubernetes API ready...", apiTimeout)
 	defer cancel()
 
 	discovery := client.Discovery()
 	wait.Until(func() {
 		version, err := discovery.ServerVersion()
 		if err == nil {
-			logrus.Infof("The Kubernetes API %s up", version)
+			logrus.Debugf("The Kubernetes API %s up", version)
 			cancel()
 		} else {
 			logrus.Debugf("Still waiting for Kubernetes API ready: %v", err)
@@ -319,7 +321,7 @@ func waitForAPIReady(client *kubernetes.Clientset) error {
 
 	err := apiContext.Err()
 	if err != nil && err != context.Canceled {
-		logrus.Errorf("Failed to waiting for kubernetes API: %v", err)
+		logrus.Debugf("Failed to waiting for kubernetes API: %v", err)
 		return err
 	}
 	return nil
@@ -329,12 +331,12 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 	waitDuration := 20 * time.Minute
 	waitCtx, cancel := context.WithTimeout(context.Background(), waitDuration)
 	defer cancel()
-	logrus.Infof("Waiting up to %v for the Kubernetes Pods ready ...", waitDuration)
+	logrus.Debugf("Waiting up to %v for the Kubernetes Pods ready ...", waitDuration)
 
 	err := wait.PollImmediate(10*time.Second, waitDuration, func() (bool, error) {
 		pods, err := client.CoreV1().Pods(kubeSystemNS).List(waitCtx, metav1.ListOptions{})
 		if err != nil {
-			logrus.Errorf("Failed to list Pods: %v", err)
+			logrus.Debugf("Failed to list Pods: %v", err)
 			return false, nil
 		}
 		allReady := true
@@ -342,7 +344,7 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 			for _, condition := range pod.Status.Conditions {
 				if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
 					allReady = false
-					logrus.Infof("Pod %s in namespace %s is not in Ready state", pod.Name, pod.Namespace)
+					logrus.Debugf("Pod %s in namespace %s is not in Ready state", pod.Name, pod.Namespace)
 					break
 				}
 			}
@@ -355,8 +357,8 @@ func waitForPodsReady(client *kubernetes.Clientset) error {
 		return false, nil
 	})
 	if err != nil {
-		logrus.Errorf("Failed to wait for Pods to be Ready: %v", err)
-		return err
+		logrus.Debugf("failed to wait for Pods to be Ready: %v", err)
+		return fmt.Errorf("failed to wait for Pods to be Ready: %v", err)
 	}
 	return nil
 }
@@ -377,7 +379,7 @@ func waitForCoreAPIsReady(dc discovery.DiscoveryInterface, timeout time.Duration
 		case <-ticker.C:
 			serverGroups, err := dc.ServerGroups()
 			if err != nil {
-				logrus.Warnf("Failed to get server groups, retrying: %v", err)
+				logrus.Debugf("Failed to get server groups, retrying: %v", err)
 				continue
 			}
 
@@ -395,11 +397,11 @@ func waitForCoreAPIsReady(dc discovery.DiscoveryInterface, timeout time.Duration
 			}
 
 			if allReady {
-				logrus.Info("All required API groups are ready")
+				logrus.Debug("All required API groups are ready")
 				return nil
 			}
 
-			logrus.Infof("Waiting for API groups: %v (current: %v)", requiredGroups, getGroupNames(serverGroups))
+			logrus.Debugf("Waiting for API groups: %v (current: %v)", requiredGroups, getGroupNames(serverGroups))
 		}
 	}
 }
@@ -441,20 +443,20 @@ func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 	if strings.HasPrefix(pluginConfigPath, "http://") || strings.HasPrefix(pluginConfigPath, "https://") {
 		response, err := http.Get(pluginConfigPath)
 		if err != nil {
-			logrus.Errorf("Failed to fetch network plugin configuration from URL: %v", err)
+			logrus.Debugf("Failed to fetch network plugin configuration from URL: %v", err)
 			return err
 		}
 		defer response.Body.Close()
 		content, err = io.ReadAll(response.Body)
 		if err != nil {
-			logrus.Errorf("Failed to read content from HTTP response: %v", err)
+			logrus.Debugf("Failed to read content from HTTP response: %v", err)
 			return err
 		}
 	} else {
 		// Read the content from the local file
 		content, err = os.ReadFile(pluginConfigPath)
 		if err != nil {
-			logrus.Errorf("Failed to read network plugin configuration file: %v", err)
+			logrus.Debugf("Failed to read network plugin configuration file: %v", err)
 			return err
 		}
 	}
@@ -470,7 +472,7 @@ func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 	}
 
 	if err := kubeclient.ApplyYAML(content); err != nil {
-		logrus.Errorf("Failed to apply network plugin configuration: %v", err)
+		logrus.Debugf("Failed to apply network plugin configuration: %v", err)
 		return err
 	}
 

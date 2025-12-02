@@ -44,7 +44,7 @@ func NewUpgradeCommand() *cobra.Command {
 func getFlagString(cmd *cobra.Command, flagName string) string {
 	flagValue, err := cmd.Flags().GetString(flagName)
 	if err != nil {
-		logrus.Errorf("Failed to get %s parameter: %v", flagName, err)
+		logrus.Debugf("Failed to get %s parameter: %v", flagName, err)
 		return ""
 	}
 	return flagValue
@@ -62,12 +62,12 @@ func runUpgradeCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := configmanager.Initial(&opts.Opts); err != nil {
-		logrus.Errorf("Failed to initialize configuration parameters: %v", err)
+		logrus.Debugf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
 	clusterConfig, err := configmanager.GetClusterConfig(clusterId)
 	if err != nil {
-		logrus.Errorf("Failed to get cluster config using the cluster id: %v", err)
+		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
@@ -94,10 +94,10 @@ spec:
 `, clusterConfig.Housekeeper.OSImageURL, clusterConfig.Housekeeper.KubeVersion, clusterConfig.Housekeeper.EvictPodForce, clusterConfig.Housekeeper.MaxUnavailable)
 
 	if err := kubeclient.ApplyYAML([]byte(yamlData)); err != nil {
-		logrus.Errorf("Failed to deploy Custom Resource: %v", err)
+		logrus.Debugf("Failed to deploy Custom Resource: %v", err)
 		return err
 	}
 
-	logrus.Info("Custom Resource deployed successfully.")
+	logrus.Debugf("Custom Resource deployed successfully.")
 	return nil
 }
