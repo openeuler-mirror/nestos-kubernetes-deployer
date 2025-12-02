@@ -58,14 +58,14 @@ The global configuration file is used to manage the configuration of the entire 
 
 #### Ignition Service Configuration Parameters
 During the NKD cluster deployment process, cluster nodes need to access the ignition service provided by NKD. The ignition service is configured through the following global configuration parameters:
-* bootstrap_ign_host：Ignition service address (domain name or IP, usually NKD operating environment)
-* bootstrap_ign_port：Ignition service port (default 9080, you need to open the firewall port yourself)
+* bootstrapIgnHost：Ignition service address (domain name or IP, usually NKD operating environment)
+* bootstrapIgnPort：Ignition service port (default 9080, you need to open the firewall port yourself)
 
 To adapt to multi-NIC environments, the actual listening address of the ignition service is 0.0.0.0.
-* In a simple network environment, cluster nodes can directly access the NKD service. The "bootstrap_ign_host" parameter can be left empty. In this case, NKD will detect the IP address with the highest priority in the routing table as the host for accessing the ignition service URL.
-* In complex network environments where cluster nodes cannot directly access the NKD runtime environment, the "bootstrap_ign_host" parameter needs to be configured as an externally mapped IP or domain name. Users need to configure NAT mapping or DNS services themselves to ensure that cluster nodes can access the NKD ignition service.
+* In a simple network environment, cluster nodes can directly access the NKD service. The "bootstrapIgnHost" parameter can be left empty. In this case, NKD will detect the IP address with the highest priority in the routing table as the host for accessing the ignition service URL.
+* In complex network environments where cluster nodes cannot directly access the NKD runtime environment, the "bootstrapIgnHost" parameter needs to be configured as an externally mapped IP or domain name. Users need to configure NAT mapping or DNS services themselves to ensure that cluster nodes can access the NKD ignition service.
 
-The "bootstrap_ign_port" parameter is currently shared by the ignition service listening port and the ignition service URL access port. In a simple network environment, these two values are consistent. However, in complex network environments, it is necessary to ensure that the externally mapped port for the NKD service is consistent with the locally listened port.
+The "bootstrapIgnPort" parameter is currently shared by the ignition service listening port and the ignition service URL access port. In a simple network environment, these two values are consistent. However, in complex network environments, it is necessary to ensure that the externally mapped port for the NKD service is consistent with the locally listened port.
 
 ### Cluster Configuration
 The cluster configuration file is used to configure each cluster independently. For specific configuration parameters and default configurations, please refer to the [Cluster Configuration File Description](./config_file_desc.md)
