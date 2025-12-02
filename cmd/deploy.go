@@ -89,8 +89,8 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logrus.Debug("Cluster deployment completed successfully!")
-	logrus.Debugf("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
+	logrus.Info("Cluster deployed successfully!")
+	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
 	return nil
 }
 
@@ -242,7 +242,6 @@ func createCluster(conf *asset.ClusterAsset) error {
 			return fmt.Errorf("error adding ipxe config file to cache: %v", err)
 		}
 		httpserver.StartHTTPService(httpService)
-
 	default:
 		return errors.New("unsupported platform")
 	}

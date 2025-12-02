@@ -17,15 +17,17 @@ package cmd
 
 import (
 	"fmt"
-	"nestos-kubernetes-deployer/cmd/command"
-	"nestos-kubernetes-deployer/cmd/command/opts"
-	"nestos-kubernetes-deployer/pkg/configmanager"
-	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
-	"nestos-kubernetes-deployer/pkg/infra"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"nestos-kubernetes-deployer/cmd/command"
+	"nestos-kubernetes-deployer/cmd/command/opts"
+	"nestos-kubernetes-deployer/pkg/configmanager"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset"
+	"nestos-kubernetes-deployer/pkg/configmanager/asset/infraasset"
+	"nestos-kubernetes-deployer/pkg/infra"
 )
 
 func NewDestroyCommand() *cobra.Command {
@@ -58,83 +60,74 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	clusterConfig, err := configmanager.GetClusterConfig(clusterID)
+	config, err := configmanager.GetClusterConfig(clusterID)
 	if err != nil {
 		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return err
 	}
 
-	var infrastructure infra.Infrastructure
-	switch strings.ToLower(clusterConfig.Platform) {
-	case "libvirt":
-		persistDir := configmanager.GetPersistDir()
-
-		infrastructure = &infra.Libvirt{
-			PersistDir: persistDir,
-			ClusterID:  clusterID,
-			Node:       "worker",
-			Count:      0,
-		}
-		if err := infrastructure.Destroy(); err != nil {
-			logrus.Debugf("Failed to destroy worker nodes:%v", err)
-			return err
-		}
-
-		infrastructure = &infra.Libvirt{
-			PersistDir: persistDir,
-			ClusterID:  clusterID,
-			Node:       "master",
-			Count:      0,
-		}
-		if err := infrastructure.Destroy(); err != nil {
-			logrus.Debugf("Failed to destroy master nodes:%v", err)
-			return err
-		}
-	case "openstack":
-		persistDir := configmanager.GetPersistDir()
-
-		infrastructure = &infra.OpenStack{
-			PersistDir: persistDir,
-			ClusterID:  clusterID,
-			Node:       "worker",
-			Count:      0,
-		}
-		if err := infrastructure.Destroy(); err != nil {
-			logrus.Debugf("Failed to destroy worker nodes:%v", err)
-			return err
-		}
-
-		infrastructure = &infra.OpenStack{
-			PersistDir: persistDir,
-			ClusterID:  clusterID,
-			Node:       "master",
-			Count:      0,
-		}
-		if err := infrastructure.Destroy(); err != nil {
-			logrus.Debugf("Failed to destroy master nodes:%v", err)
-			return err
-		}
-	case "pxe":
-		logrus.Println("If necessary, manually destroy the config for the PXE server:\n",
-			"1. Stop dhcpd service\n",
-			fmt.Sprintf("2. Delete http root dir: %s\n", clusterConfig.InfraPlatform.(*infraasset.PXEAsset).HTTPRootDir),
-			fmt.Sprintf("3. Delete tftp root dir: %s", clusterConfig.InfraPlatform.(*infraasset.PXEAsset).TFTPRootDir),
-		)
-	case "ipxe":
-		logrus.Println("If necessary, manually destroy the config for the iPXE server:\n",
-			"1. Stop dhcpd service\n",
-			fmt.Sprintf("2. Delete ipxe config: %s\n", clusterConfig.InfraPlatform.(*infraasset.IPXEAsset).FilePath),
-			fmt.Sprintf("3. Delete OS install tree: %s", clusterConfig.InfraPlatform.(*infraasset.IPXEAsset).OSInstallTreePath),
-		)
-	default:
-		logrus.Debugf("unsupported platform: %s", clusterConfig.Platform)
-		return fmt.Errorf("unsupported platform: %s", clusterConfig.Platform)
+	if err := destroyCluster(config); err != nil {
+		logrus.Debugf("Failed to destroy cluster: %v", err)
+		return err
 	}
 
 	// delete asset files
 	if err := configmanager.Delete(clusterID); err != nil {
 		logrus.Debugf("Failed to clean the asset files")
 		return err
+	}
+
+	return nil
+}
+
+func destroyNodes(platform infra.Infrastructure, nodeType string) error {
+	p := infra.InfraPlatform{}
+	p.SetInfra(platform)
+	if err := p.Destroy(); err != nil {
+		logrus.Debugf("Failed to destroy %s nodes: %v", nodeType, err)
+		return err
+	}
+	return nil
+}
+
+func destroyCluster(conf *asset.ClusterAsset) error {
+	platform := strings.ToLower(conf.Platform)
+	switch platform {
+	case "libvirt", "openstack":
+		workerInfra := createInfraInstance(platform, "worker", 0, conf)
+		if workerInfra == nil {
+			return fmt.Errorf("unsupported platform: %s", platform)
+		}
+		if err := destroyNodes(workerInfra, "worker"); err != nil {
+			logrus.Debugf("Failed to destroy worker nodes: %v", err)
+			return err
+		}
+
+		masterInfra := createInfraInstance(platform, "master", 0, conf)
+		if masterInfra == nil {
+			return fmt.Errorf("unsupported platform: %s", platform)
+		}
+		if err := destroyNodes(masterInfra, "master"); err != nil {
+			logrus.Debugf("Failed to destroy master nodes: %v", err)
+			return err
+		}
+
+		logrus.Infof("Cluster destroyed successfully!")
+	case "pxe":
+		logrus.Println("If necessary, manually destroy the config for the PXE server:\n",
+			"1. Stop dhcpd service\n",
+			fmt.Sprintf("2. Delete http root dir: %s\n", conf.InfraPlatform.(*infraasset.PXEAsset).HTTPRootDir),
+			fmt.Sprintf("3. Delete tftp root dir: %s", conf.InfraPlatform.(*infraasset.PXEAsset).TFTPRootDir),
+		)
+	case "ipxe":
+		logrus.Println("If necessary, manually destroy the config for the iPXE server:\n",
+			"1. Stop dhcpd service\n",
+			fmt.Sprintf("2. Delete ipxe config: %s\n", conf.InfraPlatform.(*infraasset.IPXEAsset).FilePath),
+			fmt.Sprintf("3. Delete OS install tree: %s", conf.InfraPlatform.(*infraasset.IPXEAsset).OSInstallTreePath),
+		)
+	default:
+		logrus.Debugf("unsupported platform: %s", conf.Platform)
+		return fmt.Errorf("unsupported platform: %s", conf.Platform)
 	}
 
 	return nil
