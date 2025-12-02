@@ -127,8 +127,8 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 			fmt.Sprintf("3. Delete OS install tree: %s", clusterConfig.InfraPlatform.(*infraasset.IPXEAsset).OSInstallTreePath),
 		)
 	default:
-		logrus.Debugf("unsupported platform")
-		return err
+		logrus.Debugf("unsupported platform: %s", clusterConfig.Platform)
+		return fmt.Errorf("unsupported platform: %s", clusterConfig.Platform)
 	}
 
 	// delete asset files
