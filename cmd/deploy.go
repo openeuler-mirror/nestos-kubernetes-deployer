@@ -32,8 +32,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
 
 	"nestos-kubernetes-deployer/cmd/command"
 	"nestos-kubernetes-deployer/cmd/command/opts"
@@ -218,12 +218,9 @@ func createCluster(conf *asset.ClusterAsset) error {
 
 		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
 		go func() {
-			select {
-			case <-httpService.Ch:
-				logrus.Info("tftp server stop")
-				tftpService.Stop()
-				return
-			}
+			<-httpService.Ch
+			logrus.Debug("tftp server stop")
+			tftpService.Stop()
 		}()
 		go func() {
 			if err := tftpService.Start(); err != nil {

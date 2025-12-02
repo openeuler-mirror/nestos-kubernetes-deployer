@@ -172,12 +172,9 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 
 		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
 		go func() {
-			select {
-			case <-httpService.Ch:
-				logrus.Info("tftp server stop")
-				tftpService.Stop()
-				return
-			}
+			<-httpService.Ch
+			logrus.Info("tftp server stop")
+			tftpService.Stop()
 		}()
 		go func() {
 			if err := tftpService.Start(); err != nil {
