@@ -54,7 +54,12 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	conf.InfraPlatform = getDefaultInfraAsset(strings.ToLower(conf.Platform))
+
+	infraAsset, err := getDefaultInfraAsset(strings.ToLower(conf.Platform))
+	if err != nil {
+		return fmt.Errorf("failed to get default infra asset: %w", err)
+	}
+	conf.InfraPlatform = infraAsset
 
 	data, err := yaml.Marshal(conf)
 	if err != nil {
@@ -78,14 +83,14 @@ func createTemplate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getDefaultInfraAsset(platform string) interface{} {
+func getDefaultInfraAsset(platform string) (interface{}, error) {
 	switch platform {
 	case "libvirt":
 		return infraasset.LibvirtAsset{
 			URI:     "qemu:///system",
 			CIDR:    "192.168.132.0/24",
 			Gateway: "192.168.132.1",
-		}
+		}, nil
 	case "openstack":
 		return infraasset.OpenStackAsset{
 			UserName:         "admin",
@@ -93,21 +98,21 @@ func getDefaultInfraAsset(platform string) interface{} {
 			AuthURL:          "http://controller:5000/v3",
 			Region:           "RegionOne",
 			AvailabilityZone: "nova",
-		}
+		}, nil
 	case "pxe":
 		return infraasset.PXEAsset{
 			HTTPServerPort: "9080",
 			HTTPRootDir:    "/var/www/html/",
 			TFTPServerPort: "69",
 			TFTPRootDir:    "/var/lib/tftpboot/",
-		}
+		}, nil
 	case "ipxe":
 		return infraasset.IPXEAsset{
 			Port:              "9080",
 			OSInstallTreePath: "/var/www/html/",
-		}
+		}, nil
 	default:
 		logrus.Debugf("unsupported platform: %s", platform)
-		return fmt.Errorf("unsupported platform: %s", platform)
+		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
 }
