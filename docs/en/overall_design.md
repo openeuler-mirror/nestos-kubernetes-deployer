@@ -1,4 +1,4 @@
-# Project design
+# Overall design
 
 ## Overall architecture
 
