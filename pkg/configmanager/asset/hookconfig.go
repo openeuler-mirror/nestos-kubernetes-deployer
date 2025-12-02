@@ -38,8 +38,8 @@ const (
 	YMLFileExt      = ".yml"
 )
 
-//若传入的是一个目录，则会解析当前目录下的文件（注意：不会递归处理子目录下的文件）
-//若传入的是一个文件而非目录，则会直接解析该文件并返回
+// 若传入的是一个目录，则会解析当前目录下的文件（注意：不会递归处理子目录下的文件）
+// 若传入的是一个文件而非目录，则会直接解析该文件并返回
 func GetCmdHooks(conf *HookConf) error {
 	if conf == nil {
 		return errors.New("received nil pointer for HookConf parameter")
@@ -120,7 +120,7 @@ func getDirAndShells(p string) ([]ShellFile, error) {
 		return nil, fmt.Errorf("no valid hook files found in folder: %s", p)
 	}
 	if totalFileSize > MaxHookFileSize {
-		return nil, fmt.Errorf("total size of shell script file in the directory exceeds the limit: %d bytes (max: %d bytes)", fileInfo.Size(), MaxHookFileSize)
+		return nil, fmt.Errorf("total size of shell script file in the directory exceeds the limit: %d bytes (max: %d bytes)", totalFileSize, MaxHookFileSize)
 	}
 
 	return hookFiles, nil
