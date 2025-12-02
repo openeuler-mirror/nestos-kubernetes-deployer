@@ -92,8 +92,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logrus.Debugf("The cluster nodes are extended successfully")
-
+	logrus.Infof("Cluster extended successfully!")
 	return nil
 }
 
@@ -160,7 +159,7 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 			return fmt.Errorf("unsupported platform: %s", platform)
 		}
 		if err := extendNodes(workerInfra, "worker"); err != nil {
-			logrus.Errorf("Failed to deploy worker nodes: %v", err)
+			logrus.Errorf("Failed to extend worker nodes: %v", err)
 			return err
 		}
 	case "pxe":
@@ -195,7 +194,6 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 			return err
 		}
 		httpserver.StartHTTPService(httpService)
-
 	default:
 		logrus.Debugf("unsupported platform: %s", platform)
 		return fmt.Errorf("unsupported platform: %s", platform)
