@@ -65,7 +65,6 @@ func NewDeployCommand() *cobra.Command {
 const (
 	clusterID         = "cluster"
 	clusterConfigFile = "cluster_config.yaml"
-	housekeeperNS     = "housekeeper-system"
 	kubeSystemNS      = "kube-system"
 )
 
@@ -427,6 +426,9 @@ func deployHousekeeper(tmplData interface{}) error {
 	for _, childInfo := range child {
 		filePath := filepath.Join("housekeeper", childInfo.Name())
 		data, err := utils.FetchAndUnmarshalUrl(filePath, tmplData)
+		if err != nil {
+			return err
+		}
 		err = kubeclient.ApplyYAML(data)
 		if err != nil {
 			return err
