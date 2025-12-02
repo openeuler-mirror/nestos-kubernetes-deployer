@@ -40,7 +40,6 @@ import (
 	"nestos-kubernetes-deployer/pkg/utils"
 )
 
-
 // CreateClient creates a Kubernetes clientset.
 // Parameters:
 // - kubeconfig: Path to the kubeconfig file.
@@ -101,20 +100,20 @@ func ApplyYAML(yamlContent []byte) error {
 	var config *rest.Config
 
 	kubeconfig := utils.GetKubeConfigPath()
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig);
-	if err !=nil {
-		logrus.Errorf("Error get kubernetes config:", err)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		logrus.Errorf("Error get kubernetes config: %v", err)
 		return err
 	}
 
 	yamlReader := apiyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(yamlContent)))
 	for {
 		section, err := yamlReader.Read()
-		if err ==  io.EOF {
+		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			logrus.Errorf("failed to read YAML document: %w", err)
+			logrus.Errorf("failed to read YAML document: %v", err)
 			return err
 		}
 
@@ -129,7 +128,7 @@ func ApplyYAML(yamlContent []byte) error {
 
 		if err := applySingleResources(kubeconfig, config, unstructuredobj); err != nil {
 			gvk := unstructuredobj.GetObjectKind().GroupVersionKind()
-			logrus.Errorf("failed to apply %s %s/%s: %w",  gvk.Kind, unstructuredobj.GetNamespace(), unstructuredobj.GetName(), err)
+			logrus.Errorf("failed to apply %s %s/%s: %v", gvk.Kind, unstructuredobj.GetNamespace(), unstructuredobj.GetName(), err)
 			return err
 		}
 	}
@@ -169,13 +168,13 @@ func applySingleResources(kubeconfig string, config *rest.Config, unstructuredob
 
 	resource := dyn.Resource(mapping.Resource).Namespace(ns)
 	applyConfig := &metav1.PatchOptions{
-		Force: 			 pointer.Bool(false),
-		FieldManager:    "nkd-controller",
+		Force:        pointer.Bool(false),
+		FieldManager: "nkd-controller",
 	}
 
 	patchData, err := unstructuredobj.MarshalJSON()
 	if err != nil {
-		logrus.Errorf("failed to marshal object:", err)
+		logrus.Errorf("failed to marshal object: %v", err)
 		return err
 	}
 
