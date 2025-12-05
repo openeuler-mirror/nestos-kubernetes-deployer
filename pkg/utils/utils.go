@@ -116,11 +116,22 @@ func GenerateWWN() (string, error) {
 	return wwn, nil
 }
 
-const defaultKubeConfigPath = "/etc/nkd/cluster/admin.config"
+var (
+	defaultKubeConfigPath = "/etc/nkd/cluster/admin.config"
+	AdminConfigName       = "admin.config"
+)
 
 func GetKubeConfigPath() string {
 	if path := os.Getenv("KUBECONFIG"); path != "" {
 		return filepath.Clean(path)
 	}
+	return filepath.Clean(defaultKubeConfigPath)
+}
+
+func SetDefaultKubeConfigPath(rootDir, clusterID string) {
+	defaultKubeConfigPath = filepath.Join(rootDir, clusterID, AdminConfigName)
+}
+
+func GetDefaultKubeConfigPath() string {
 	return filepath.Clean(defaultKubeConfigPath)
 }

@@ -63,9 +63,7 @@ func NewDeployCommand() *cobra.Command {
 }
 
 const (
-	clusterID         = "cluster"
-	clusterConfigFile = "cluster_config.yaml"
-	kubeSystemNS      = "kube-system"
+	kubeSystemNS = "kube-system"
 )
 
 func runDeployCmd(cmd *cobra.Command, args []string) error {
@@ -90,15 +88,18 @@ func runDeployCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	logrus.Info("Cluster deployed successfully!")
-	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", clusterID, config.AdminKubeConfig)
+	logrus.Infof("To access 'cluster-id:%s' cluster using 'kubectl', run 'export KUBECONFIG=%s'", opts.Opts.ClusterID, config.AdminKubeConfig)
 	return nil
 }
 
 func validateDeployConfig() error {
-	opts.Opts.ClusterID = clusterID
-	clusterConfigFile := filepath.Join(opts.Opts.RootOptDir, opts.Opts.ClusterID, clusterConfigFile)
+	//sync default kubeconfig path
+	utils.SetDefaultKubeConfigPath(opts.Opts.RootOptDir, opts.Opts.ClusterID)
+
+	// pdding cluster config file path
+	clusterConfigFilePath := filepath.Join(opts.Opts.RootOptDir, opts.Opts.ClusterID, opts.Opts.ClusterConfigFile)
 	// Check if clusterConfigFile already exists
-	if _, err := os.Stat(clusterConfigFile); err == nil {
+	if _, err := os.Stat(clusterConfigFilePath); err == nil {
 		logrus.Debugf("cluster ID: %s already exists", opts.Opts.ClusterID)
 		return fmt.Errorf("cluster ID: %s already exists", opts.Opts.ClusterID)
 	}
@@ -112,7 +113,7 @@ func getClusterConfig(options *opts.OptionsList) (*asset.ClusterAsset, error) {
 		return nil, err
 	}
 
-	config, err := configmanager.GetClusterConfig(clusterID)
+	config, err := configmanager.GetClusterConfig(opts.Opts.ClusterID)
 	if err != nil {
 		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return nil, err
