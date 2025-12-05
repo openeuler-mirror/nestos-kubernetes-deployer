@@ -25,8 +25,8 @@ import (
 
 func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags := deployCmd.Flags()
-	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "", "Location of the cluster deploy config file")
-	flags.StringVarP(&opts.Opts.ClusterID, "clusterID", "", "", constVal.ClusterIdHelp)
+	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "cluster_config.yaml", "Location of the cluster deploy config file")
+	flags.StringVarP(&opts.Opts.ClusterID, "clusterID", "", "cluster", constVal.ClusterIdHelp)
 	flags.StringVar(&opts.Opts.Arch, "arch", "", "Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)")
 	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
 
