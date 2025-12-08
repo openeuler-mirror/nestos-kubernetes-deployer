@@ -45,22 +45,12 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 	cleanup := command.SetuploggerHook(opts.Opts.RootOptDir)
 	defer cleanup()
 
-	clusterID, err := cmd.Flags().GetString("cluster-id")
-	if err != nil {
-		logrus.Debugf("Failed to get cluster id: %v", err)
-		return err
-	}
-	if clusterID == "" {
-		logrus.Debugf("cluster-id is not provided: %v", err)
-		return err
-	}
-
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Debugf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
 
-	config, err := configmanager.GetClusterConfig(clusterID)
+	config, err := configmanager.GetClusterConfig(opts.Opts.ClusterID)
 	if err != nil {
 		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return err
@@ -72,7 +62,7 @@ func runDestroyCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// delete asset files
-	if err := configmanager.Delete(clusterID); err != nil {
+	if err := configmanager.Delete(opts.Opts.ClusterID); err != nil {
 		logrus.Debugf("Failed to clean the asset files")
 		return err
 	}

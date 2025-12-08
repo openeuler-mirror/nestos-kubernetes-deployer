@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -41,31 +40,12 @@ func NewUpgradeCommand() *cobra.Command {
 	return upgradeCmd
 }
 
-func getFlagString(cmd *cobra.Command, flagName string) string {
-	flagValue, err := cmd.Flags().GetString(flagName)
-	if err != nil {
-		logrus.Debugf("Failed to get %s parameter: %v", flagName, err)
-		return ""
-	}
-	return flagValue
-}
-
 func runUpgradeCmd(cmd *cobra.Command, args []string) error {
-	clusterId := getFlagString(cmd, "cluster-id")
-	imageURL := getFlagString(cmd, "imageurl")
-	if clusterId == "" {
-		return errors.New("cluster-id is required")
-	}
-
-	if imageURL == "" {
-		return errors.New("imageurl is required")
-	}
-
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Debugf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
-	clusterConfig, err := configmanager.GetClusterConfig(clusterId)
+	clusterConfig, err := configmanager.GetClusterConfig(opts.Opts.ClusterID)
 	if err != nil {
 		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return err

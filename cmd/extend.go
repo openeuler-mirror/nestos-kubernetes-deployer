@@ -57,22 +57,12 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	cleanup := command.SetuploggerHook(opts.Opts.RootOptDir)
 	defer cleanup()
 
-	clusterID, err := cmd.Flags().GetString("cluster-id")
-	if err != nil {
-		logrus.Debugf("Failed to get cluster-id: %v", err)
-		return err
-	}
-	if clusterID == "" {
-		logrus.Debugf("cluster-id is not provided: %v", err)
-		return fmt.Errorf("cluster-id is required")
-	}
-
 	if err := configmanager.Initial(&opts.Opts); err != nil {
 		logrus.Debugf("Failed to initialize configuration parameters: %v", err)
 		return err
 	}
 
-	clusterConfig, err := configmanager.GetClusterConfig(clusterID)
+	clusterConfig, err := configmanager.GetClusterConfig(opts.Opts.ClusterID)
 	if err != nil {
 		logrus.Debugf("Failed to get cluster config using the cluster id: %v", err)
 		return err
@@ -88,7 +78,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := extendCluster(clusterConfig, num); err != nil {
-		logrus.Debugf("Failed to extend %s cluster: %v", clusterID, err)
+		logrus.Debugf("Failed to extend %s cluster: %v", opts.Opts.ClusterID, err)
 		return err
 	}
 
