@@ -427,7 +427,7 @@ func GetDefaultClusterConfig(arch string, platform string) (*ClusterAsset, error
 		return nil, errors.New("unsupported platform")
 	}
 
-	clusterAsset.Runtime = "crio"
+	clusterAsset.Runtime = "containerd"
 	clusterAsset.Kubernetes = Kubernetes{
 		KubernetesVersion:    "v1.29.1",
 		KubernetesAPIVersion: "v1beta3",
