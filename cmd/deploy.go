@@ -96,10 +96,9 @@ func validateDeployConfig() error {
 	//sync default kubeconfig path
 	utils.SetDefaultKubeConfigPath(opts.Opts.RootOptDir, opts.Opts.ClusterID)
 
-	// pdding cluster config file path
-	clusterConfigFilePath := filepath.Join(opts.Opts.RootOptDir, opts.Opts.ClusterID, opts.Opts.ClusterConfigFile)
 	// Check if clusterConfigFile already exists
-	if _, err := os.Stat(clusterConfigFilePath); err == nil {
+	defClusterConfigFilePath := filepath.Join(opts.Opts.RootOptDir, opts.Opts.ClusterID, configmanager.GetClusterConfigFileName())
+	if _, err := os.Stat(defClusterConfigFilePath); err == nil {
 		logrus.Debugf("cluster ID: %s already exists", opts.Opts.ClusterID)
 		return fmt.Errorf("cluster ID: %s already exists", opts.Opts.ClusterID)
 	}

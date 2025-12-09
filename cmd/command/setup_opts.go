@@ -25,7 +25,7 @@ import (
 
 func SetupDeployCmdOpts(deployCmd *cobra.Command) {
 	flags := deployCmd.Flags()
-	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "cluster_config.yaml", "Location of the cluster deploy config file")
+	flags.StringVarP(&opts.Opts.ClusterConfigFile, "file", "f", "", "Location of the cluster deploy config file")
 	flags.StringVarP(&opts.Opts.ClusterID, "cluster-id", "", "cluster", constVal.ClusterIdHelp)
 	flags.StringVar(&opts.Opts.Arch, "arch", "", "Architecture for Kubernetes cluster deployment (e.g., amd64 or arm64)")
 	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
@@ -118,6 +118,6 @@ func SetupExtendCmdOpts(extendCmd *cobra.Command) {
 
 func SetupTemplateCmdOpts(templateCmd *cobra.Command) {
 	flags := templateCmd.Flags()
-	flags.StringVarP(&opts.Opts.ClusterConfigFile, "output", "o", "cluster_config.yaml", "Generates a default configuration template at the specified location")
+	flags.StringVarP(&opts.Opts.ClusterConfigFile, "output", "o", "", "Generates a default configuration template at the specified location")
 	flags.StringVarP(&opts.Opts.Platform, "platform", "", "", "Infrastructure platform for deploying the cluster (supports 'libvirt' 'openstack' 'pxe' 'ipxe')")
 }

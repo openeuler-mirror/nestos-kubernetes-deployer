@@ -36,6 +36,10 @@ var ClusterAsset = map[string]*asset.ClusterAsset{}
 
 const clusterConfigFile string = "cluster_config.yaml"
 
+func GetClusterConfigFileName() string {
+	return clusterConfigFile
+}
+
 func Initial(opts *opts.OptionsList) error {
 	// Init global asset
 	globalConfig, err := globalconfig.InitGlobalConfig(opts)
