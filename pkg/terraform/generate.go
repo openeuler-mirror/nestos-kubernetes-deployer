@@ -118,7 +118,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 			master_cpu = append(master_cpu, master.CPU)
 			master_ram = append(master_ram, master.RAM)
 			master_disk = append(master_disk, master.Disk)
-			master_hostname = append(master_hostname, master.Hostname)
+			master_hostname = append(master_hostname, master.Hostname+"-${random_id.vm_id.hex}")
 			wwn, err := utils.GenerateWWN()
 			if err != nil {
 				logrus.Errorf("Failed to generate WWN: %v", err)
@@ -180,7 +180,7 @@ func (infra *Infra) Generate(conf *asset.ClusterAsset, node string) (err error) 
 				worker.IP = "null"
 			}
 			worker_ip = append(worker_ip, worker.IP)
-			worker_hostname = append(worker_hostname, worker.Hostname)
+			worker_hostname = append(worker_hostname, worker.Hostname+"-${random_id.vm_id.hex}")
 			worker_bootConfig = append(worker_bootConfig, conf.BootConfig.Worker.Path)
 			wwn, err := utils.GenerateWWN()
 			if err != nil {

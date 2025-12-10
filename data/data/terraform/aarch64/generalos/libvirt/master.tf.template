@@ -11,6 +11,10 @@ provider "libvirt" {
   uri = "{{.Platform.URI}}"
 }
 
+resource "random_id" "vm_id" {
+  byte_length = 8
+}
+
 variable "cluster_id" {
   type    = string
   default = "{{.ClusterID}}"
@@ -21,9 +25,8 @@ variable "instance_count" {
   default = "{{.Master.Count}}"
 }
 
-variable "instance_hostname" {
-  type    = list(string)
-  default = {{.Master.Hostname}}
+locals{
+  instance_hostname = {{.Master.Hostname}}
 }
 
 variable "instance_ip" {
@@ -80,7 +83,7 @@ resource "libvirt_volume" "volume" {
 
 resource "libvirt_volume" "disk" {
   count          = var.instance_count
-  name           = "${var.instance_hostname[count.index]}-disk"
+  name           = "${local.instance_hostname[count.index]}-disk"
   base_volume_id = libvirt_volume.volume.id
   pool           = libvirt_pool.pool.name
   size           = var.instance_disk[count.index] * 1024 * 1024 * 1024
@@ -88,14 +91,14 @@ resource "libvirt_volume" "disk" {
 
 resource "libvirt_cloudinit_disk" "cloudinit" {
   count     = var.instance_count
-  name      = "${var.instance_hostname[count.index]}.iso"
+  name      = "${local.instance_hostname[count.index]}.iso"
   pool      = libvirt_pool.pool.name
   user_data = data.template_file.user_data.*.rendered[count.index]
 }
 
 data "template_file" "user_data" {
   count    = var.instance_count
-  template = templatefile(var.instance_cloudinit[count.index], { hostname = var.instance_hostname[count.index] })
+  template = templatefile(var.instance_cloudinit[count.index], { hostname = local.instance_hostname[count.index] })
 }
 
 resource "libvirt_network" "network" {
@@ -123,10 +126,10 @@ resource "libvirt_network" "network" {
 
 resource "libvirt_domain" "generalos" {
   count           = var.instance_count
-  name            = var.instance_hostname[count.index]
+  name            = local.instance_hostname[count.index]
   firmware        = "/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw"
   nvram {
-    file     = "/var/lib/libvirt/qemu/nvram/${var.instance_hostname[count.index]}_VARS.fd"
+    file     = "/var/lib/libvirt/qemu/nvram/${local.instance_hostname[count.index]}_VARS.fd"
     template = "/usr/share/edk2/aarch64/vars-template-pflash.raw"
   }
   cpu {
@@ -169,7 +172,7 @@ resource "libvirt_domain" "generalos" {
 
   network_interface {
     network_name   = libvirt_network.network.name
-    hostname       = var.instance_hostname[count.index]
+    hostname       = local.instance_hostname[count.index]
     addresses      = var.instance_ip[count.index] != "null" ? [var.instance_ip[count.index]] : null
     wait_for_lease = true
   }

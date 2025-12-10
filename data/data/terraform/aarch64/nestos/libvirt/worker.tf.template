@@ -11,6 +11,10 @@ provider "libvirt" {
   uri = "{{.Platform.URI}}"
 }
 
+resource "random_id" "vm_id" {
+  byte_length = 8
+}
+
 variable "cluster_id" {
   type    = string
   default = "{{.ClusterID}}"
@@ -20,9 +24,8 @@ variable "instance_count" {
   default = "{{.Worker.Count}}"
 }
 
-variable "instance_hostname" {
-  type    = list(string)
-  default = {{.Worker.Hostname}}
+locals{
+  instance_hostname = {{.Worker.Hostname}}
 }
 
 variable "instance_ip" {
@@ -58,7 +61,7 @@ resource "libvirt_volume" "volume" {
 
 resource "libvirt_volume" "disk" {
   count            = var.instance_count
-  name             = "${var.instance_hostname[count.index]}-disk"
+  name             = "${local.instance_hostname[count.index]}-disk"
   base_volume_name = "${var.cluster_id}-volume"
   pool             = "${var.cluster_id}-pool"
   size             = var.instance_disk[count.index] * 1024 * 1024 * 1024
@@ -66,14 +69,14 @@ resource "libvirt_volume" "disk" {
 
 resource "libvirt_ignition" "ignition" {
   count   = var.instance_count
-  name    = "${var.instance_hostname[count.index]}-ignition"
+  name    = "${local.instance_hostname[count.index]}-ignition"
   pool    = "${var.cluster_id}-pool"
-  content = templatefile(var.instance_ign[count.index], { hostname = var.instance_hostname[count.index] })
+  content = templatefile(var.instance_ign[count.index], { hostname = local.instance_hostname[count.index] })
 }
 
 resource "libvirt_domain" "nestos" {
   count           = var.instance_count
-  name            = var.instance_hostname[count.index]
+  name            = local.instance_hostname[count.index]
   cpu {
     mode = "host-passthrough"
   }
@@ -90,7 +93,7 @@ resource "libvirt_domain" "nestos" {
 
   network_interface {
     network_name   = "${var.cluster_id}-net"
-    hostname       = var.instance_hostname[count.index]
+    hostname       = local.instance_hostname[count.index]
     addresses      = var.instance_ip[count.index] != "null" ? [var.instance_ip[count.index]] : null
     wait_for_lease = true
   }

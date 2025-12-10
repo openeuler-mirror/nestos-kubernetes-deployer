@@ -15,6 +15,10 @@ provider "openstack" {
   region      = "{{.Platform.Region}}"
 }
 
+resource "random_id" "vm_id" {
+  byte_length = 8
+}
+
 variable "cluster_id" {
   type    = string
   default = "{{.ClusterID}}"
@@ -25,9 +29,8 @@ variable "instance_count" {
   default = "{{.Master.Count}}"
 }
 
-variable "instance_hostname" {
-  type    = list(string)
-  default = {{.Master.Hostname}}
+locals{
+  instance_hostname = {{.Master.Hostname}}
 }
 
 variable "instance_cpu" {
@@ -77,7 +80,7 @@ variable "external_net" {
 
 resource "openstack_compute_flavor_v2" "flavor" {
   count     = var.instance_count
-  name      = var.instance_hostname[count.index]
+  name      = local.instance_hostname[count.index]
   vcpus     = var.instance_cpu[count.index]
   ram       = var.instance_ram[count.index]
   disk      = var.instance_disk[count.index]
@@ -86,7 +89,7 @@ resource "openstack_compute_flavor_v2" "flavor" {
 
 resource "openstack_blockstorage_volume_v3" "volume" {
   count = var.instance_count
-  name  = var.instance_hostname[count.index]
+  name  = local.instance_hostname[count.index]
   size  = var.instance_disk[count.index]
 }
 
@@ -174,12 +177,12 @@ resource "openstack_compute_secgroup_v2" "secgroup" {
 
 resource "openstack_compute_instance_v2" "instance" {
   count              = var.instance_count
-  name               = var.instance_hostname[count.index]
+  name               = local.instance_hostname[count.index]
   image_name         = var.instance_osimage
-  flavor_name        = var.instance_hostname[count.index]
+  flavor_name        = local.instance_hostname[count.index]
   security_groups    = [openstack_compute_secgroup_v2.secgroup.name]
   availability_zone  = var.availability_zone
-  user_data          = templatefile(var.instance_userdata[count.index], { hostname = var.instance_hostname[count.index] })
+  user_data          = templatefile(var.instance_userdata[count.index], { hostname = local.instance_hostname[count.index] })
 
   network {
     name        = var.internal_net
