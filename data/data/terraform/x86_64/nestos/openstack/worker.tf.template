@@ -176,7 +176,7 @@ resource "openstack_compute_secgroup_v2" "secgroup" {
 
 resource "openstack_compute_instance_v2" "instance" {
   count              = var.instance_count
-  name               = local.instance_hostname[count.index]
+  name               = "${tostring(var.cluster_id)}-${tostring(local.instance_hostname[count.index])}"
   image_name         = var.instance_osimage
   flavor_name        = local.instance_hostname[count.index]
   security_groups    = [openstack_compute_secgroup_v2.secgroup.name]

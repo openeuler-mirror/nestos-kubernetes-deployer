@@ -76,7 +76,7 @@ resource "libvirt_ignition" "ignition" {
 
 resource "libvirt_domain" "nestos" {
   count           = var.instance_count
-  name            = local.instance_hostname[count.index]
+  name            = "${tostring(var.cluster_id)}-${tostring(local.instance_hostname[count.index])}"
   cpu {
     mode = "host-passthrough"
   }
