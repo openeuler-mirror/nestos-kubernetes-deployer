@@ -122,7 +122,7 @@ resource "libvirt_network" "network" {
 
 resource "libvirt_domain" "generalos" {
   count           = var.instance_count
-  name            = local.instance_hostname[count.index]
+  name            = "${tostring(var.cluster_id)}-${tostring(local.instance_hostname[count.index])}"
   cpu {
     mode = "host-passthrough"
   }

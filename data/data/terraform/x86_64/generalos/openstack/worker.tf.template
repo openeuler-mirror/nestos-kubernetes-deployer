@@ -79,7 +79,7 @@ variable "external_net" {
 
 resource "openstack_compute_flavor_v2" "flavor" {
   count     = var.instance_count
-  name      = local.instance_hostname[count.index]
+  name      = "${tostring(var.cluster_id)}-${tostring(local.instance_hostname[count.index])}"
   vcpus     = var.instance_cpu[count.index]
   ram       = var.instance_ram[count.index]
   disk      = var.instance_disk[count.index]
