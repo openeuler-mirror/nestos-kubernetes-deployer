@@ -17,6 +17,7 @@ limitations under the License.
 package constVal
 
 const (
-	ClusterId     = "cluster-id"
-	ClusterIdHelp = "Unique identifier for the cluster"
+	ClusterId             = "cluster-id"
+	ClusterIdDefaultValue = "cluster"
+	ClusterIdHelp         = "Unique identifier for the cluster"
 )
