@@ -442,12 +442,17 @@ func applyNetworkPlugin(pluginConfigPath string, isNestOS bool) error {
 
 	// Check if the pluginConfigPath is an HTTP(S) link or a local file path
 	if strings.HasPrefix(pluginConfigPath, "http://") || strings.HasPrefix(pluginConfigPath, "https://") {
-		response, err := http.Get(pluginConfigPath)
+		client := &http.Client{Timeout: time.Duration(60) * time.Second}
+		response, err := client.Get(pluginConfigPath)
 		if err != nil {
-			logrus.Debugf("Failed to fetch network plugin configuration from URL: %v", err)
-			return err
+			return fmt.Errorf("failed to fetch network plugin configuration from URL %s: %w", pluginConfigPath, err)
 		}
 		defer response.Body.Close()
+
+		if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+			return fmt.Errorf("unexpected HTTP status %d when fetching %s", response.StatusCode, pluginConfigPath)
+		}
+
 		content, err = io.ReadAll(response.Body)
 		if err != nil {
 			logrus.Debugf("Failed to read content from HTTP response: %v", err)
