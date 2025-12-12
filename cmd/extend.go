@@ -153,26 +153,29 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 			return err
 		}
 	case "pxe":
-		pxeConfig := conf.InfraPlatform.(*infraasset.PXEAsset)
+		pxeConfig, ok := conf.InfraPlatform.(*infraasset.PXEAsset)
+		if !ok {
+			return fmt.Errorf("infra platform mismatch: expected *infraasset.PXEAsset, got %T", conf.InfraPlatform)
+		}
 		httpService.Port = pxeConfig.HTTPServerPort
 		httpService.DirPath = pxeConfig.HTTPRootDir
 		httpserver.StartHTTPService(httpService)
 
 		tftpService := tftpserver.NewTFTPService(pxeConfig.IP, pxeConfig.TFTPServerPort, pxeConfig.TFTPRootDir)
 		go func() {
-			<-httpService.Ch
-			logrus.Debug("tftp server stop")
-			tftpService.Stop()
-		}()
-		go func() {
 			if err := tftpService.Start(); err != nil {
 				logrus.Debugf("error starting http service: %v", err)
 				return
 			}
+			<-httpService.Ch
+			logrus.Debug("tftp server stop")
+			tftpService.Stop()
 		}()
-		defer tftpService.Stop()
 	case "ipxe":
-		ipxeConfig := conf.InfraPlatform.(*infraasset.IPXEAsset)
+		ipxeConfig, ok := conf.InfraPlatform.(*infraasset.IPXEAsset)
+		if !ok {
+			return fmt.Errorf("infra platform mismatch: expected *infraasset.IPXEAsset, got %T", conf.InfraPlatform)
+		}
 		httpService.Port = ipxeConfig.Port
 		httpService.DirPath = ipxeConfig.OSInstallTreePath
 		fileContent, err := os.ReadFile(ipxeConfig.FilePath)
