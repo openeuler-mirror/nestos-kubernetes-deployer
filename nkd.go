@@ -40,6 +40,7 @@ func main() {
 		cmd.NewExtendCommand(),
 		cmd.NewVersionCommand(),
 		cmd.NewTemplateCommand(),
+		cmd.NewCompletionCommand(),
 	} {
 		rootCmd.AddCommand(subCmd)
 	}
