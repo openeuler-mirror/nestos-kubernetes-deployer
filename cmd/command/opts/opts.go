@@ -54,6 +54,8 @@ type OptionsList struct {
 
 	NetWork NetworkConfig
 	Housekeeper
+
+	ForceOperation bool
 }
 
 type NKDConfig struct {

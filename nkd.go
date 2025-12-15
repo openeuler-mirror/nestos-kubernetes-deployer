@@ -18,6 +18,8 @@ package main
 import (
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -60,6 +62,8 @@ func newRootCmd() *cobra.Command {
 
 	cmd.PersistentFlags().StringVar(&opts.Opts.RootOptDir, "dir", "/etc/nkd", "Assets directory")
 	cmd.PersistentFlags().StringVar(&opts.RootOpts.LogLevel, "log-level", "info", "log level (e.g. \"debug | info | warn | error\")")
+	cmd.PersistentFlags().BoolVar(&opts.Opts.ForceOperation, "force", false, "Compulsory enforcement")
+
 	return cmd
 }
 
@@ -78,4 +82,13 @@ func runRootCmd(cmd *cobra.Command, args []string) {
 		DisableQuote:           true,
 	}
 	logrus.AddHook(command.NewloggerHook(os.Stderr, level, fmt))
+
+	if opts.Opts.ForceOperation {
+		forceOperation()
+	}
+}
+
+func forceOperation() {
+	logrus.Warn("Force operation enabled, ignoring interrupt signals")
+	signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
 }
