@@ -63,7 +63,7 @@ func runExtendCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if clusterID == "" {
-		logrus.Errorf("cluster-id is not provided: %v", err)
+		return errors.New("cluster-id is not provided")
 	}
 
 	if err := configmanager.Initial(&opts.Opts); err != nil {
@@ -108,15 +108,21 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 
 	osMgr := osmanager.NewOSManager(conf)
 	if osMgr.IsNestOS() {
-		httpService.AddFileToCache(constants.WorkerIgn, data)
+		if err := httpService.AddFileToCache(constants.WorkerIgn, data); err != nil {
+			return err
+		}
 	}
 	if osMgr.IsGeneralOS() {
 		if strings.ToLower(conf.Platform) == "pxe" || strings.ToLower(conf.Platform) == "ipxe" {
-			httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, data)
+			if err := httpService.AddFileToCache(constants.Worker+constants.KickstartSuffix, data); err != nil {
+				return err
+			}
 		}
 	}
 
-	httpService.AddFileToCache(constants.WorkerIgn, data)
+	if err := httpService.AddFileToCache(constants.WorkerIgn, data); err != nil {
+		return err
+	}
 
 	p := infra.InfraPlatform{}
 	switch strings.ToLower(conf.Platform) {
@@ -200,7 +206,9 @@ func extendCluster(conf *asset.ClusterAsset, num uint) error {
 		if err != nil {
 			return err
 		}
-		httpService.AddFileToCache(constants.IPXECfg, fileContent)
+		if err := httpService.AddFileToCache(constants.IPXECfg, fileContent); err != nil {
+			return err
+		}
 		httpserver.StartHTTPService(httpService)
 
 	default:
