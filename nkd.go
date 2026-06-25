@@ -42,7 +42,7 @@ func main() {
 	}
 
 	if err := rootCmd.Execute(); err != nil {
-		return
+		os.Exit(1)
 	}
 }
 

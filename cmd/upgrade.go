@@ -41,17 +41,24 @@ func NewUpgradeCommand() *cobra.Command {
 	return upgradeCmd
 }
 
-func getFlagString(cmd *cobra.Command, flagName string) string {
+func getFlagString(cmd *cobra.Command, flagName string) (string, error) {
 	flagValue, err := cmd.Flags().GetString(flagName)
 	if err != nil {
 		logrus.Errorf("Failed to get %s parameter: %v", flagName, err)
+		return "", err
 	}
-	return flagValue
+	return flagValue, nil
 }
 
 func runUpgradeCmd(cmd *cobra.Command, args []string) error {
-	clusterId := getFlagString(cmd, "cluster-id")
-	imageURL := getFlagString(cmd, "imageurl")
+	clusterId, err := getFlagString(cmd, "cluster-id")
+	if err != nil {
+		return err
+	}
+	imageURL, err := getFlagString(cmd, "imageurl")
+	if err != nil {
+		return err
+	}
 	if clusterId == "" {
 		return errors.New("cluster-id is required")
 	}

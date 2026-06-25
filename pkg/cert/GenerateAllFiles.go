@@ -47,8 +47,16 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 	var certs []utils.StorageContent
 	clusterID := cg.ClusterID
 	//读取配置
-	clusterconfig, _ := configmanager.GetClusterConfig(clusterID)
-	globalconfig, _ := configmanager.GetGlobalConfig()
+	clusterconfig, err := configmanager.GetClusterConfig(clusterID)
+	if err != nil {
+		logrus.Errorf("failed to get cluster config: %v", err)
+		return err
+	}
+	globalconfig, err := configmanager.GetGlobalConfig()
+	if err != nil {
+		logrus.Errorf("failed to get global config: %v", err)
+		return err
+	}
 
 	//获取node节点hostname和ip地址
 	hostname := cg.Node.Hostname
@@ -115,6 +123,7 @@ func (cg *CertGenerator) GenerateAllFiles() error {
 	cg.CaCertHash, err = GenerateCACertHashes(rootCACert.CertRaw)
 	if err != nil {
 		logrus.Errorf("error to generate ca cert hash: %v", err)
+		return err
 	}
 
 	/* **********生成etcd CA 证书和密钥********** */

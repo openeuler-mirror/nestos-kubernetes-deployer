@@ -69,6 +69,7 @@ func main() {
 	reconciler := controllers.NewUpdateReconciler(mgr)
 	if reconciler.Connection, err = connection.New("unix://" + filepath.Join(constants.SockDir, constants.SockName)); err != nil {
 		logrus.Errorf("unable running housekeeper-controller: %v", err)
+		os.Exit(1)
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		logrus.Error(err, "unable to create controller", "controller", "Update")
